@@ -126,9 +126,9 @@ void dev_close(void)
 
 /* glyph handling functions */
 
-struct glyph *dev_glyph(char *c)
+struct glyph *dev_glyph(char *c, int fn)
 {
-	struct glyph *g = font_find(fn_font[n_f], c);
+	struct glyph *g = font_find(fn_font[fn], c);
 	int i;
 	if (g)
 		return g;
@@ -139,9 +139,9 @@ struct glyph *dev_glyph(char *c)
 	return NULL;
 }
 
-struct glyph *dev_glyph_byid(char *id)
+struct glyph *dev_glyph_byid(char *id, int fn)
 {
-	return font_glyph(fn_font[n_f], id);
+	return font_glyph(fn_font[fn], id);
 }
 
 struct glyph *dev_ligature(char **s, int n)

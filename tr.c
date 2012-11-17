@@ -10,20 +10,10 @@
 
 static int tr_nl = 1;
 
-static void tr_ft(int argc, char **args)
-{
-	int fn;
-	if (argc < 2)
-		return;
-	fn = dev_font(args[1]);
-	if (fn >= 0)
-		n_f = fn;
-}
-
-static void tr_ps(int argc, char **args)
+static void tr_ll(int argc, char **args)
 {
 	if (argc >= 2)
-		n_s = atoi(args[1]);
+		n_l = atoi(args[1]) * SC_PT;
 }
 
 static void tr_vs(int argc, char **args)
@@ -32,16 +22,10 @@ static void tr_vs(int argc, char **args)
 		n_v = atoi(args[1]) * SC_PT;
 }
 
-static void tr_ll(int argc, char **args)
-{
-	if (argc >= 2)
-		n_v = atoi(args[1]) * SC_PT;
-}
-
 static void tr_in(int argc, char **args)
 {
 	if (argc >= 2)
-		n_v = atoi(args[1]) * SC_PT;
+		n_i = atoi(args[1]) * SC_PT;
 }
 
 static void tr_readcmd(char *s)
@@ -92,8 +76,8 @@ static struct cmd {
 	{"ps", tr_ps},
 	{"sp", tr_sp},
 	{"vs", tr_vs},
-	{"vs", tr_ll},
-	{"vs", tr_in},
+	{"ll", tr_ll},
+	{"in", tr_in},
 };
 
 int tr_next(void)

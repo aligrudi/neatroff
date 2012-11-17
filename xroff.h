@@ -59,8 +59,8 @@ struct glyph *font_glyph(struct font *fn, char *id);
 struct glyph *font_find(struct font *fn, char *name);
 
 /* glyph handling functions */
-struct glyph *dev_glyph(char *c);
-struct glyph *dev_glyph_byid(char *id);
+struct glyph *dev_glyph(char *c, int fn);
+struct glyph *dev_glyph_byid(char *id, int fn);
 int dev_spacewid(void);
 
 /* different layers of neatroff */
@@ -79,3 +79,5 @@ void errmsg(char *msg);
 void tr_br(int argc, char **args);
 void tr_sp(int argc, char **args);
 void tr_nr(int argc, char **args);
+void tr_ps(int argc, char **args);
+void tr_ft(int argc, char **args);
