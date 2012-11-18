@@ -70,6 +70,12 @@ static char *readint(char *s, int *d)
 	return s;
 }
 
+static int charwid(int wid, int sz)
+{
+	/* the original troff rounds the widths up */
+	return (wid * sz + dev_uwid - 1) / dev_uwid;
+}
+
 static int o_s, o_f;
 
 static void flush(char *s)
@@ -77,7 +83,8 @@ static void flush(char *s)
 	struct glyph *g;
 	char c[LLEN];
 	int o_blank = 0;
-	printf("H%d", n_o + n_i);
+	printf("v%d\n", n_v);
+	printf("H%d\n", n_o + n_i);
 	while (*s) {
 		s = utf8get(c, s);
 		if (c[0] == '\\') {
@@ -100,13 +107,13 @@ static void flush(char *s)
 		g = dev_glyph(c, o_f);
 		if (g) {
 			if (o_blank)
-				printf("h%d", dev_spacewid() * o_s / dev_uwid);
+				printf("h%d", charwid(dev_spacewid(), o_s));
 			if (utf8len(c[0]) == strlen(c)) {
 				printf("c%s%s", c, c[1] ? "\n" : "");
 			} else {
 				printf("C%s\n", c);
 			}
-			printf("h%d", g->wid * o_s / dev_uwid);
+			printf("h%d", charwid(g->wid, o_s));
 			o_blank = 0;
 		} else {
 			o_blank = 1;
@@ -125,6 +132,10 @@ static void adjust(char *s)
 	int w = 0;
 	int lendiff;
 	int i;
+	if (!nwords) {
+		s[0] = '\0';
+		return;
+	}
 	while (last < words + nwords && w + last->wid + last->blanks <= n_l) {
 		w += last->wid + last->blanks;
 		last++;
@@ -155,7 +166,6 @@ void tr_br(int argc, char **args)
 	if (buflen) {
 		adjust(out);
 		flush(out);
-		down(n_v);
 	}
 	o_s = n_s;
 	o_f = n_f;
@@ -207,7 +217,7 @@ void render(void)
 		}
 		g = dev_glyph(c, n_f);
 		if (!g) {
-			blanks = dev_spacewid() * n_s / dev_uwid;
+			blanks += charwid(dev_spacewid(), n_s);
 			word = NULL;
 			continue;
 		}
@@ -217,12 +227,15 @@ void render(void)
 			word->wid = 0;
 			word->blanks = blanks;
 			wid += blanks;
+			blanks = 0;
 		}
 		word->end = buflen;
-		word->wid += g->wid * n_s / dev_uwid;
-		wid += g->wid * n_s / dev_uwid;
-		if (wid > n_l)
+		word->wid += charwid(g->wid, n_s);
+		wid += charwid(g->wid, n_s);
+		if (wid > n_l) {
+			word = NULL;
 			tr_br(0, NULL);
+		}
 	}
 	tr_br(0, NULL);
 }
