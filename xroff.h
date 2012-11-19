@@ -67,6 +67,8 @@ int dev_spacewid(void);
 int in_next(void);
 int cp_next(void);
 int tr_next(void);
+void in_push(char *s);
+void in_back(int c);
 void cp_back(int c);
 
 /* rendering */
