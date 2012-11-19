@@ -10,6 +10,7 @@
 extern int nreg[];
 int num_get(int id);
 int num_set(int id, int n);
+int tr_int(char *s, int orig, int unit);
 
 /* builtin number registers; n_X for .X register */
 #define N_ID(c1, c2)	((c1) * 256 + (c2))

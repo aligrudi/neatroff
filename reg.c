@@ -23,5 +23,5 @@ void tr_nr(int argc, char **args)
 	if (argc < 3)
 		return;
 	id = N_ID(args[1][0], args[1][1]);
-	nreg[id] = atoi(args[2]);
+	nreg[id] = tr_int(args[2], nreg[id], 'u');
 }

@@ -175,13 +175,13 @@ void tr_sp(int argc, char **args)
 {
 	tr_br(0, NULL);
 	if (argc > 1)
-		down(n_v * atoi(args[1]));
+		down(tr_int(args[1], 0, 'v'));
 }
 
 void tr_ps(int argc, char **args)
 {
 	if (argc >= 2)
-		n_s = atoi(args[1]);
+		n_s = tr_int(args[1], n_s, '\0');
 	buflen += sprintf(buf + buflen, "\\s%d", n_s);
 }
 

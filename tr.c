@@ -10,22 +10,88 @@
 
 static int tr_nl = 1;
 
+static int unit_scale(int c, int n, int mag)
+{
+	int mul = 1;
+	int div = 1;
+	switch (c) {
+	case 'i':
+		mul = SC_IN;
+		break;
+	case 'c':
+		mul = SC_IN * 50;
+		div = 127;
+		break;
+	case 'p':
+		mul = SC_IN;
+		div = 72;
+		break;
+	case 'P':
+		mul = SC_IN;
+		div = 6;
+		break;
+	case 'v':
+		mul = n_v;
+		break;
+	case 'm':
+		mul = n_s * SC_IN;
+		div = 72;
+		break;
+	case 'n':
+		mul = n_s * SC_IN;
+		div = 144;
+		break;
+	}
+	/* it may overflow */
+	return n * mul / div / mag;
+}
+
+int tr_int(char *s, int orig, int unit)
+{
+	int n = 0;		/* the result */
+	int mag = 0;		/* n should be divided by mag */
+	int rel = 0;		/* n should be added to orig */
+	int neg = *s == '-';	/* n should be negated */
+	if (*s == '+' || *s == '-') {
+		rel = 1;
+		s++;
+	}
+	while (isdigit(*s) || *s == '.') {
+		if (*s == '.') {
+			mag = 1;
+			s++;
+			continue;
+		}
+		mag *= 10;
+		n = n * 10 + *s++ - '0';
+	}
+	if (!mag)
+		mag = 1;
+	if (unit)
+		n = unit_scale(*s ? *s : unit, n, mag);
+	else
+		n /= mag;
+	if (neg)
+		n = -n;
+	return rel ? orig + n : n;
+}
+
 static void tr_ll(int argc, char **args)
 {
 	if (argc >= 2)
-		n_l = atoi(args[1]) * SC_PT;
+		n_l = tr_int(args[1], n_l, 'm');
 }
 
 static void tr_vs(int argc, char **args)
 {
 	if (argc >= 2)
-		n_v = atoi(args[1]) * SC_PT;
+		n_v = tr_int(args[1], n_v, 'p');
 }
 
 static void tr_in(int argc, char **args)
 {
 	if (argc >= 2)
-		n_i = atoi(args[1]) * SC_PT;
+		n_i = tr_int(args[1], n_i, 'm');
 }
 
 static void tr_readcmd(char *s)
