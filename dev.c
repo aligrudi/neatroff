@@ -46,7 +46,7 @@ int dev_mnt(int pos, char *id, char *name)
 	if (fn_font[pos])
 		font_close(fn_font[pos]);
 	if (fn_name[pos] != name)	/* ignore if fn_name[pos] is passed */
-		strcpy(fn_name[pos], name);
+		strcpy(fn_name[pos], id);
 	fn_font[pos] = fn;
 	printf("x font %d %s\n", pos, name);
 	return pos;

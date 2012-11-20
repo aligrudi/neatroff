@@ -5,6 +5,8 @@
 #define FNGLYPHS	512
 #define FNNAME		32
 #define LLEN		128
+#define LINELEN		1024
+
 
 /* number registers */
 extern int nreg[];
@@ -84,3 +86,4 @@ void tr_sp(int argc, char **args);
 void tr_nr(int argc, char **args);
 void tr_ps(int argc, char **args);
 void tr_ft(int argc, char **args);
+void tr_fp(int argc, char **args);

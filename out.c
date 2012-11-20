@@ -36,19 +36,26 @@ static int utf8len(int c)
 	return 1;
 }
 
-static int nextchar(char *s)
+static int out_next(void)
 {
 	int c = tr_next();
+	if (c < 0)
+		return -1;
+	buf[buflen++] = c;
+	return c;
+}
+
+static int nextchar(char *s)
+{
+	int c = out_next();
 	int l = utf8len(c);
 	int i;
 	if (c < 0)
 		return 0;
 	s[0] = c;
 	for (i = 1; i < l; i++)
-		s[i] = tr_next();
+		s[i] = out_next();
 	s[l] = '\0';
-	memcpy(buf + buflen, s, l + 1);
-	buflen += l;
 	return l;
 }
 
@@ -62,14 +69,6 @@ static char *utf8get(char *d, char *s)
 	return s + l;
 }
 
-static char *readint(char *s, int *d)
-{
-	*d = 0;
-	while (isdigit(*s))
-		*d = *d * 10 + *s++ - '0';
-	return s;
-}
-
 static int charwid(int wid, int sz)
 {
 	/* the original troff rounds the widths up */
@@ -78,10 +77,30 @@ static int charwid(int wid, int sz)
 
 static int o_s, o_f;
 
+static char *read_escarg(char *s, char *d)
+{
+	if (*s == '(') {
+		s++;
+		*d++ = *s++;
+		*d++ = *s++;
+	} else if (*s == '\'') {
+		s++;
+		while (*s >= 0 && *s != '\'')
+			*d++ = *s++;
+		if (*s == '\'')
+			s++;
+	} else {
+		*d++ = *s++;
+	}
+	*d = '\0';
+	return s;
+}
+
 static void flush(char *s)
 {
 	struct glyph *g;
 	char c[LLEN];
+	char arg[LINELEN];
 	int o_blank = 0;
 	printf("v%d\n", n_v);
 	printf("H%d\n", n_o + n_i);
@@ -89,19 +108,22 @@ static void flush(char *s)
 		s = utf8get(c, s);
 		if (c[0] == '\\') {
 			s = utf8get(c, s);
-			if (c[0] == 's') {
-				s = readint(s, &o_s);
-				printf("s%d\n", o_s);
-				continue;
-			}
-			if (c[0] == 'f') {
-				s = readint(s, &o_f);
-				printf("f%d\n", o_f);
-				continue;
-			}
 			if (c[0] == '(') {
 				s = utf8get(c, s);
 				s = utf8get(c + strlen(c), s);
+			} else if (strchr("sf", c[0])) {
+				s = read_escarg(s, arg);
+				if (c[0] == 's') {
+					o_s = tr_int(arg, o_s, '\0');
+					printf("s%d\n", o_s);
+					continue;
+				}
+				if (c[0] == 'f') {
+					o_f = dev_font(arg);
+					if (o_f >= 0)
+						printf("f%d\n", o_f);
+					continue;
+				}
 			}
 		}
 		g = dev_glyph(c, o_f);
@@ -178,11 +200,24 @@ void tr_sp(int argc, char **args)
 		down(tr_int(args[1], 0, 'v'));
 }
 
+static void out_ps(char *s)
+{
+	n_s = tr_int(s, n_s, '\0');
+}
+
 void tr_ps(int argc, char **args)
 {
 	if (argc >= 2)
-		n_s = tr_int(args[1], n_s, '\0');
-	buflen += sprintf(buf + buflen, "\\s%d", n_s);
+		out_ps(args[1]);
+	buflen += sprintf(buf + buflen, "\\s(%2d", n_s);
+}
+
+static int out_ft(char *name)
+{
+	int fn = dev_font(name);
+	if (fn >= 0)
+		n_f = fn;
+	return fn;
 }
 
 void tr_ft(int argc, char **args)
@@ -190,15 +225,47 @@ void tr_ft(int argc, char **args)
 	int fn;
 	if (argc < 2)
 		return;
-	fn = dev_font(args[1]);
+	fn = out_ft(args[1]);
 	if (fn >= 0)
-		n_f = fn;
-	buflen += sprintf(buf + buflen, "\\f%d", n_f);
+		buflen += sprintf(buf + buflen, "\\f%d", n_f);
+}
+
+void tr_fp(int argc, char **args)
+{
+	if (argc < 3)
+		return;
+	if (dev_mnt(atoi(args[1]), args[2], argc > 3 ? args[3] : args[2]) < 0)
+		fprintf(stderr, "troff: failed to mount %s\n", args[2]);
+}
+
+static void escarg(char *s)
+{
+	int c;
+	c = out_next();
+	if (c == '(') {
+		*s++ = out_next();
+		*s++ = out_next();
+		*s = '\0';
+		return;
+	}
+	if (c == '\'') {
+		while (1) {
+			c = out_next();
+			if (c == '\'' || c < 0)
+				break;
+			*s++ = c;
+		}
+		*s = '\0';
+		return;
+	}
+	*s++ = c;
+	*s = '\0';
 }
 
 void render(void)
 {
 	char c[LLEN];
+	char arg[LINELEN];
 	struct glyph *g;
 	struct word *word = NULL;
 	int word_beg;
@@ -213,6 +280,13 @@ void render(void)
 				int l = nextchar(c);
 				l += nextchar(c + l);
 				c[l] = '\0';
+			} else if (strchr("sf", c[0])) {
+				escarg(arg);
+				if (c[0] == 'f')
+					out_ft(arg);
+				if (c[0] == 's')
+					out_ps(arg);
+				continue;
 			}
 		}
 		g = dev_glyph(c, n_f);
