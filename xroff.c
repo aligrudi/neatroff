@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <stdio.h>
 #include "xroff.h"
 
@@ -22,9 +23,12 @@ static void compile(void)
 	printf("V%d\n", n_p);
 }
 
-void errmsg(char *msg)
+void errmsg(char *fmt, ...)
 {
-	fprintf(stderr, "%s", msg);
+	va_list ap;
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
 }
 
 int main(void)

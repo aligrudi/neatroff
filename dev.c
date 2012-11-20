@@ -175,3 +175,9 @@ int dev_font(char *id)
 			return i;
 	return dev_mnt(0, id, id);
 }
+
+int charwid(int wid, int sz)
+{
+	/* the original troff rounds the widths up */
+	return (wid * sz + dev_uwid - 1) / dev_uwid;
+}

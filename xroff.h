@@ -76,9 +76,7 @@ void cp_back(int c);
 
 /* rendering */
 void render(void);
-
-/* error messages */
-void errmsg(char *msg);
+void out_put(char *s);
 
 /* troff commands */
 void tr_br(int argc, char **args);
@@ -87,3 +85,8 @@ void tr_nr(int argc, char **args);
 void tr_ps(int argc, char **args);
 void tr_ft(int argc, char **args);
 void tr_fp(int argc, char **args);
+
+/* helpers */
+void errmsg(char *msg, ...);
+int utf8len(int c);
+int charwid(int wid, int sz);
