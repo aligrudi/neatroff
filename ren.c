@@ -17,6 +17,8 @@ static struct word words[LINELEN];	/* words in the buffer */
 static int nwords;
 static int wid;				/* total width of the buffer */
 static int ren_backed = -1;		/* pushed back character */
+static int req_br;			/* pending .br request */
+static int req_sp;			/* pending .sp request */
 
 static int ren_next(void)
 {
@@ -44,28 +46,29 @@ static int nextchar(char *s)
 	return l;
 }
 
-static void down(int n)
-{
-	printf("v%d\n", n);
-}
-
-static void adjust(char *s)
+static void adjust(char *s, int adj)
 {
 	struct word *last = words;
 	struct word *cur;
 	int w = 0;
 	int lendiff;
 	int i;
-	if (!nwords) {
-		s[0] = '\0';
-		return;
-	}
+	int adj_div = 0;
+	int adj_rem = 0;
+	int n;
 	while (last < words + nwords && w + last->wid + last->blanks <= n_l) {
 		w += last->wid + last->blanks;
 		last++;
 	}
 	if (last > words)
 		last--;
+	n = last - words + 1;
+	if (adj && n > 1) {
+		adj_div = (n_l - w) / (n - 1);
+		adj_rem = n_l - w - adj_div * (n - 1);
+	}
+	for (i = 0; i < n - 1; i++)
+		words[i + 1].blanks += adj_div + (i < adj_rem);
 	for (cur = words; cur <= last; cur++) {
 		if (cur > words)
 			s += sprintf(s, "\\h'%du'", cur->blanks);
@@ -73,10 +76,10 @@ static void adjust(char *s)
 		s += cur->end - cur->beg;
 	}
 	*s = '\0';
-	lendiff = last + 1 < words + nwords ? last[1].beg : buflen;
+	lendiff = n < nwords ? last[1].beg : buflen;
 	memmove(buf, buf + lendiff, buflen - lendiff);
 	buflen -= lendiff;
-	nwords -= last - words + 1;
+	nwords -= n;
 	memmove(words, last + 1, nwords * sizeof(words[0]));
 	wid -= w;
 	for (i = 0; i < nwords; i++) {
@@ -90,19 +93,14 @@ static void adjust(char *s)
 
 void tr_br(int argc, char **args)
 {
-	char out[LINELEN];
-	buf[buflen] = '\0';
-	if (buflen) {
-		adjust(out);
-		out_put(out);
-	}
+	req_br = 1;
 }
 
 void tr_sp(int argc, char **args)
 {
 	tr_br(0, NULL);
 	if (argc > 1)
-		down(tr_int(args[1], 0, 'v'));
+		req_sp = tr_int(args[1], 0, 'v');
 }
 
 static void ren_ps(char *s)
@@ -176,6 +174,20 @@ static void escarg(char *s, int cmd)
 	*s = '\0';
 }
 
+static void ren_br(int adj)
+{
+	char out[LINELEN];
+	buf[buflen] = '\0';
+	if (buflen) {
+		adjust(out, adj);
+		out_put(out);
+	}
+	if (req_sp)
+		printf("v%d\n", req_sp);
+	req_br = 0;
+	req_sp = 0;
+}
+
 void render(void)
 {
 	char c[LLEN];
@@ -191,8 +203,8 @@ void render(void)
 	tr_br(0, NULL);
 	while (nextchar(c) > 0) {
 		g = NULL;
-		if (!word && wid > n_l)
-			tr_br(0, NULL);
+		if (!word && (wid > n_l || req_br))
+			ren_br(wid > n_l ? n_ad : 0);
 		if (c[0] == ' ' || c[0] == '\n') {
 			if (word) {
 				word->end = buflen;
@@ -250,5 +262,6 @@ void render(void)
 		word->wid += g_wid;
 		wid += g_wid;
 	}
-	tr_br(0, NULL);
+	ren_br(wid > n_l ? n_ad : 0);
+	ren_br(0);
 }

@@ -25,6 +25,7 @@ int tr_int(char *s, int orig, int unit);
 #define n_i		nreg[N_ID('.', 'i')]
 #define n_f0		nreg[N_ID('\0', 'f')]	/* last font */
 #define n_s0		nreg[N_ID('\0', 's')]	/* last size */
+#define n_ad		nreg[N_ID('\0', 'a')]	/* adjustment */
 
 /* device related variables */
 extern int dev_res;

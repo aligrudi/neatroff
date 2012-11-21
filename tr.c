@@ -94,6 +94,11 @@ static void tr_in(int argc, char **args)
 		n_i = tr_int(args[1], n_i, 'm');
 }
 
+static void tr_na(int argc, char **args)
+{
+	n_ad = 0;
+}
+
 static void tr_readcmd(char *s)
 {
 	int i = 0;
@@ -139,12 +144,13 @@ static struct cmd {
 	{"br", tr_br},
 	{"fp", tr_fp},
 	{"ft", tr_ft},
+	{"in", tr_in},
+	{"ll", tr_ll},
+	{"na", tr_na},
 	{"nr", tr_nr},
 	{"ps", tr_ps},
 	{"sp", tr_sp},
 	{"vs", tr_vs},
-	{"ll", tr_ll},
-	{"in", tr_in},
 };
 
 int tr_next(void)

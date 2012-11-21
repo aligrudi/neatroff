@@ -13,6 +13,7 @@ static void g_init(void)
 	n_v = 12 * SC_PT;
 	n_s0 = n_s;
 	n_f0 = n_f;
+	n_ad = 1;
 }
 
 static void compile(void)
