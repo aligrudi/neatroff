@@ -11,6 +11,8 @@ static void g_init(void)
 	n_i = 0;
 	n_s = 10;
 	n_v = 12 * SC_PT;
+	n_s0 = n_s;
+	n_f0 = n_f;
 }
 
 static void compile(void)
