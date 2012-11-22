@@ -1,9 +1,12 @@
 #include <stdlib.h>
+#include <stdlib.h>
+#include <string.h>
 #include "xroff.h"
 
 #define NREGS		(1 << 16)
 
 int nreg[NREGS];
+char *sreg[NREGS];
 
 int num_get(int id)
 {
@@ -24,4 +27,18 @@ void tr_nr(int argc, char **args)
 		return;
 	id = N_ID(args[1][0], args[1][1]);
 	nreg[id] = tr_int(args[2], nreg[id], 'u');
+}
+
+void str_set(int id, char *s)
+{
+	int len = strlen(s) + 1;
+	if (sreg[id])
+		free(sreg[id]);
+	sreg[id] = malloc(len);
+	strcpy(sreg[id], s);
+}
+
+char *str_get(int id)
+{
+	return sreg[id];
 }

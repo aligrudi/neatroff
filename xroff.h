@@ -14,6 +14,10 @@ int num_get(int id);
 int num_set(int id, int n);
 int tr_int(char *s, int orig, int unit);
 
+/* string registers */
+void str_set(int id, char *s);
+char *str_get(int id);
+
 /* builtin number registers; n_X for .X register */
 #define N_ID(c1, c2)	((c1) * 256 + (c2))
 #define n_f		nreg[N_ID('.', 'f')]

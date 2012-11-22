@@ -88,6 +88,13 @@ static void tr_vs(int argc, char **args)
 		n_v = tr_int(args[1], n_v, 'p');
 }
 
+static void tr_ds(int argc, char **args)
+{
+	if (argc < 3)
+		return;
+	str_set(N_ID(args[1][0], args[1][1]), args[2]);
+}
+
 static void tr_in(int argc, char **args)
 {
 	if (argc >= 2)
@@ -114,7 +121,17 @@ static void tr_readcmd(char *s)
 		cp_back(c);
 }
 
-static int tr_readargs(char **args, int maxargs, char *buf, int len)
+/* skip everything until the end of line */
+static void jmp_eol(void)
+{
+	int c;
+	do {
+		c = cp_next();
+	} while (c >= 0 && c != '\n');
+}
+
+/* read macro arguments */
+static int tr_args(char **args, int maxargs, char *buf, int len)
 {
 	char *s = buf;
 	char *e = buf + len - 1;
@@ -132,16 +149,47 @@ static int tr_readargs(char **args, int maxargs, char *buf, int len)
 		while (c == ' ')
 			c = cp_next();
 	}
-	if (c != '\n')
-		cp_back(c);
+	if (c >= 0 && c != '\n')
+		jmp_eol();
 	return n;
+}
+
+/* read arguments for .ds */
+static int tr_args_ds(char **args, int maxargs, char *buf, int len)
+{
+	char *s = buf;
+	char *e = buf + len - 1;
+	int c;
+	while ((c = cp_next()) == ' ')
+		;
+	if (c == '\n' || c < 0)
+		return 0;
+	args[0] = s;
+	*s++ = c;
+	c = cp_next();
+	if (c >= 0 && c != '\n' && c != ' ')
+		*s++ = c;
+	*s++ = '\0';
+	while ((c = cp_next()) == ' ')
+		;
+	if (c == '"')
+		c = cp_next();
+	args[1] = s;
+	while (s < e && c > 0 && c != '\n') {
+		*s++ = c;
+		c = cp_next();
+	}
+	*s = '\0';
+	return 2;
 }
 
 static struct cmd {
 	char *id;
 	void (*f)(int argc, char **args);
+	int (*args)(char **args, int maxargs, char *buf, int len);
 } cmds[] = {
 	{"br", tr_br},
+	{"ds", tr_ds, tr_args_ds},
 	{"fp", tr_fp},
 	{"ft", tr_ft},
 	{"in", tr_in},
@@ -160,6 +208,7 @@ int tr_next(void)
 	char *args[NARGS];
 	char buf[LINEL];
 	char cmd[LINEL];
+	struct cmd *req = NULL;
 	int argc;
 	int i;
 	while (tr_nl && (c == '.' || c == '\'')) {
@@ -167,10 +216,18 @@ int tr_next(void)
 		args[0] = cmd;
 		cmd[0] = c;
 		tr_readcmd(cmd + 1);
-		argc = tr_readargs(args + 1, NARGS - 1, buf, LINEL);
 		for (i = 0; i < LEN(cmds); i++)
 			if (!strcmp(cmd + 1, cmds[i].id))
-				cmds[i].f(argc + 1, args);
+				req = &cmds[i];
+		if (req) {
+			if (req->args)
+				argc = req->args(args + 1, NARGS - 1, buf, LINEL);
+			else
+				argc = tr_args(args + 1, NARGS - 1, buf, LINEL);
+			req->f(argc + 1, args);
+		} else {
+			jmp_eol();
+		}
 		c = cp_next();
 	}
 	tr_nl = nl;
