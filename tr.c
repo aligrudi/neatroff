@@ -163,10 +163,22 @@ static char *arg_regname(char *s, int len)
 static char *arg_normal(char *s, int len)
 {
 	char *e = s + len - 1;
+	int quoted = 0;
 	int c;
 	while ((c = cp_next()) == ' ')
 		;
-	while (s < e && c > 0 && c != ' ' && c != '\n') {
+	if (c == '"') {
+		quoted = 1;
+		c = cp_next();
+	}
+	while (s < e && c > 0 && c != '\n') {
+		if (!quoted && c == ' ')
+			break;
+		if (quoted && c == '"') {
+			c = cp_next();
+			if (c != '"')
+				break;
+		}
 		*s++ = c;
 		c = cp_next();
 	}
