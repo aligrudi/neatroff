@@ -95,6 +95,34 @@ static void tr_ds(int argc, char **args)
 	str_set(N_ID(args[1][0], args[1][1]), args[2]);
 }
 
+static void tr_de(int argc, char **args)
+{
+	struct sbuf sbuf;
+	int c;
+	if (argc <= 1)
+		return;
+	sbuf_init(&sbuf);
+	while ((c = cp_next()) >= 0) {
+		sbuf_add(&sbuf, c);
+		if (c == '\n') {
+			c = cp_next();
+			if (c == '.') {
+				c = cp_next();
+				if (c == '.')
+					break;
+				sbuf_add(&sbuf, '.');
+				if (c >= 0)
+					sbuf_add(&sbuf, c);
+			} else {
+				if (c >= 0)
+					sbuf_add(&sbuf, c);
+			}
+		}
+	}
+	str_set(N_ID(args[1][0], args[1][1]), sbuf_buf(&sbuf));
+	sbuf_done(&sbuf);
+}
+
 static void tr_in(int argc, char **args)
 {
 	if (argc >= 2)
@@ -189,6 +217,7 @@ static struct cmd {
 	int (*args)(char **args, int maxargs, char *buf, int len);
 } cmds[] = {
 	{"br", tr_br},
+	{"de", tr_de},
 	{"ds", tr_ds, tr_args_ds},
 	{"fp", tr_fp},
 	{"ft", tr_ft},

@@ -97,3 +97,16 @@ void tr_fp(int argc, char **args);
 void errmsg(char *msg, ...);
 int utf8len(int c);
 int charwid(int wid, int sz);
+
+/* variable length string buffer */
+struct sbuf {
+	char *s;
+	int sz;
+	int n;
+};
+
+void sbuf_init(struct sbuf *sbuf);
+void sbuf_done(struct sbuf *sbuf);
+char *sbuf_buf(struct sbuf *sbuf);
+void sbuf_add(struct sbuf *sbuf, int c);
+void sbuf_append(struct sbuf *sbuf, char *s);
