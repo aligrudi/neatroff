@@ -95,24 +95,34 @@ static void tr_ds(int argc, char **args)
 	str_set(N_ID(args[1][0], args[1][1]), args[2]);
 }
 
+static char *arg_regname(char *s, int len);
+
 static void tr_de(int argc, char **args)
 {
 	struct sbuf sbuf;
+	char buf[4];
+	int end[4] = {'.'};
 	int c;
+	int i;
 	if (argc <= 1)
 		return;
+	if (argc > 2 && args[2]) {
+		end[0] = args[2][0];
+		end[1] = args[2][1];
+	}
 	sbuf_init(&sbuf);
 	while ((c = cp_next()) >= 0) {
 		sbuf_add(&sbuf, c);
 		if (c == '\n') {
+			sbuf_add(&sbuf, c);
 			c = cp_next();
 			if (c == '.') {
-				c = cp_next();
-				if (c == '.')
+				arg_regname(buf, 4);
+				if (buf[0] == end[0] && buf[1] == end[1])
 					break;
 				sbuf_add(&sbuf, '.');
-				if (c >= 0)
-					sbuf_add(&sbuf, c);
+				for (i = 0; buf[i]; i++)
+					sbuf_add(&sbuf, (unsigned char) buf[i]);
 			} else {
 				if (c >= 0)
 					sbuf_add(&sbuf, c);
