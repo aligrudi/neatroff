@@ -134,19 +134,54 @@ static void tr_na(int argc, char **args)
 	n_ad = 0;
 }
 
-static void tr_readcmd(char *s)
+static char *arg_regname(char *s, int len)
 {
-	int i = 0;
+	char *e = s + 2;
 	int c;
 	while ((c = cp_next()) == ' ')
 		;
-	while (i < 2 && c > 0 && isprint(c)) {
-		s[i++] = c;
+	while (s < e && c >= 0 && c != ' ' && c != '\n') {
+		*s++ = c;
 		c = cp_next();
 	}
-	s[i] = '\0';
-	if (!isprint(c))
+	if (c >= 0)
 		cp_back(c);
+	*s++ = '\0';
+	return s;
+}
+
+static char *arg_normal(char *s, int len)
+{
+	char *e = s + len - 1;
+	int c;
+	while ((c = cp_next()) == ' ')
+		;
+	while (s < e && c > 0 && c != ' ' && c != '\n') {
+		*s++ = c;
+		c = cp_next();
+	}
+	if (c >= 0)
+		cp_back(c);
+	*s++ = '\0';
+	return s;
+}
+
+static char *arg_string(char *s, int len)
+{
+	char *e = s + len - 1;
+	int c;
+	while ((c = cp_next()) == ' ')
+		;
+	if (c == '"')
+		c = cp_next();
+	while (s < e && c > 0 && c != '\n') {
+		*s++ = c;
+		c = cp_next();
+	}
+	*s++ = '\0';
+	if (c >= 0)
+		cp_back(c);
+	return s;
 }
 
 /* skip everything until the end of line */
@@ -159,56 +194,48 @@ static void jmp_eol(void)
 }
 
 /* read macro arguments */
-static int tr_args(char **args, int maxargs, char *buf, int len)
+static int mkargs(char **args, int maxargs, char *buf, int len)
 {
 	char *s = buf;
 	char *e = buf + len - 1;
 	int c;
 	int n = 0;
-	while ((c = cp_next()) == ' ')
-		;
-	while (n < maxargs && s < e && c > 0 && c != '\n') {
+	while (n < maxargs) {
+		c = cp_next();
+		if (c < 0 || c == '\n')
+			return n;
+		cp_back(c);
 		args[n++] = s;
-		while (s < e && c > 0 && c != ' ' && c != '\n') {
-			*s++ = c;
-			c = cp_next();
-		}
-		*s++ = '\0';
-		while (c == ' ')
-			c = cp_next();
+		s = arg_normal(s, e - s);
 	}
-	if (c >= 0 && c != '\n')
-		jmp_eol();
+	jmp_eol();
 	return n;
 }
 
 /* read arguments for .ds */
-static int tr_args_ds(char **args, int maxargs, char *buf, int len)
+static int mkargs_ds(char **args, int maxargs, char *buf, int len)
 {
 	char *s = buf;
 	char *e = buf + len - 1;
 	int c;
-	while ((c = cp_next()) == ' ')
-		;
-	if (c == '\n' || c < 0)
-		return 0;
 	args[0] = s;
-	*s++ = c;
-	c = cp_next();
-	if (c >= 0 && c != '\n' && c != ' ')
-		*s++ = c;
-	*s++ = '\0';
-	while ((c = cp_next()) == ' ')
-		;
-	if (c == '"')
-		c = cp_next();
+	s = arg_regname(s, e - s);
 	args[1] = s;
-	while (s < e && c > 0 && c != '\n') {
-		*s++ = c;
-		c = cp_next();
-	}
-	*s = '\0';
+	s = arg_string(s, e - s);
+	c = cp_next();
+	if (c >= 0 && c != '\n')
+		jmp_eol();
 	return 2;
+}
+
+/* read arguments for commands .nr that expect a register name */
+static int mkargs_reg1(char **args, int maxargs, char *buf, int len)
+{
+	char *s = buf;
+	char *e = buf + len - 1;
+	args[0] = s;
+	s = arg_regname(s, e - s);
+	return mkargs(args + 1, maxargs - 1, s, e - s) + 1;
 }
 
 static struct cmd {
@@ -217,14 +244,14 @@ static struct cmd {
 	int (*args)(char **args, int maxargs, char *buf, int len);
 } cmds[] = {
 	{"br", tr_br},
-	{"de", tr_de},
-	{"ds", tr_ds, tr_args_ds},
+	{"de", tr_de, mkargs_reg1},
+	{"ds", tr_ds, mkargs_ds},
 	{"fp", tr_fp},
 	{"ft", tr_ft},
 	{"in", tr_in},
 	{"ll", tr_ll},
 	{"na", tr_na},
-	{"nr", tr_nr},
+	{"nr", tr_nr, mkargs_reg1},
 	{"ps", tr_ps},
 	{"sp", tr_sp},
 	{"vs", tr_vs},
@@ -244,7 +271,7 @@ int tr_next(void)
 		nl = 1;
 		args[0] = cmd;
 		cmd[0] = c;
-		tr_readcmd(cmd + 1);
+		arg_regname(cmd + 1, LINEL - 2);
 		for (i = 0; i < LEN(cmds); i++)
 			if (!strcmp(cmd + 1, cmds[i].id))
 				req = &cmds[i];
@@ -252,7 +279,7 @@ int tr_next(void)
 			if (req->args)
 				argc = req->args(args + 1, NARGS - 1, buf, LINEL);
 			else
-				argc = tr_args(args + 1, NARGS - 1, buf, LINEL);
+				argc = mkargs(args + 1, NARGS - 1, buf, LINEL);
 			req->f(argc + 1, args);
 		} else {
 			jmp_eol();
