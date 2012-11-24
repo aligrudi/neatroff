@@ -180,7 +180,7 @@ static void ren_br(int adj)
 	buf[buflen] = '\0';
 	if (buflen) {
 		adjust(out, adj);
-		out_put(out);
+		output(out);
 	}
 	if (req_sp)
 		printf("v%d\n", req_sp);

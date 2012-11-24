@@ -73,7 +73,7 @@ static char *escarg(char *s, char *d, int cmd)
 	return s;
 }
 
-void out_put(char *s)
+void output(char *s)
 {
 	struct glyph *g;
 	char c[LLEN];

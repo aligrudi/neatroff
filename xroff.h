@@ -83,7 +83,7 @@ void cp_back(int c);
 
 /* rendering */
 void render(void);
-void out_put(char *s);
+void output(char *s);
 
 /* troff commands */
 void tr_br(int argc, char **args);
