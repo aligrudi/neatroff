@@ -4,7 +4,6 @@
 #include <string.h>
 #include "xroff.h"
 
-#define NARGS		10
 #define LINEL		1024
 #define LEN(a)		(sizeof(a) / sizeof((a)[0]))
 
@@ -283,7 +282,7 @@ int tr_next(void)
 {
 	int c = cp_next();
 	int nl = c == '\n';
-	char *args[NARGS];
+	char *args[NARGS + 1] = {NULL};
 	char buf[LINEL];
 	char cmd[LINEL];
 	struct cmd *req = NULL;
@@ -299,12 +298,14 @@ int tr_next(void)
 				req = &cmds[i];
 		if (req) {
 			if (req->args)
-				argc = req->args(args + 1, NARGS - 1, buf, LINEL);
+				argc = req->args(args + 1, NARGS, buf, LINEL);
 			else
-				argc = mkargs(args + 1, NARGS - 1, buf, LINEL);
+				argc = mkargs(args + 1, NARGS, buf, LINEL);
 			req->f(argc + 1, args);
 		} else {
-			jmp_eol();
+			argc = mkargs(args + 1, NARGS, buf, LINEL);
+			if (str_get(REG(cmd[1], cmd[2])))
+				in_push(str_get(REG(cmd[1], cmd[2])), args + 1);
 		}
 		c = cp_next();
 	}

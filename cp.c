@@ -1,7 +1,11 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "xroff.h"
 
-static int cp_backed = -1;
+#define CPBUF		4
+
+static int cp_backed = 0;
+static int cp_buf[CPBUF];
 
 static int regid(void)
 {
@@ -19,30 +23,46 @@ static void cp_num(void)
 {
 	char buf[32];
 	sprintf(buf, "%d", num_get(regid()));
-	in_push(buf);
+	in_push(buf, NULL);
 }
 
 static void cp_str(void)
 {
 	char *buf = str_get(regid());
 	if (buf)
-		in_push(buf);
+		in_push(buf, NULL);
+}
+
+static void cp_arg(void)
+{
+	int c;
+	char *arg;
+	c = cp_next();
+	if (c >= '1' && c <= '9')
+		arg = in_arg(c - '0');
+	if (arg)
+		in_push(arg, NULL);
 }
 
 int cp_next(void)
 {
-	int c = cp_backed >= 0 ? cp_backed : in_next();
-	cp_backed = -1;
+	int c;
+	if (cp_backed)
+		return cp_buf[--cp_backed];
+	c = in_next();
 	if (c == '\\') {
 		c = in_next();
 		if (c == 'n') {
 			cp_num();
 			c = in_next();
 		} else if (c == '*') {
-			cp_str();;
+			cp_str();
+			c = in_next();
+		} else if (c == '$') {
+			cp_arg();
 			c = in_next();
 		} else {
-			in_back(c);
+			cp_back(c);
 			c = '\\';
 		}
 	}
@@ -51,5 +71,6 @@ int cp_next(void)
 
 void cp_back(int c)
 {
-	cp_backed = c;
+	if (cp_backed < CPBUF)
+		cp_buf[cp_backed++] = c;
 }

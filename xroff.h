@@ -6,7 +6,7 @@
 #define FNNAME		32
 #define LLEN		128
 #define LINELEN		1024
-
+#define NARGS		9
 
 /* number registers */
 extern int nreg[];
@@ -77,7 +77,8 @@ int dev_spacewid(void);
 int in_next(void);
 int cp_next(void);
 int tr_next(void);
-void in_push(char *s);
+void in_push(char *s, char **args);
+char *in_arg(int i);
 void in_back(int c);
 void cp_back(int c);
 
