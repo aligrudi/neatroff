@@ -92,7 +92,7 @@ static void tr_ds(int argc, char **args)
 {
 	if (argc < 3)
 		return;
-	str_set(N_ID(args[1][0], args[1][1]), args[2]);
+	str_set(REG(args[1][0], args[1][1]), args[2]);
 }
 
 static char *arg_regname(char *s, int len);
@@ -129,7 +129,7 @@ static void tr_de(int argc, char **args)
 			}
 		}
 	}
-	str_set(N_ID(args[1][0], args[1][1]), sbuf_buf(&sbuf));
+	str_set(REG(args[1][0], args[1][1]), sbuf_buf(&sbuf));
 	sbuf_done(&sbuf);
 }
 

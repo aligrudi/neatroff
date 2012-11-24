@@ -12,7 +12,7 @@ static int regid(void)
 		c1 = cp_next();
 		c2 = cp_next();
 	}
-	return N_ID(c1, c2);
+	return REG(c1, c2);
 }
 
 static void cp_num(void)

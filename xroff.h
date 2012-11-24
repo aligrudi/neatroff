@@ -19,17 +19,17 @@ void str_set(int id, char *s);
 char *str_get(int id);
 
 /* builtin number registers; n_X for .X register */
-#define N_ID(c1, c2)	((c1) * 256 + (c2))
-#define n_f		nreg[N_ID('.', 'f')]
-#define n_s		nreg[N_ID('.', 's')]
-#define n_o		nreg[N_ID('.', 'o')]
-#define n_p		nreg[N_ID('.', 'p')]
-#define n_l		nreg[N_ID('.', 'l')]
-#define n_v		nreg[N_ID('.', 'v')]
-#define n_i		nreg[N_ID('.', 'i')]
-#define n_f0		nreg[N_ID('\0', 'f')]	/* last font */
-#define n_s0		nreg[N_ID('\0', 's')]	/* last size */
-#define n_ad		nreg[N_ID('\0', 'a')]	/* adjustment */
+#define REG(c1, c2)	((c1) * 256 + (c2))
+#define n_f		nreg[REG('.', 'f')]
+#define n_s		nreg[REG('.', 's')]
+#define n_o		nreg[REG('.', 'o')]
+#define n_p		nreg[REG('.', 'p')]
+#define n_l		nreg[REG('.', 'l')]
+#define n_v		nreg[REG('.', 'v')]
+#define n_i		nreg[REG('.', 'i')]
+#define n_f0		nreg[REG('\0', 'f')]	/* last font */
+#define n_s0		nreg[REG('\0', 's')]	/* last size */
+#define n_ad		nreg[REG('\0', 'a')]	/* adjustment */
 
 /* device related variables */
 extern int dev_res;
