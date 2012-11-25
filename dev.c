@@ -4,9 +4,6 @@
 #include <string.h>
 #include "xroff.h"
 
-#define PATHLEN		1024
-#define MAXFONTS	32
-
 char dev_dir[PATHLEN];	/* device directory */
 int dev_res;		/* device resolution */
 int dev_uwid;		/* device unitwidth */
@@ -14,8 +11,8 @@ int dev_hor;		/* minimum horizontal movement */
 int dev_ver;		/* minimum vertical movement */
 
 /* mounted fonts */
-static char fn_name[MAXFONTS][FNLEN];	/* font names */
-static struct font *fn_font[MAXFONTS];	/* font structs */
+static char fn_name[NFONTS][FNLEN];	/* font names */
+static struct font *fn_font[NFONTS];	/* font structs */
 static int fn_n;			/* number of mounted fonts */
 
 static void skipline(FILE* filp)
@@ -55,7 +52,7 @@ int dev_mnt(int pos, char *id, char *name)
 int dev_open(char *dir)
 {
 	char path[PATHLEN];
-	char tok[LLEN];
+	char tok[ILNLEN];
 	int i;
 	FILE *desc;
 	strcpy(dev_dir, dir);

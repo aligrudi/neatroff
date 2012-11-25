@@ -1,12 +1,20 @@
-#define SC_IN		(dev_res)
-#define SC_PT		(SC_IN / 72)
+/* converting scales */
+#define SC_IN		(dev_res)	/* inch in units */
+#define SC_PT		(SC_IN / 72)	/* point in units */
 
-#define FNLEN		32
-#define FNGLYPHS	512
-#define FNNAME		32
-#define LLEN		128
-#define LINELEN		1024
-#define NARGS		9
+/* predefined array limits */
+#define PATHLEN		1024	/* path length */
+#define NFONTS		32	/* number of fonts */
+#define FNLEN		32	/* font name length */
+#define NGLYPHS		512	/* glyphs in fonts */
+#define GNLEN		32	/* glyph name length */
+#define ILNLEN		256	/* line limit of input files */
+#define LNLEN		4000	/* line buffer length (ren.c/out.c) */
+#define NWORDS		1000	/* number of words in line buffer */
+#define NARGS		9	/* number of macro arguments */
+#define RLEN		4	/* register/macro name */
+
+#define LEN(a)		(sizeof(a) / sizeof((a)[0]))
 
 /* number registers */
 extern int nreg[];
@@ -38,8 +46,8 @@ extern int dev_hor;
 extern int dev_ver;
 
 struct glyph {
-	char name[FNNAME];	/* name of the glyph */
-	char id[FNNAME];	/* device-dependent glyph identifier */
+	char name[FNLEN];	/* name of the glyph */
+	char id[FNLEN];		/* device-dependent glyph identifier */
 	struct font *font;	/* glyph font */
 	int wid;		/* character width */
 	int type;		/* character type; ascender/descender */
@@ -47,12 +55,12 @@ struct glyph {
 
 struct font {
 	char name[FNLEN];
-	struct glyph glyphs[FNGLYPHS];
+	struct glyph glyphs[NGLYPHS];
 	int nglyphs;
 	int spacewid;
 	int special;
-	char c[FNGLYPHS][FNNAME];	/* character names in charset */
-	struct glyph *g[FNGLYPHS];	/* character glyphs in charset */
+	char c[NGLYPHS][FNLEN];	/* character names in charset */
+	struct glyph *g[NGLYPHS];	/* character glyphs in charset */
 	int n;				/* number of characters in charset */
 };
 
@@ -61,6 +69,7 @@ int dev_open(char *path);
 void dev_close(void);
 int dev_mnt(int pos, char *id, char *name);
 int dev_font(char *id);
+int charwid(int wid, int sz);
 
 /* font-related functions */
 struct font *font_open(char *path);
@@ -74,17 +83,17 @@ struct glyph *dev_glyph_byid(char *id, int fn);
 int dev_spacewid(void);
 
 /* different layers of neatroff */
-int in_next(void);
-int cp_next(void);
-int tr_next(void);
+int in_next(void);	/* input layer */
+int cp_next(void);	/* copy-mode layer */
+int tr_next(void);	/* troff layer */
 void in_push(char *s, char **args);
 char *in_arg(int i);
 void in_back(int c);
 void cp_back(int c);
 
 /* rendering */
-void render(void);
-void output(char *s);
+void render(void);	/* read from in.c and print the output */
+void output(char *s);	/* output the given rendered line */
 
 /* troff commands */
 void tr_br(int argc, char **args);
@@ -97,7 +106,6 @@ void tr_fp(int argc, char **args);
 /* helpers */
 void errmsg(char *msg, ...);
 int utf8len(int c);
-int charwid(int wid, int sz);
 
 /* variable length string buffer */
 struct sbuf {

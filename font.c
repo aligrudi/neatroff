@@ -41,9 +41,9 @@ static struct glyph *font_glyphmk(struct font *fn, char *id)
 
 static void font_charset(struct font *fn, FILE *fin)
 {
-	char tok[LLEN];
-	char name[LLEN];
-	char id[LLEN];
+	char tok[ILNLEN];
+	char name[ILNLEN];
+	char id[ILNLEN];
 	struct glyph *glyph = NULL;
 	struct glyph *prev = NULL;
 	int wid, type;
@@ -72,7 +72,7 @@ static void font_charset(struct font *fn, FILE *fin)
 struct font *font_open(char *path)
 {
 	struct font *fn = malloc(sizeof(*fn));
-	char tok[LLEN];
+	char tok[ILNLEN];
 	FILE *fin;
 	fin = fopen(path, "r");
 	memset(fn, 0, sizeof(*fn));

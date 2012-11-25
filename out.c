@@ -76,8 +76,8 @@ static char *escarg(char *s, char *d, int cmd)
 void output(char *s)
 {
 	struct glyph *g;
-	char c[LLEN];
-	char arg[LINELEN];
+	char c[GNLEN * 2];
+	char arg[ILNLEN];
 	printf("v%d\n", n_v);
 	printf("H%d\n", n_o + n_i);
 	while (*s) {

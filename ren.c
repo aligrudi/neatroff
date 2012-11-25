@@ -11,9 +11,9 @@ struct word {
 	int blanks;	/* blanks before word */
 };
 
-static char buf[LINELEN];		/* output buffer */
+static char buf[LNLEN];			/* output buffer */
 static int buflen;
-static struct word words[LINELEN];	/* words in the buffer */
+static struct word words[NWORDS];	/* words in the buffer */
 static int nwords;
 static int wid;				/* total width of the buffer */
 static int ren_backed = -1;		/* pushed back character */
@@ -176,7 +176,7 @@ static void escarg(char *s, int cmd)
 
 static void ren_br(int adj)
 {
-	char out[LINELEN];
+	char out[LNLEN];
 	buf[buflen] = '\0';
 	if (buflen) {
 		adjust(out, adj);
@@ -190,8 +190,8 @@ static void ren_br(int adj)
 
 void render(void)
 {
-	char c[LLEN];
-	char arg[LINELEN];
+	char c[GNLEN * 2];
+	char arg[ILNLEN];
 	struct glyph *g;
 	int g_wid;
 	struct word *word = NULL;

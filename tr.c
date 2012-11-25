@@ -4,9 +4,6 @@
 #include <string.h>
 #include "xroff.h"
 
-#define LINEL		1024
-#define LEN(a)		(sizeof(a) / sizeof((a)[0]))
-
 static int tr_nl = 1;
 
 static int unit_scale(int c, int n, int mag)
@@ -283,8 +280,8 @@ int tr_next(void)
 	int c = cp_next();
 	int nl = c == '\n';
 	char *args[NARGS + 1] = {NULL};
-	char buf[LINEL];
-	char cmd[LINEL];
+	char cmd[RLEN];
+	char buf[LNLEN];
 	struct cmd *req = NULL;
 	int argc;
 	int i;
@@ -292,18 +289,18 @@ int tr_next(void)
 		nl = 1;
 		args[0] = cmd;
 		cmd[0] = c;
-		arg_regname(cmd + 1, LINEL - 2);
+		arg_regname(cmd + 1, sizeof(cmd) - 1);
 		for (i = 0; i < LEN(cmds); i++)
 			if (!strcmp(cmd + 1, cmds[i].id))
 				req = &cmds[i];
 		if (req) {
 			if (req->args)
-				argc = req->args(args + 1, NARGS, buf, LINEL);
+				argc = req->args(args + 1, NARGS, buf, sizeof(buf));
 			else
-				argc = mkargs(args + 1, NARGS, buf, LINEL);
+				argc = mkargs(args + 1, NARGS, buf, sizeof(buf));
 			req->f(argc + 1, args);
 		} else {
-			argc = mkargs(args + 1, NARGS, buf, LINEL);
+			argc = mkargs(args + 1, NARGS, buf, sizeof(buf));
 			if (str_get(REG(cmd[1], cmd[2])))
 				in_push(str_get(REG(cmd[1], cmd[2])), args + 1);
 		}
