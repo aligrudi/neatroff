@@ -96,12 +96,12 @@ void render(void);	/* read from in.c and print the output */
 void output(char *s);	/* output the given rendered line */
 
 /* troff commands */
-void tr_br(int argc, char **args);
-void tr_sp(int argc, char **args);
-void tr_nr(int argc, char **args);
-void tr_ps(int argc, char **args);
-void tr_ft(int argc, char **args);
-void tr_fp(int argc, char **args);
+void tr_br(char **args);
+void tr_sp(char **args);
+void tr_nr(char **args);
+void tr_ps(char **args);
+void tr_ft(char **args);
+void tr_fp(char **args);
 
 /* helpers */
 void errmsg(char *msg, ...);

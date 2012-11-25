@@ -20,10 +20,10 @@ int num_set(int id, int n)
 	return o;
 }
 
-void tr_nr(int argc, char **args)
+void tr_nr(char **args)
 {
 	int id;
-	if (argc < 3)
+	if (!args[2])
 		return;
 	id = REG(args[1][0], args[1][1]);
 	nreg[id] = tr_int(args[2], nreg[id], 'u');

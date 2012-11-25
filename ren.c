@@ -91,15 +91,15 @@ static void adjust(char *s, int adj)
 	words[0].blanks = 0;
 }
 
-void tr_br(int argc, char **args)
+void tr_br(char **args)
 {
 	req_br = 1;
 }
 
-void tr_sp(int argc, char **args)
+void tr_sp(char **args)
 {
-	tr_br(0, NULL);
-	if (argc > 1)
+	tr_br(NULL);
+	if (args[1])
 		req_sp = tr_int(args[1], 0, 'v');
 }
 
@@ -110,9 +110,9 @@ static void ren_ps(char *s)
 	n_s = ps;
 }
 
-void tr_ps(int argc, char **args)
+void tr_ps(char **args)
 {
-	if (argc >= 2)
+	if (args[1])
 		ren_ps(args[1]);
 }
 
@@ -125,17 +125,17 @@ static void ren_ft(char *s)
 	}
 }
 
-void tr_ft(int argc, char **args)
+void tr_ft(char **args)
 {
-	if (argc > 1)
+	if (args[1])
 		ren_ft(args[1]);
 }
 
-void tr_fp(int argc, char **args)
+void tr_fp(char **args)
 {
-	if (argc < 3)
+	if (!args[2])
 		return;
-	if (dev_mnt(atoi(args[1]), args[2], argc > 3 ? args[3] : args[2]) < 0)
+	if (dev_mnt(atoi(args[1]), args[2], args[3] ? args[3] : args[2]) < 0)
 		errmsg("troff: failed to mount %s\n", args[2]);
 }
 
@@ -200,7 +200,7 @@ void render(void)
 	int r_s = n_s;
 	int r_f = n_f;
 	int esc = 0;
-	tr_br(0, NULL);
+	tr_br(NULL);
 	while (nextchar(c) > 0) {
 		g = NULL;
 		if (!word && (wid > n_l || req_br))

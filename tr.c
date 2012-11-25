@@ -72,37 +72,37 @@ int tr_int(char *s, int orig, int unit)
 	return rel ? orig + n : n;
 }
 
-static void tr_ll(int argc, char **args)
+static void tr_ll(char **args)
 {
-	if (argc >= 2)
+	if (args[1])
 		n_l = tr_int(args[1], n_l, 'm');
 }
 
-static void tr_vs(int argc, char **args)
+static void tr_vs(char **args)
 {
-	if (argc >= 2)
+	if (args[1])
 		n_v = tr_int(args[1], n_v, 'p');
 }
 
-static void tr_ds(int argc, char **args)
+static void tr_ds(char **args)
 {
-	if (argc < 3)
+	if (!args[2])
 		return;
 	str_set(REG(args[1][0], args[1][1]), args[2]);
 }
 
 static char *arg_regname(char *s, int len);
 
-static void tr_de(int argc, char **args)
+static void tr_de(char **args)
 {
 	struct sbuf sbuf;
 	char buf[4];
 	int end[4] = {'.'};
 	int c;
 	int i;
-	if (argc <= 1)
+	if (!args[1])
 		return;
-	if (argc > 2 && args[2]) {
+	if (args[2]) {
 		end[0] = args[2][0];
 		end[1] = args[2][1];
 	}
@@ -129,13 +129,13 @@ static void tr_de(int argc, char **args)
 	sbuf_done(&sbuf);
 }
 
-static void tr_in(int argc, char **args)
+static void tr_in(char **args)
 {
-	if (argc >= 2)
+	if (args[1])
 		n_i = tr_int(args[1], n_i, 'm');
 }
 
-static void tr_na(int argc, char **args)
+static void tr_na(char **args)
 {
 	n_ad = 0;
 }
@@ -212,13 +212,13 @@ static void jmp_eol(void)
 }
 
 /* read macro arguments */
-static int mkargs(char **args, int maxargs, char *buf, int len)
+static int mkargs(char **args, char *buf, int len)
 {
 	char *s = buf;
 	char *e = buf + len - 1;
 	int c;
 	int n = 0;
-	while (n < maxargs) {
+	while (n < NARGS) {
 		c = cp_next();
 		if (c < 0 || c == '\n')
 			return n;
@@ -231,7 +231,7 @@ static int mkargs(char **args, int maxargs, char *buf, int len)
 }
 
 /* read arguments for .ds */
-static int mkargs_ds(char **args, int maxargs, char *buf, int len)
+static int mkargs_ds(char **args, char *buf, int len)
 {
 	char *s = buf;
 	char *e = buf + len - 1;
@@ -247,19 +247,19 @@ static int mkargs_ds(char **args, int maxargs, char *buf, int len)
 }
 
 /* read arguments for commands .nr that expect a register name */
-static int mkargs_reg1(char **args, int maxargs, char *buf, int len)
+static int mkargs_reg1(char **args, char *buf, int len)
 {
 	char *s = buf;
 	char *e = buf + len - 1;
 	args[0] = s;
 	s = arg_regname(s, e - s);
-	return mkargs(args + 1, maxargs - 1, s, e - s) + 1;
+	return mkargs(args + 1, s, e - s) + 1;
 }
 
 static struct cmd {
 	char *id;
-	void (*f)(int argc, char **args);
-	int (*args)(char **args, int maxargs, char *buf, int len);
+	void (*f)(char **args);
+	int (*args)(char **args, char *buf, int len);
 } cmds[] = {
 	{"br", tr_br},
 	{"de", tr_de, mkargs_reg1},
@@ -279,7 +279,7 @@ int tr_next(void)
 {
 	int c = cp_next();
 	int nl = c == '\n';
-	char *args[NARGS + 1] = {NULL};
+	char *args[NARGS + 3] = {NULL};
 	char cmd[RLEN];
 	char buf[LNLEN];
 	struct cmd *req = NULL;
@@ -295,12 +295,12 @@ int tr_next(void)
 				req = &cmds[i];
 		if (req) {
 			if (req->args)
-				argc = req->args(args + 1, NARGS, buf, sizeof(buf));
+				argc = req->args(args + 1, buf, sizeof(buf));
 			else
-				argc = mkargs(args + 1, NARGS, buf, sizeof(buf));
-			req->f(argc + 1, args);
+				argc = mkargs(args + 1, buf, sizeof(buf));
+			req->f(args);
 		} else {
-			argc = mkargs(args + 1, NARGS, buf, sizeof(buf));
+			argc = mkargs(args + 1, buf, sizeof(buf));
 			if (str_get(REG(cmd[1], cmd[2])))
 				in_push(str_get(REG(cmd[1], cmd[2])), args + 1);
 		}
