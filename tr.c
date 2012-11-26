@@ -110,7 +110,6 @@ static void tr_de(char **args)
 	while ((c = cp_next()) >= 0) {
 		sbuf_add(&sbuf, c);
 		if (c == '\n') {
-			sbuf_add(&sbuf, c);
 			c = cp_next();
 			if (c == '.') {
 				arg_regname(buf, 4);
