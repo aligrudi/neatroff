@@ -70,8 +70,7 @@ static void adjust(char *s, int adj)
 	for (i = 0; i < n - 1; i++)
 		words[i + 1].blanks += adj_div + (i < adj_rem);
 	for (cur = words; cur <= last; cur++) {
-		if (cur > words)
-			s += sprintf(s, "\\h'%du'", cur->blanks);
+		s += sprintf(s, "\\h'%du'", cur->blanks);
 		memcpy(s, buf + cur->beg, cur->end - cur->beg);
 		s += cur->end - cur->beg;
 	}
@@ -178,7 +177,7 @@ static void ren_br(int adj)
 {
 	char out[LNLEN];
 	buf[buflen] = '\0';
-	if (buflen) {
+	if (nwords) {
 		adjust(out, adj);
 		output(out);
 	}
@@ -202,20 +201,26 @@ void render(void)
 	int esc = 0;
 	tr_br(NULL);
 	while (nextchar(c) > 0) {
-		g = NULL;
-		if (!word && (wid > n_l || req_br))
-			ren_br(wid > n_l ? n_ad : 0);
 		if (c[0] == ' ' || c[0] == '\n') {
 			if (word) {
 				word->end = buflen;
 				word = NULL;
 			}
-			if (c[0] == '\n')
+			if (newline)
+				req_br = 1;
+			if (newline && c[0] == '\n')
+				req_sp += n_v;
+			if (c[0] == '\n') {
+				blanks = 0;
 				newline = 1;
-			else
+			}
+			if (c[0] == ' ')
 				blanks += charwid(dev_spacewid(), n_s);
 			continue;
 		}
+		g = NULL;
+		if (!word && (wid > n_l || req_br))
+			ren_br(wid > n_l ? n_ad : 0);
 		esc = 0;
 		if (c[0] == '\\') {
 			esc = 1;
@@ -237,11 +242,11 @@ void render(void)
 			word = &words[nwords++];
 			word->beg = buflen;
 			word->wid = 0;
-			if (newline)
+			if (newline && !blanks && nwords > 1)
 				word->blanks = charwid(dev_spacewid(), n_s);
 			else
 				word->blanks = blanks;
-			wid += blanks;
+			wid += word->blanks;
 			newline = 0;
 			blanks = 0;
 		}
