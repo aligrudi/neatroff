@@ -28,13 +28,16 @@ char *str_get(int id);
 
 /* builtin number registers; n_X for .X register */
 #define REG(c1, c2)	((c1) * 256 + (c2))
+#define n_d		nreg[REG('.', 'd')]
 #define n_f		nreg[REG('.', 'f')]
-#define n_s		nreg[REG('.', 's')]
+#define n_i		nreg[REG('.', 'i')]
+#define n_l		nreg[REG('.', 'l')]
 #define n_o		nreg[REG('.', 'o')]
 #define n_p		nreg[REG('.', 'p')]
-#define n_l		nreg[REG('.', 'l')]
+#define n_s		nreg[REG('.', 's')]
 #define n_v		nreg[REG('.', 'v')]
-#define n_i		nreg[REG('.', 'i')]
+#define n_nl		nreg[REG('n', 'l')]
+#define n_pg		nreg[REG('%', '\0')]	/* % */
 #define n_f0		nreg[REG('\0', 'f')]	/* last font */
 #define n_s0		nreg[REG('\0', 's')]	/* last size */
 #define n_ad		nreg[REG('\0', 'a')]	/* adjustment */
@@ -59,7 +62,7 @@ struct font {
 	int nglyphs;
 	int spacewid;
 	int special;
-	char c[NGLYPHS][FNLEN];	/* character names in charset */
+	char c[NGLYPHS][FNLEN];		/* character names in charset */
 	struct glyph *g[NGLYPHS];	/* character glyphs in charset */
 	int n;				/* number of characters in charset */
 };
@@ -94,6 +97,7 @@ void cp_back(int c);
 /* rendering */
 void render(void);	/* read from in.c and print the output */
 void output(char *s);	/* output the given rendered line */
+void ren_page(int pg);
 
 /* troff commands */
 void tr_br(char **args);
@@ -102,6 +106,7 @@ void tr_nr(char **args);
 void tr_ps(char **args);
 void tr_ft(char **args);
 void tr_fp(char **args);
+void tr_bp(char **args);
 
 /* helpers */
 void errmsg(char *msg, ...);

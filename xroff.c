@@ -27,8 +27,7 @@ static void compile(void)
 {
 	printf("s%d\n", n_s);
 	printf("f%d\n", n_f);
-	printf("H%d\n", n_o);
-	printf("V%d\n", 0);
+	ren_page(1);
 	render();
 	printf("V%d\n", n_p);
 }

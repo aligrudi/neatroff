@@ -78,8 +78,6 @@ void output(char *s)
 	struct glyph *g;
 	char c[GNLEN * 2];
 	char arg[ILNLEN];
-	printf("v%d\n", n_v);
-	printf("H%d\n", n_o + n_i);
 	while (*s) {
 		s = utf8get(c, s);
 		if (c[0] == '\\') {

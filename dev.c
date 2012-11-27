@@ -28,8 +28,6 @@ static void dev_prologue(void)
 	printf("x T utf\n");
 	printf("x res %d %d %d\n", dev_res, dev_hor, dev_ver);
 	printf("x init\n");
-	printf("V0\n");
-	printf("p1\n");
 }
 
 int dev_mnt(int pos, char *id, char *name)

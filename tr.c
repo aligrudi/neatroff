@@ -260,6 +260,7 @@ static struct cmd {
 	void (*f)(char **args);
 	int (*args)(char **args, char *buf, int len);
 } cmds[] = {
+	{"bp", tr_bp},
 	{"br", tr_br},
 	{"de", tr_de, mkargs_reg1},
 	{"ds", tr_ds, mkargs_ds},

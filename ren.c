@@ -16,9 +16,8 @@ static int buflen;
 static struct word words[NWORDS];	/* words in the buffer */
 static int nwords;
 static int wid;				/* total width of the buffer */
+static struct word *word;		/* current word */
 static int ren_backed = -1;		/* pushed back character */
-static int req_br;			/* pending .br request */
-static int req_sp;			/* pending .sp request */
 
 static int ren_next(void)
 {
@@ -90,16 +89,34 @@ static void adjust(char *s, int adj)
 	words[0].blanks = 0;
 }
 
+static void ren_br(int sp, int adj);
+
 void tr_br(char **args)
 {
-	req_br = 1;
+	ren_br(0, 0);
 }
 
 void tr_sp(char **args)
 {
-	tr_br(NULL);
+	int sp = 0;
 	if (args[1])
-		req_sp = tr_int(args[1], 0, 'v');
+		sp = tr_int(args[1], 0, 'v');
+	ren_br(sp, 0);
+}
+
+void ren_page(int pg)
+{
+	n_nl = -1;
+	n_d = 0;
+	n_pg = pg;
+	printf("p%d\n", pg);
+	printf("V%d\n", 0);
+}
+
+void tr_bp(char **args)
+{
+	ren_br(0, 0);
+	ren_page(args[1] ? tr_int(args[1], n_pg, 'v') : n_pg + 1);
 }
 
 static void ren_ps(char *s)
@@ -173,18 +190,25 @@ static void escarg(char *s, int cmd)
 	*s = '\0';
 }
 
-static void ren_br(int adj)
+static void down(int n)
+{
+	n_d += n;
+	n_nl = n_d;
+	printf("v%d\n", n);
+}
+
+static void ren_br(int sp, int adj)
 {
 	char out[LNLEN];
 	buf[buflen] = '\0';
 	if (nwords) {
-		adjust(out, adj);
+		adjust(out, wid > n_l ? n_ad : adj);
+		down(n_v);
+		printf("H%d\n", n_o + n_i);
 		output(out);
 	}
-	if (req_sp)
-		printf("v%d\n", req_sp);
-	req_br = 0;
-	req_sp = 0;
+	if (sp)
+		down(sp);
 }
 
 void render(void)
@@ -193,34 +217,37 @@ void render(void)
 	char arg[ILNLEN];
 	struct glyph *g;
 	int g_wid;
-	struct word *word = NULL;
 	int blanks = 0;
 	int newline = 0;
 	int r_s = n_s;
 	int r_f = n_f;
 	int esc = 0;
-	tr_br(NULL);
+	int space_br = 0;	/* .br caused by indented lines */
+	ren_br(0, 0);
 	while (nextchar(c) > 0) {
+		g = NULL;
+		if (!word && wid > n_l)
+			ren_br(0, wid > n_l ? n_ad : 0);
 		if (c[0] == ' ' || c[0] == '\n') {
 			if (word) {
 				word->end = buflen;
 				word = NULL;
 			}
-			if (newline)
-				req_br = 1;
 			if (newline && c[0] == '\n')
-				req_sp += n_v;
+				ren_br(n_v, 0);
+			if (newline && c[0] == ' ' && !space_br) {
+				space_br = 1;
+				ren_br(0, 0);
+			}
 			if (c[0] == '\n') {
 				blanks = 0;
 				newline = 1;
+				space_br = 0;
 			}
 			if (c[0] == ' ')
 				blanks += charwid(dev_spacewid(), n_s);
 			continue;
 		}
-		g = NULL;
-		if (!word && (wid > n_l || req_br))
-			ren_br(wid > n_l ? n_ad : 0);
 		esc = 0;
 		if (c[0] == '\\') {
 			esc = 1;
@@ -267,6 +294,6 @@ void render(void)
 		word->wid += g_wid;
 		wid += g_wid;
 	}
-	ren_br(wid > n_l ? n_ad : 0);
-	ren_br(0);
+	ren_br(0, wid > n_l ? n_ad : 0);
+	ren_br(0, 0);
 }
