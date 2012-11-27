@@ -128,12 +128,6 @@ static void tr_de(char **args)
 	sbuf_done(&sbuf);
 }
 
-static void tr_in(char **args)
-{
-	if (args[1])
-		n_i = tr_int(args[1], n_i, 'm');
-}
-
 static void tr_na(char **args)
 {
 	n_ad = 0;

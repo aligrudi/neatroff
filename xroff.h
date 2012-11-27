@@ -100,13 +100,14 @@ void output(char *s);	/* output the given rendered line */
 void ren_page(int pg);
 
 /* troff commands */
+void tr_bp(char **args);
 void tr_br(char **args);
-void tr_sp(char **args);
+void tr_fp(char **args);
+void tr_ft(char **args);
+void tr_in(char **args);
 void tr_nr(char **args);
 void tr_ps(char **args);
-void tr_ft(char **args);
-void tr_fp(char **args);
-void tr_bp(char **args);
+void tr_sp(char **args);
 
 /* helpers */
 void errmsg(char *msg, ...);

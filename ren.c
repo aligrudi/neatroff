@@ -4,6 +4,8 @@
 #include <string.h>
 #include "xroff.h"
 
+#define LL	(n_l - n_i)	/* effective line length */
+
 struct word {
 	int beg;	/* word beginning offset in buf */
 	int end;	/* word ending offset in buf */
@@ -55,7 +57,7 @@ static void adjust(char *s, int adj)
 	int adj_div = 0;
 	int adj_rem = 0;
 	int n;
-	while (last < words + nwords && w + last->wid + last->blanks <= n_l) {
+	while (last < words + nwords && w + last->wid + last->blanks <= LL) {
 		w += last->wid + last->blanks;
 		last++;
 	}
@@ -63,8 +65,8 @@ static void adjust(char *s, int adj)
 		last--;
 	n = last - words + 1;
 	if (adj && n > 1) {
-		adj_div = (n_l - w) / (n - 1);
-		adj_rem = n_l - w - adj_div * (n - 1);
+		adj_div = (LL - w) / (n - 1);
+		adj_rem = LL - w - adj_div * (n - 1);
 	}
 	for (i = 0; i < n - 1; i++)
 		words[i + 1].blanks += adj_div + (i < adj_rem);
@@ -130,6 +132,13 @@ void tr_ps(char **args)
 {
 	if (args[1])
 		ren_ps(args[1]);
+}
+
+void tr_in(char **args)
+{
+	ren_br(0, 0);
+	if (args[1])
+		n_i = tr_int(args[1], n_i, 'm');
 }
 
 static void ren_ft(char *s)
@@ -202,7 +211,7 @@ static void ren_br(int sp, int adj)
 	char out[LNLEN];
 	buf[buflen] = '\0';
 	if (nwords) {
-		adjust(out, wid > n_l ? n_ad : adj);
+		adjust(out, wid > LL ? n_ad : adj);
 		down(n_v);
 		printf("H%d\n", n_o + n_i);
 		output(out);
@@ -226,8 +235,8 @@ void render(void)
 	ren_br(0, 0);
 	while (nextchar(c) > 0) {
 		g = NULL;
-		if (!word && wid > n_l)
-			ren_br(0, wid > n_l ? n_ad : 0);
+		if (!word && wid > LL)
+			ren_br(0, wid > LL ? n_ad : 0);
 		if (c[0] == ' ' || c[0] == '\n') {
 			if (word) {
 				word->end = buflen;
@@ -294,6 +303,6 @@ void render(void)
 		word->wid += g_wid;
 		wid += g_wid;
 	}
-	ren_br(0, wid > n_l ? n_ad : 0);
+	ren_br(0, wid > LL ? n_ad : 0);
 	ren_br(0, 0);
 }
