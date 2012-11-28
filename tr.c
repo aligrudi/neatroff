@@ -84,6 +84,12 @@ static void tr_vs(char **args)
 		n_v = tr_int(args[1], n_v, 'p');
 }
 
+static void tr_pl(char **args)
+{
+	if (args[1])
+		n_p = tr_int(args[1], n_p, 'v');
+}
+
 static void tr_ds(char **args)
 {
 	if (!args[2])
@@ -264,6 +270,7 @@ static struct cmd {
 	{"ll", tr_ll},
 	{"na", tr_na},
 	{"nr", tr_nr, mkargs_reg1},
+	{"pl", tr_pl},
 	{"ps", tr_ps},
 	{"sp", tr_sp},
 	{"vs", tr_vs},

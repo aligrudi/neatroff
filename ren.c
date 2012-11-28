@@ -199,11 +199,19 @@ static void escarg(char *s, int cmd)
 	*s = '\0';
 }
 
+static void ren_ne(int n)
+{
+	if (n_nl + n > n_p)
+		ren_page(n_pg + 1);
+}
+
 static void down(int n)
 {
 	n_d += n;
 	n_nl = n_d;
-	printf("v%d\n", n);
+	if (n_nl <= n_p)
+		printf("v%d\n", n);
+	ren_ne(0);
 }
 
 static void ren_br(int sp, int adj)
@@ -212,9 +220,11 @@ static void ren_br(int sp, int adj)
 	buf[buflen] = '\0';
 	if (nwords) {
 		adjust(out, wid > LL ? n_ad : adj);
+		ren_ne(n_v);
 		down(n_v);
 		printf("H%d\n", n_o + n_i);
 		output(out);
+		ren_ne(n_v);
 	}
 	if (sp)
 		down(sp);
