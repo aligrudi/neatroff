@@ -14,6 +14,10 @@
 #define NARGS		9	/* number of macro arguments */
 #define RLEN		4	/* register/macro name */
 
+/* adjustment modes */
+#define ADJ_L		0
+#define ADJ_B		1
+
 #define LEN(a)		(sizeof(a) / sizeof((a)[0]))
 
 /* number registers */
@@ -35,6 +39,7 @@ char *str_get(int id);
 #define n_o		nreg[REG('.', 'o')]
 #define n_p		nreg[REG('.', 'p')]
 #define n_s		nreg[REG('.', 's')]
+#define n_u		nreg[REG('.', 'u')]
 #define n_v		nreg[REG('.', 'v')]
 #define n_nl		nreg[REG('n', 'l')]
 #define n_pg		nreg[REG('%', '\0')]	/* % */
@@ -105,6 +110,7 @@ void tr_br(char **args);
 void tr_fp(char **args);
 void tr_ft(char **args);
 void tr_in(char **args);
+void tr_nf(char **args);
 void tr_nr(char **args);
 void tr_ps(char **args);
 void tr_sp(char **args);

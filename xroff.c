@@ -17,6 +17,7 @@ static void g_init(void)
 	n_l = SC_IN * 65 / 10;
 	n_i = 0;
 	n_s = 10;
+	n_u = 1;
 	n_v = 12 * SC_PT;
 	n_s0 = n_s;
 	n_f0 = n_f;

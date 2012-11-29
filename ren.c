@@ -47,55 +47,92 @@ static int nextchar(char *s)
 	return l;
 }
 
-static void adjust(char *s, int adj)
+static void adjust_nf(char *s, int n)
 {
-	struct word *last = words;
 	struct word *cur;
-	int w = 0;
 	int lendiff;
+	int w = 0;
 	int i;
-	int adj_div = 0;
-	int adj_rem = 0;
-	int n;
-	while (last < words + nwords && w + last->wid + last->blanks <= LL) {
-		w += last->wid + last->blanks;
-		last++;
-	}
-	if (last > words)
-		last--;
-	n = last - words + 1;
-	if (adj && n > 1) {
-		adj_div = (LL - w) / (n - 1);
-		adj_rem = LL - w - adj_div * (n - 1);
-	}
-	for (i = 0; i < n - 1; i++)
-		words[i + 1].blanks += adj_div + (i < adj_rem);
-	for (cur = words; cur <= last; cur++) {
+	for (i = 0; i < n; i++) {
+		cur = &words[i];
 		s += sprintf(s, "\\h'%du'", cur->blanks);
 		memcpy(s, buf + cur->beg, cur->end - cur->beg);
 		s += cur->end - cur->beg;
+		w += cur->wid + cur->blanks;
 	}
 	*s = '\0';
-	lendiff = n < nwords ? last[1].beg : buflen;
+	lendiff = n < nwords ? words[n].beg : buflen;
 	memmove(buf, buf + lendiff, buflen - lendiff);
 	buflen -= lendiff;
 	nwords -= n;
-	memmove(words, last + 1, nwords * sizeof(words[0]));
+	memmove(words, words + n, nwords * sizeof(words[0]));
 	wid -= w;
 	for (i = 0; i < nwords; i++) {
 		words[i].beg -= lendiff;
 		words[i].end -= lendiff;
 	}
+}
+
+static void adjust_fi(char *s, int adj)
+{
+	int adj_div, adj_rem;
+	int w = 0;
+	int i, n;
+	for (n = 0; n < nwords; n++) {
+		if (n && w + words[n].wid + words[n].blanks > LL)
+			break;
+		w += words[n].wid + words[n].blanks;
+	}
+	if (adj == ADJ_B && n > 1 && n < nwords) {
+		adj_div = (LL - w) / (n - 1);
+		adj_rem = LL - w - adj_div * (n - 1);
+		wid += LL - w;
+		for (i = 0; i < n - 1; i++)
+			words[i + 1].blanks += adj_div + (i < adj_rem);
+	}
+	adjust_nf(s, n);
 	if (nwords)
 		wid -= words[0].blanks;
 	words[0].blanks = 0;
 }
 
-static void ren_br(int sp, int adj);
+static void ren_ne(int n)
+{
+	if (n_nl + n > n_p)
+		ren_page(n_pg + 1);
+}
+
+static void down(int n)
+{
+	n_d += n;
+	n_nl = n_d;
+	if (n_nl <= n_p)
+		printf("v%d\n", n);
+	ren_ne(0);
+}
+
+static void ren_br(int sp)
+{
+	char out[LNLEN];
+	buf[buflen] = '\0';
+	if (nwords) {
+		if (n_u)
+			adjust_fi(out, n_ad);
+		else
+			adjust_nf(out, nwords);
+		ren_ne(n_v);
+		down(n_v);
+		printf("H%d\n", n_o + n_i);
+		output(out);
+		ren_ne(n_v);
+	}
+	if (sp)
+		down(sp);
+}
 
 void tr_br(char **args)
 {
-	ren_br(0, 0);
+	ren_br(0);
 }
 
 void tr_sp(char **args)
@@ -103,7 +140,7 @@ void tr_sp(char **args)
 	int sp = 0;
 	if (args[1])
 		sp = tr_int(args[1], 0, 'v');
-	ren_br(sp, 0);
+	ren_br(sp);
 }
 
 void ren_page(int pg)
@@ -117,7 +154,7 @@ void ren_page(int pg)
 
 void tr_bp(char **args)
 {
-	ren_br(0, 0);
+	ren_br(0);
 	ren_page(args[1] ? tr_int(args[1], n_pg, 'v') : n_pg + 1);
 }
 
@@ -136,7 +173,7 @@ void tr_ps(char **args)
 
 void tr_in(char **args)
 {
-	ren_br(0, 0);
+	ren_br(0);
 	if (args[1])
 		n_i = tr_int(args[1], n_i, 'm');
 }
@@ -162,6 +199,12 @@ void tr_fp(char **args)
 		return;
 	if (dev_mnt(atoi(args[1]), args[2], args[3] ? args[3] : args[2]) < 0)
 		errmsg("troff: failed to mount %s\n", args[2]);
+}
+
+void tr_nf(char **args)
+{
+	ren_br(0);
+	n_u = 0;
 }
 
 static void escarg(char *s, int cmd)
@@ -199,37 +242,6 @@ static void escarg(char *s, int cmd)
 	*s = '\0';
 }
 
-static void ren_ne(int n)
-{
-	if (n_nl + n > n_p)
-		ren_page(n_pg + 1);
-}
-
-static void down(int n)
-{
-	n_d += n;
-	n_nl = n_d;
-	if (n_nl <= n_p)
-		printf("v%d\n", n);
-	ren_ne(0);
-}
-
-static void ren_br(int sp, int adj)
-{
-	char out[LNLEN];
-	buf[buflen] = '\0';
-	if (nwords) {
-		adjust(out, wid > LL ? n_ad : adj);
-		ren_ne(n_v);
-		down(n_v);
-		printf("H%d\n", n_o + n_i);
-		output(out);
-		ren_ne(n_v);
-	}
-	if (sp)
-		down(sp);
-}
-
 void render(void)
 {
 	char c[GNLEN * 2];
@@ -242,21 +254,23 @@ void render(void)
 	int r_f = n_f;
 	int esc = 0;
 	int space_br = 0;	/* .br caused by indented lines */
-	ren_br(0, 0);
+	ren_br(0);
 	while (nextchar(c) > 0) {
 		g = NULL;
-		if (!word && wid > LL)
-			ren_br(0, wid > LL ? n_ad : 0);
+		if (n_u && !word && wid > LL)
+			ren_br(0);
 		if (c[0] == ' ' || c[0] == '\n') {
 			if (word) {
 				word->end = buflen;
 				word = NULL;
 			}
-			if (newline && c[0] == '\n')
-				ren_br(n_v, 0);
-			if (newline && c[0] == ' ' && !space_br) {
+			if (!n_u && c[0] == '\n')
+				ren_br(0);
+			if (n_u && newline && c[0] == '\n')
+				ren_br(n_v);
+			if (n_u && newline && c[0] == ' ' && !space_br) {
 				space_br = 1;
-				ren_br(0, 0);
+				ren_br(0);
 			}
 			if (c[0] == '\n') {
 				blanks = 0;
@@ -313,6 +327,7 @@ void render(void)
 		word->wid += g_wid;
 		wid += g_wid;
 	}
-	ren_br(0, wid > LL ? n_ad : 0);
-	ren_br(0, 0);
+	if (n_u)
+		ren_br(0);
+	ren_br(0);
 }
