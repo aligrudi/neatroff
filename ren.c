@@ -207,39 +207,41 @@ void tr_nf(char **args)
 	n_u = 0;
 }
 
-static void escarg(char *s, int cmd)
+static void escarg_ren(char *d, int cmd)
 {
-	int c;
-	c = ren_next();
-	if (cmd == 's' && (c == '-' || c == '+')) {
-		*s++ = c;
+	int c, q;
+	if (strchr(ESC_P, cmd)) {
 		c = ren_next();
+		if (cmd == 's' && (c == '-' || c == '+')) {
+			*d++ = c;
+			c = ren_next();
+		}
+		if (c == '(') {
+			*d++ = ren_next();
+			*d++ = ren_next();
+		} else {
+			*d++ = c;
+			if (cmd == 's' && c >= '1' && c <= '3') {
+				c = ren_next();
+				if (isdigit(c))
+					*d++ = c;
+				else
+					ren_back(c);
+			}
+		}
 	}
-	if (c == '(') {
-		*s++ = ren_next();
-		*s++ = ren_next();
-		*s = '\0';
-		return;
-	}
-	if (c == '\'') {
+	if (strchr(ESC_Q, cmd)) {
+		q = ren_next();
 		while (1) {
 			c = ren_next();
-			if (c == '\'' || c < 0)
+			if (c == q || c < 0)
 				break;
-			*s++ = c;
+			*d++ = c;
 		}
-		*s = '\0';
-		return;
 	}
-	*s++ = c;
-	if (cmd == 's' && c >= '1' && c <= '3') {
-		c = ren_next();
-		if (isdigit(c))
-			*s++ = c;
-		else
-			ren_back(c);
-	}
-	*s = '\0';
+	if (cmd == 'z')
+		*d++ = ren_next();
+	*d = '\0';
 }
 
 void render(void)
@@ -290,7 +292,7 @@ void render(void)
 				l += nextchar(c + l);
 				c[l] = '\0';
 			} else if (strchr("sf", c[0])) {
-				escarg(arg, c[0]);
+				escarg_ren(arg, c[0]);
 				if (c[0] == 'f')
 					ren_ft(arg);
 				if (c[0] == 's')

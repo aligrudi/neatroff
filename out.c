@@ -52,23 +52,30 @@ static void out_ft(int n)
 
 static char *escarg(char *s, char *d, int cmd)
 {
-	if (cmd == 's' && (*s == '-' || *s == '+'))
-		*d++ = *s++;
-	if (*s == '(') {
-		s++;
-		*d++ = *s++;
-		*d++ = *s++;
-	} else if (*s == '\'') {
-		s++;
-		while (*s >= 0 && *s != '\'')
+	int q;
+	if (strchr(ESC_P, cmd)) {
+		if (cmd == 's' && (*s == '-' || *s == '+'))
 			*d++ = *s++;
-		if (*s == '\'')
+		if (*s == '(') {
 			s++;
-	} else {
-		*d++ = *s++;
-		if (cmd == 's' && s[-1] >= '1' && s[-1] <= '3' && isdigit(*s))
 			*d++ = *s++;
+			*d++ = *s++;
+		} else {
+			*d++ = *s++;
+			if (cmd == 's' && s[-1] >= '1' && s[-1] <= '3')
+				if (isdigit(*s))
+					*d++ = *s++;
+		}
 	}
+	if (strchr(ESC_Q, cmd)) {
+		q = *s++;
+		while (*s && *s != q)
+			*d++ = *s++;
+		if (*s == q)
+			s++;
+	}
+	if (cmd == 'z')
+		*d++ = *s++;
 	*d = '\0';
 	return s;
 }

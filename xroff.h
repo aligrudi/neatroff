@@ -18,6 +18,10 @@
 #define ADJ_L		0
 #define ADJ_B		1
 
+/* escape sequences */
+#define ESC_Q	"bCDhHlLNoSvwxX"	/* quoted escape sequences */
+#define ESC_P	"*fgkns"		/* 1 or 2-char escape sequences */
+
 #define LEN(a)		(sizeof(a) / sizeof((a)[0]))
 
 /* number registers */
