@@ -61,7 +61,12 @@ int cp_next(void)
 		} else if (c == '$') {
 			cp_arg();
 			c = in_next();
-		} else {
+		} else if (c == '\n') {
+			c = cp_next();
+		} else if (c == '"') {
+			while (c >= 0 && c != '\n')
+				c = in_next();
+		} else if (c != '.') {
 			cp_back(c);
 			c = '\\';
 		}
