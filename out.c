@@ -38,7 +38,7 @@ static void out_ps(int n)
 {
 	if (o_s != n) {
 		o_s = n;
-		printf("s%d\n", o_s);
+		OUT("s%d\n", o_s);
 	}
 }
 
@@ -46,7 +46,7 @@ static void out_ft(int n)
 {
 	if (n >= 0 && o_f != n) {
 		o_f = n;
-		printf("f%d\n", o_f);
+		OUT("f%d\n", o_f);
 	}
 }
 
@@ -103,7 +103,7 @@ void output(char *s)
 					continue;
 				}
 				if (c[0] == 'h') {
-					printf("h%d", tr_int(arg, 0, 'm'));
+					OUT("h%d", tr_int(arg, 0, 'm'));
 					continue;
 				}
 			}
@@ -111,11 +111,11 @@ void output(char *s)
 		g = dev_glyph(c, o_f);
 		if (g) {
 			if (utf8len(c[0]) == strlen(c)) {
-				printf("c%s%s", c, c[1] ? "\n" : "");
+				OUT("c%s%s", c, c[1] ? "\n" : "");
 			} else {
-				printf("C%s\n", c);
+				OUT("C%s\n", c);
 			}
 		}
-		printf("h%d", charwid(g ? g->wid : dev_spacewid(), o_s));
+		OUT("h%d", charwid(g ? g->wid : dev_spacewid(), o_s));
 	}
 }

@@ -76,6 +76,9 @@ struct font {
 	int n;				/* number of characters in charset */
 };
 
+/* troff output function */
+#define OUT	printf
+
 /* output device functions */
 int dev_open(char *path);
 void dev_close(void);

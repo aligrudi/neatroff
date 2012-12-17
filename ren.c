@@ -107,7 +107,7 @@ static void down(int n)
 	n_d += n;
 	n_nl = n_d;
 	if (n_nl <= n_p)
-		printf("v%d\n", n);
+		OUT("v%d\n", n);
 	ren_ne(0);
 }
 
@@ -122,7 +122,7 @@ static void ren_br(int sp)
 			adjust_nf(out, nwords);
 		ren_ne(n_v);
 		down(n_v);
-		printf("H%d\n", n_o + n_i);
+		OUT("H%d\n", n_o + n_i);
 		output(out);
 		ren_ne(n_v);
 	}
@@ -148,8 +148,8 @@ void ren_page(int pg)
 	n_nl = -1;
 	n_d = 0;
 	n_pg = pg;
-	printf("p%d\n", pg);
-	printf("V%d\n", 0);
+	OUT("p%d\n", pg);
+	OUT("V%d\n", 0);
 }
 
 void tr_bp(char **args)

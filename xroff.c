@@ -26,11 +26,11 @@ static void g_init(void)
 
 static void compile(void)
 {
-	printf("s%d\n", n_s);
-	printf("f%d\n", n_f);
+	OUT("s%d\n", n_s);
+	OUT("f%d\n", n_f);
 	ren_page(1);
 	render();
-	printf("V%d\n", n_p);
+	OUT("V%d\n", n_p);
 }
 
 void errmsg(char *fmt, ...)
