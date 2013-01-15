@@ -4,22 +4,18 @@
 #include <string.h>
 #include "xroff.h"
 
-#define LL	(n_l - n_i)	/* effective line length */
+#define LL		(n_l - n_i)	/* effective line length */
 
-struct word {
-	int beg;	/* word beginning offset in buf */
-	int end;	/* word ending offset in buf */
-	int wid;	/* word width */
-	int blanks;	/* blanks before word */
+/* diversion */
+struct div {
+	int f, s, f0, s0;		/* backup variables */
 };
 
-static char buf[LNLEN];			/* output buffer */
-static int buflen;
-static struct word words[NWORDS];	/* words in the buffer */
-static int nwords;
-static int wid;				/* total width of the buffer */
-static struct word *word;		/* current word */
+static struct adj adj;			/* line buffer */
 static int ren_backed = -1;		/* pushed back character */
+static int ren_div;			/* current diversion */
+static struct sbuf out_div;		/* current diversion output */
+static struct div cur_div;
 
 static int ren_next(void)
 {
@@ -47,83 +43,86 @@ static int nextchar(char *s)
 	return l;
 }
 
-static void adjust_nf(char *s, int n)
-{
-	struct word *cur;
-	int lendiff;
-	int w = 0;
-	int i;
-	for (i = 0; i < n; i++) {
-		cur = &words[i];
-		s += sprintf(s, "\\h'%du'", cur->blanks);
-		memcpy(s, buf + cur->beg, cur->end - cur->beg);
-		s += cur->end - cur->beg;
-		w += cur->wid + cur->blanks;
-	}
-	*s = '\0';
-	lendiff = n < nwords ? words[n].beg : buflen;
-	memmove(buf, buf + lendiff, buflen - lendiff);
-	buflen -= lendiff;
-	nwords -= n;
-	memmove(words, words + n, nwords * sizeof(words[0]));
-	wid -= w;
-	for (i = 0; i < nwords; i++) {
-		words[i].beg -= lendiff;
-		words[i].end -= lendiff;
-	}
-}
-
-static void adjust_fi(char *s, int adj)
-{
-	int adj_div, adj_rem;
-	int w = 0;
-	int i, n;
-	for (n = 0; n < nwords; n++) {
-		if (n && w + words[n].wid + words[n].blanks > LL)
-			break;
-		w += words[n].wid + words[n].blanks;
-	}
-	if (adj == ADJ_B && n > 1 && n < nwords) {
-		adj_div = (LL - w) / (n - 1);
-		adj_rem = LL - w - adj_div * (n - 1);
-		wid += LL - w;
-		for (i = 0; i < n - 1; i++)
-			words[i + 1].blanks += adj_div + (i < adj_rem);
-	}
-	adjust_nf(s, n);
-	if (nwords)
-		wid -= words[0].blanks;
-	words[0].blanks = 0;
-}
-
 static void ren_ne(int n)
 {
-	if (n_nl + n > n_p)
+	if (n_nl + n > n_p && !ren_div)
 		ren_page(n_pg + 1);
 }
 
+void tr_di(char **args)
+{
+	if (args[1]) {
+		sbuf_init(&out_div);
+		ren_div = REG(args[1][0], args[1][1]);
+		n_d = 0;
+	} else if (ren_div) {
+		sbuf_putnl(&out_div);
+		str_set(ren_div, sbuf_buf(&out_div));
+		sbuf_done(&out_div);
+		ren_div = 0;
+	}
+}
+
+/* begin outputting diverted line */
+static void div_beg(void)
+{
+	cur_div.f = n_f;
+	cur_div.s = n_s;
+	cur_div.f0 = n_f0;
+	cur_div.s0 = n_s0;
+}
+
+/* end outputting diverted line */
+static void div_end(void)
+{
+	n_f = cur_div.f;
+	n_s = cur_div.s;
+	n_f0 = cur_div.f0;
+	n_s0 = cur_div.s0;
+}
+
+/* vertical motion before rendering lines */
 static void down(int n)
 {
+	char cmd[32];
 	n_d += n;
-	n_nl = n_d;
-	if (n_nl <= n_p)
-		OUT("v%d\n", n);
+	if (ren_div) {
+		sbuf_putnl(&out_div);
+		sprintf(cmd, ".sp %du\n", n);
+		sbuf_append(&out_div, cmd);
+	} else {
+		n_nl = n_d;
+		if (n_nl <= n_p)
+			OUT("v%d\n", n);
+	}
 	ren_ne(0);
+}
+
+static void out_line(char *out)
+{
+	char cmd[32];
+	if (ren_div) {
+		if (!sbuf_empty(&out_div))
+			down(n_v);
+		sprintf(cmd, "\\h'%d'", n_i);
+		sbuf_append(&out_div, DIV_BEG);
+		sbuf_append(&out_div, cmd);
+		sbuf_append(&out_div, out);
+		sbuf_append(&out_div, DIV_END);
+	} else {
+		down(n_v);
+		OUT("H%d\n", n_o + n_i);
+		output(out);
+	}
 }
 
 static void ren_br(int sp)
 {
 	char out[LNLEN];
-	buf[buflen] = '\0';
-	if (nwords) {
-		if (n_u)
-			adjust_fi(out, n_ad);
-		else
-			adjust_nf(out, nwords);
+	if (adj.nwords) {
+		adj_fi(&adj, n_u ? n_ad : ADJ_N, LL, out);
 		ren_ne(n_v);
-		down(n_v);
-		OUT("H%d\n", n_o + n_i);
-		output(out);
+		out_line(out);
 		ren_ne(n_v);
 	}
 	if (sp)
@@ -154,8 +153,10 @@ void ren_page(int pg)
 
 void tr_bp(char **args)
 {
-	ren_br(0);
-	ren_page(args[1] ? tr_int(args[1], n_pg, 'v') : n_pg + 1);
+	if (!ren_div) {
+		ren_br(0);
+		ren_page(args[1] ? tr_int(args[1], n_pg, 'v') : n_pg + 1);
+	}
 }
 
 static void ren_ps(char *s)
@@ -249,7 +250,6 @@ void render(void)
 	char c[GNLEN * 2];
 	char arg[ILNLEN];
 	struct glyph *g;
-	int g_wid;
 	int blanks = 0;
 	int newline = 0;
 	int r_s = n_s;
@@ -259,13 +259,11 @@ void render(void)
 	ren_br(0);
 	while (nextchar(c) > 0) {
 		g = NULL;
-		if (n_u && !word && wid > LL)
+		if (n_u && adj_inbreak(&adj, LL))
 			ren_br(0);
 		if (c[0] == ' ' || c[0] == '\n') {
-			if (word) {
-				word->end = buflen;
-				word = NULL;
-			}
+			if (adj_inword(&adj))
+				adj_wordend(&adj);
 			if (!n_u && c[0] == '\n')
 				ren_br(0);
 			if (n_u && newline && c[0] == '\n')
@@ -287,6 +285,15 @@ void render(void)
 		if (c[0] == '\\') {
 			esc = 1;
 			nextchar(c);
+			/* rendered lines inside diversions */
+			if (c[0] == DIV_BEG[1]) {
+				nextchar(c);
+				if (c[0] == DIV_BEG[2])
+					div_beg();
+				if (c[0] == DIV_END[2])
+					div_end();
+				continue;
+			}
 			if (c[0] == '(') {
 				int l = nextchar(c);
 				l += nextchar(c + l);
@@ -300,34 +307,27 @@ void render(void)
 				continue;
 			}
 		}
-		if (!word) {
-			word = &words[nwords++];
-			word->beg = buflen;
-			word->wid = 0;
-			if (newline && !blanks && nwords > 1)
-				word->blanks = charwid(dev_spacewid(), n_s);
-			else
-				word->blanks = blanks;
-			wid += word->blanks;
+		if (!adj_inword(&adj)) {
+			if (newline && !blanks && adj.nwords >= 1)
+				blanks = charwid(dev_spacewid(), n_s);
+			adj_wordbeg(&adj, blanks);
 			newline = 0;
 			blanks = 0;
 		}
 		if (r_s != n_s) {
-			buflen += sprintf(buf + buflen, "\\s(%02d", n_s);
+			adj_putcmd(&adj, "\\s(%02d", n_s);
 			r_s = n_s;
 		}
 		if (r_f != n_f) {
-			buflen += sprintf(buf + buflen, "\\f(%02d", n_f);
+			adj_putcmd(&adj, "\\f(%02d", n_f);
 			r_f = n_f;
 		}
 		if (utf8len(c[0]) == strlen(c))
-			buflen += sprintf(buf + buflen, "%s%s", esc ? "\\" : "", c);
+			sprintf(arg, "%s%s", esc ? "\\" : "", c);
 		else
-			buflen += sprintf(buf + buflen, "\\(%s", c);
+			sprintf(arg, "\\(%s", c);
 		g = dev_glyph(c, n_f);
-		g_wid = charwid(g ? g->wid : dev_spacewid(), n_s);
-		word->wid += g_wid;
-		wid += g_wid;
+		adj_putchar(&adj, charwid(g ? g->wid : dev_spacewid(), n_s), arg);
 	}
 	if (n_u)
 		ren_br(0);

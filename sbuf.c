@@ -35,6 +35,17 @@ void sbuf_append(struct sbuf *sbuf, char *s)
 	sbuf->n += len;
 }
 
+void sbuf_putnl(struct sbuf *sbuf)
+{
+	if (sbuf->n && sbuf->s[sbuf->n - 1] != '\n')
+		sbuf_add(sbuf, '\n');
+}
+
+int sbuf_empty(struct sbuf *sbuf)
+{
+	return !sbuf->n;
+}
+
 char *sbuf_buf(struct sbuf *sbuf)
 {
 	sbuf->s[sbuf->n] = '\0';

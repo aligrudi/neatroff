@@ -14,10 +14,6 @@
 #define NARGS		9	/* number of macro arguments */
 #define RLEN		4	/* register/macro name */
 
-/* adjustment modes */
-#define ADJ_L		0
-#define ADJ_B		1
-
 /* escape sequences */
 #define ESC_Q	"bCDhHlLNoSvwxX"	/* quoted escape sequences */
 #define ESC_P	"*fgkns"		/* 1 or 2-char escape sequences */
@@ -114,6 +110,7 @@ void ren_page(int pg);
 /* troff commands */
 void tr_bp(char **args);
 void tr_br(char **args);
+void tr_di(char **args);
 void tr_fp(char **args);
 void tr_ft(char **args);
 void tr_in(char **args);
@@ -138,3 +135,38 @@ void sbuf_done(struct sbuf *sbuf);
 char *sbuf_buf(struct sbuf *sbuf);
 void sbuf_add(struct sbuf *sbuf, int c);
 void sbuf_append(struct sbuf *sbuf, char *s);
+void sbuf_putnl(struct sbuf *sbuf);
+int sbuf_empty(struct sbuf *sbuf);
+
+/* diversions */
+#define DIV_BEG		"\\I<"
+#define DIV_END		"\\I>"
+
+/* adjustment */
+#define ADJ_L		0
+#define ADJ_B		1
+#define ADJ_N		2		/* no adjustment (.nf) */
+
+struct word {
+	int beg;	/* word beginning offset */
+	int end;	/* word ending offset */
+	int wid;	/* word width */
+	int blanks;	/* blanks before word */
+};
+
+struct adj {
+	char buf[LNLEN];		/* line buffer */
+	int len;
+	struct word words[NWORDS];	/* words in buf  */
+	int nwords;
+	int wid;			/* total width of buffer */
+	struct word *word;		/* current word */
+};
+
+void adj_fi(struct adj *adj, int mode, int linelen, char *dst);
+void adj_wordbeg(struct adj *adj, int blanks);
+void adj_wordend(struct adj *adj);
+void adj_putcmd(struct adj *adj, char *s, ...);
+void adj_putchar(struct adj *adj, int wid, char *s);
+int adj_inword(struct adj *adj);
+int adj_inbreak(struct adj *adj, int linelen);
