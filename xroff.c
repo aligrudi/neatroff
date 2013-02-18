@@ -1,7 +1,7 @@
 /*
  * neatroff troff clone
  *
- * Copyright (C) 2012 Ali Gholami Rudi <ali at rudi dot ir>
+ * Copyright (C) 2012-2013 Ali Gholami Rudi <ali at rudi dot ir>
  *
  * This program is released under the modified BSD license.
  */

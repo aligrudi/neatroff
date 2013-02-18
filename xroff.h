@@ -147,26 +147,10 @@ int sbuf_empty(struct sbuf *sbuf);
 #define ADJ_B		1
 #define ADJ_N		2		/* no adjustment (.nf) */
 
-struct word {
-	int beg;	/* word beginning offset */
-	int end;	/* word ending offset */
-	int wid;	/* word width */
-	int blanks;	/* blanks before word */
-};
-
-struct adj {
-	char buf[LNLEN];		/* line buffer */
-	int len;
-	struct word words[NWORDS];	/* words in buf  */
-	int nwords;
-	int wid;			/* total width of buffer */
-	struct word *word;		/* current word */
-};
-
-void adj_fi(struct adj *adj, int mode, int linelen, char *dst);
-void adj_wordbeg(struct adj *adj, int blanks);
-void adj_wordend(struct adj *adj);
-void adj_putcmd(struct adj *adj, char *s, ...);
-void adj_putchar(struct adj *adj, int wid, char *s);
-int adj_inword(struct adj *adj);
-int adj_inbreak(struct adj *adj, int linelen);
+struct adj *adj_alloc(void);
+void adj_free(struct adj *adj);
+void adj_fill(struct adj *adj, int mode, int linelen, char *dst);
+void adj_put(struct adj *adj, int wid, char *s, ...);
+void adj_swid(struct adj *adj, int swid);
+int adj_full(struct adj *adj, int mode, int linelen);
+int adj_empty(struct adj *adj, int mode);

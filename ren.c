@@ -4,14 +4,15 @@
 #include <string.h>
 #include "xroff.h"
 
-#define LL		(n_l - n_i)	/* effective line length */
+#define ADJ_LL		(n_l - n_i)	/* effective line length */
+#define ADJ_MODE	(n_u ? n_ad : ADJ_N)
 
 /* diversion */
 struct div {
 	int f, s, f0, s0;		/* backup variables */
 };
 
-static struct adj adj;			/* line buffer */
+static struct adj *adj;			/* line buffer */
 static int ren_backed = -1;		/* pushed back character */
 static int ren_div;			/* current diversion */
 static struct sbuf out_div;		/* current diversion output */
@@ -116,11 +117,11 @@ static void out_line(char *out)
 	}
 }
 
-static void ren_br(int sp)
+static void ren_br(int sp, int force)
 {
 	char out[LNLEN];
-	if (adj.nwords) {
-		adj_fi(&adj, n_u ? n_ad : ADJ_N, LL, out);
+	if (!adj_empty(adj, ADJ_MODE)) {
+		adj_fill(adj, force ? ADJ_N : ADJ_MODE, ADJ_LL, out);
 		ren_ne(n_v);
 		out_line(out);
 		ren_ne(n_v);
@@ -131,7 +132,7 @@ static void ren_br(int sp)
 
 void tr_br(char **args)
 {
-	ren_br(0);
+	ren_br(0, 1);
 }
 
 void tr_sp(char **args)
@@ -139,7 +140,7 @@ void tr_sp(char **args)
 	int sp = 0;
 	if (args[1])
 		sp = tr_int(args[1], 0, 'v');
-	ren_br(sp);
+	ren_br(sp, 1);
 }
 
 void ren_page(int pg)
@@ -154,7 +155,7 @@ void ren_page(int pg)
 void tr_bp(char **args)
 {
 	if (!ren_div) {
-		ren_br(0);
+		ren_br(0, 1);
 		ren_page(args[1] ? tr_int(args[1], n_pg, 'v') : n_pg + 1);
 	}
 }
@@ -174,7 +175,7 @@ void tr_ps(char **args)
 
 void tr_in(char **args)
 {
-	ren_br(0);
+	ren_br(0, 1);
 	if (args[1])
 		n_i = tr_int(args[1], n_i, 'm');
 }
@@ -204,7 +205,7 @@ void tr_fp(char **args)
 
 void tr_nf(char **args)
 {
-	ren_br(0);
+	ren_br(0, 1);
 	n_u = 0;
 }
 
@@ -250,37 +251,18 @@ void render(void)
 	char c[GNLEN * 2];
 	char arg[ILNLEN];
 	struct glyph *g;
-	int blanks = 0;
-	int newline = 0;
 	int r_s = n_s;
 	int r_f = n_f;
 	int esc = 0;
-	int space_br = 0;	/* .br caused by indented lines */
-	ren_br(0);
+	adj = adj_alloc();
+	ren_br(0, 1);
 	while (nextchar(c) > 0) {
-		g = NULL;
-		if (n_u && adj_inbreak(&adj, LL))
-			ren_br(0);
-		if (c[0] == ' ' || c[0] == '\n') {
-			if (adj_inword(&adj))
-				adj_wordend(&adj);
-			if (!n_u && c[0] == '\n')
-				ren_br(0);
-			if (n_u && newline && c[0] == '\n')
-				ren_br(n_v);
-			if (n_u && newline && c[0] == ' ' && !space_br) {
-				space_br = 1;
-				ren_br(0);
-			}
-			if (c[0] == '\n') {
-				blanks = 0;
-				newline = 1;
-				space_br = 0;
-			}
-			if (c[0] == ' ')
-				blanks += charwid(dev_spacewid(), n_s);
+		if (c[0] == ' ' || c[0] == '\n')
+			adj_put(adj, charwid(dev_spacewid(), n_s), c);
+		while (adj_full(adj, ADJ_MODE, ADJ_LL))
+			ren_br(0, 0);
+		if (c[0] == ' ' || c[0] == '\n')
 			continue;
-		}
 		esc = 0;
 		if (c[0] == '\\') {
 			esc = 1;
@@ -307,19 +289,13 @@ void render(void)
 				continue;
 			}
 		}
-		if (!adj_inword(&adj)) {
-			if (newline && !blanks && adj.nwords >= 1)
-				blanks = charwid(dev_spacewid(), n_s);
-			adj_wordbeg(&adj, blanks);
-			newline = 0;
-			blanks = 0;
-		}
 		if (r_s != n_s) {
-			adj_putcmd(&adj, "\\s(%02d", n_s);
+			adj_swid(adj, charwid(dev_spacewid(), n_s));
+			adj_put(adj, 0, "\\s(%02d", n_s);
 			r_s = n_s;
 		}
 		if (r_f != n_f) {
-			adj_putcmd(&adj, "\\f(%02d", n_f);
+			adj_put(adj, 0, "\\f(%02d", n_f);
 			r_f = n_f;
 		}
 		if (utf8len(c[0]) == strlen(c))
@@ -327,9 +303,8 @@ void render(void)
 		else
 			sprintf(arg, "\\(%s", c);
 		g = dev_glyph(c, n_f);
-		adj_putchar(&adj, charwid(g ? g->wid : dev_spacewid(), n_s), arg);
+		adj_put(adj, charwid(g ? g->wid : dev_spacewid(), n_s), arg);
 	}
-	if (n_u)
-		ren_br(0);
-	ren_br(0);
+	ren_br(0, 1);
+	adj_free(adj);
 }
