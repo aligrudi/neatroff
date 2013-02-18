@@ -72,6 +72,15 @@ int tr_int(char *s, int orig, int unit)
 	return rel ? orig + n : n;
 }
 
+/* skip everything until the end of line */
+static void jmp_eol(void)
+{
+	int c;
+	do {
+		c = cp_next();
+	} while (c >= 0 && c != '\n');
+}
+
 static void tr_ll(char **args)
 {
 	if (args[1])
@@ -119,8 +128,10 @@ static void tr_de(char **args)
 			c = cp_next();
 			if (c == '.') {
 				arg_regname(buf, 4);
-				if (buf[0] == end[0] && buf[1] == end[1])
+				if (buf[0] == end[0] && buf[1] == end[1]) {
+					jmp_eol();
 					break;
+				}
 				sbuf_add(&sbuf, '.');
 				for (i = 0; buf[i]; i++)
 					sbuf_add(&sbuf, (unsigned char) buf[i]);
@@ -201,15 +212,6 @@ static char *arg_string(char *s, int len)
 	return s;
 }
 
-/* skip everything until the end of line */
-static void jmp_eol(void)
-{
-	int c;
-	do {
-		c = cp_next();
-	} while (c >= 0 && c != '\n');
-}
-
 /* read macro arguments */
 static int mkargs(char **args, char *buf, int len)
 {
@@ -285,25 +287,25 @@ int tr_next(void)
 	char *args[NARGS + 3] = {NULL};
 	char cmd[RLEN];
 	char buf[LNLEN];
-	struct cmd *req = NULL;
-	int argc;
+	struct cmd *req;
 	int i;
 	while (tr_nl && (c == '.' || c == '\'')) {
 		nl = 1;
 		args[0] = cmd;
 		cmd[0] = c;
+		req = NULL;
 		arg_regname(cmd + 1, sizeof(cmd) - 1);
 		for (i = 0; i < LEN(cmds); i++)
 			if (!strcmp(cmd + 1, cmds[i].id))
 				req = &cmds[i];
 		if (req) {
 			if (req->args)
-				argc = req->args(args + 1, buf, sizeof(buf));
+				req->args(args + 1, buf, sizeof(buf));
 			else
-				argc = mkargs(args + 1, buf, sizeof(buf));
+				mkargs(args + 1, buf, sizeof(buf));
 			req->f(args);
 		} else {
-			argc = mkargs(args + 1, buf, sizeof(buf));
+			mkargs(args + 1, buf, sizeof(buf));
 			if (str_get(REG(cmd[1], cmd[2])))
 				in_push(str_get(REG(cmd[1], cmd[2])), args + 1);
 		}
