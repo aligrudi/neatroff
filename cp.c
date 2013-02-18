@@ -36,7 +36,7 @@ static void cp_str(void)
 static void cp_arg(void)
 {
 	int c;
-	char *arg;
+	char *arg = NULL;
 	c = cp_next();
 	if (c >= '1' && c <= '9')
 		arg = in_arg(c - '0');
