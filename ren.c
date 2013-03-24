@@ -5,14 +5,14 @@
 #include "xroff.h"
 
 #define ADJ_LL		(n_l - n_i)	/* effective line length */
-#define ADJ_MODE	(n_u ? n_ad : ADJ_N)
+#define ADJ_MODE	(n_u ? n_j : ADJ_N)
+#define adj		env->adj	/* line buffer */
 
 /* diversion */
 struct div {
 	int f, s, f0, s0;		/* backup variables */
 };
 
-static struct adj *adj;			/* line buffer */
 static int ren_backed = -1;		/* pushed back character */
 static int ren_div;			/* current diversion */
 static struct sbuf out_div;		/* current diversion output */
@@ -162,15 +162,14 @@ void tr_bp(char **args)
 
 static void ren_ps(char *s)
 {
-	int ps = !*s || !strcmp("0", s) ? n_s0 : tr_int(s, n_s, '\0');
+	int ps = !s || !*s || !strcmp("0", s) ? n_s0 : tr_int(s, n_s, '\0');
 	n_s0 = n_s;
 	n_s = ps;
 }
 
 void tr_ps(char **args)
 {
-	if (args[1])
-		ren_ps(args[1]);
+	ren_ps(args[1]);
 }
 
 void tr_in(char **args)
@@ -254,7 +253,6 @@ void render(void)
 	int r_s = n_s;
 	int r_f = n_f;
 	int esc = 0;
-	adj = adj_alloc();
 	ren_br(0, 1);
 	while (nextchar(c) > 0) {
 		if (c[0] == ' ' || c[0] == '\n')
@@ -306,5 +304,4 @@ void render(void)
 		adj_put(adj, charwid(g ? g->wid : dev_spacewid(), n_s), arg);
 	}
 	ren_br(0, 1);
-	adj_free(adj);
 }

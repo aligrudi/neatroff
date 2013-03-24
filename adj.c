@@ -70,7 +70,7 @@ static void adj_move(struct adj *a, int n, char *s)
 	if (!n)
 		return;
 	lendiff = n < a->nwords ? a->words[n].beg : a->len;
-	memmove(a->buf, a->buf + lendiff, a->len - lendiff);
+	memmove(a->buf, a->buf + lendiff, a->len - lendiff + 1);
 	a->len -= lendiff;
 	a->nwords -= n;
 	memmove(a->words, a->words + n, a->nwords * sizeof(a->words[0]));

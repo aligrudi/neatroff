@@ -11,17 +11,8 @@
 
 static void g_init(void)
 {
-	n_f = 1;
 	n_o = SC_IN;
 	n_p = SC_IN * 11;
-	n_l = SC_IN * 65 / 10;
-	n_i = 0;
-	n_s = 10;
-	n_u = 1;
-	n_v = 12 * SC_PT;
-	n_s0 = n_s;
-	n_f0 = n_f;
-	n_ad = 1;
 }
 
 static void compile(void)
@@ -44,8 +35,10 @@ void errmsg(char *fmt, ...)
 int main(void)
 {
 	dev_open("/root/troff/home/font/devutf");
+	env_init();
 	g_init();
 	compile();
+	env_free();
 	dev_close();
 	return 0;
 }

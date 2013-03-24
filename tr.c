@@ -147,7 +147,7 @@ static void tr_de(char **args)
 
 static void tr_na(char **args)
 {
-	n_ad = 0;
+	n_j = 0;
 }
 
 static char *arg_regname(char *s, int len)
@@ -267,6 +267,7 @@ static struct cmd {
 	{"de", tr_de, mkargs_reg1},
 	{"di", tr_di},
 	{"ds", tr_ds, mkargs_ds},
+	{"ev", tr_ev},
 	{"fp", tr_fp},
 	{"ft", tr_ft},
 	{"in", tr_in},
