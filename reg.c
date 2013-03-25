@@ -1,23 +1,49 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdlib.h>
 #include <string.h>
 #include "xroff.h"
 
 #define NREGS		(1 << 16)
+#define NENVS		(1 << 5)
 
-int nreg[NREGS];
-char *sreg[NREGS];
+struct env {
+	int eregs[NENVS];	/* environment-specific number registers */
+	struct adj *adj;	/* per environment line buffer */
+};
 
-int num_get(int id)
+static int nregs[NREGS];	/* global number registers */
+static char *sregs[NREGS];	/* global string registers */
+static struct env envs[3];	/* environments */
+static struct env *env;		/* current enviroment */
+static int eregs_idx[NREGS];	/* register environment index in eregs[] */
+
+static int eregs[] = {		/* environment-specific number registers */
+	REG('.', 'f'),
+	REG('.', 'i'),
+	REG('.', 'j'),
+	REG('.', 'l'),
+	REG('.', 's'),
+	REG('.', 'u'),
+	REG('.', 'v'),
+	REG(0, 'f'),
+	REG(0, 's'),
+};
+
+/* return the address of a number register */
+int *nreg(int id)
 {
-	return nreg[id];
+	if (eregs_idx[id])
+		return &env->eregs[eregs_idx[id]];
+	return &nregs[id];
 }
 
-int num_set(int id, int n)
+/* the contents of a number register (returns a static buffer) */
+char *num_get(int id)
 {
-	int o = nreg[id];
-	nreg[id] = n;
-	return o;
+	static char numbuf[128];
+	sprintf(numbuf, "%d", *nreg(id));
+	return numbuf;
 }
 
 void tr_nr(char **args)
@@ -26,53 +52,57 @@ void tr_nr(char **args)
 	if (!args[2])
 		return;
 	id = REG(args[1][0], args[1][1]);
-	nreg[id] = tr_int(args[2], nreg[id], 'u');
+	*nreg(id) = tr_int(args[2], *nreg(id), 'u');
 }
 
 void str_set(int id, char *s)
 {
 	int len = strlen(s) + 1;
-	if (sreg[id])
-		free(sreg[id]);
-	sreg[id] = malloc(len);
-	strcpy(sreg[id], s);
+	if (sregs[id])
+		free(sregs[id]);
+	sregs[id] = malloc(len);
+	strcpy(sregs[id], s);
 }
 
 char *str_get(int id)
 {
-	return sreg[id];
+	return sregs[id];
 }
 
-static struct env envs[3];
-struct env *env;
+static void env_set(int id)
+{
+	env = &envs[id];
+	if (!env->adj) {
+		env->adj = adj_alloc();
+		n_f = 1;
+		n_i = 0;
+		n_j = 1;
+		n_l = SC_IN * 65 / 10;
+		n_s = 10;
+		n_u = 1;
+		n_v = 12 * SC_PT;
+		n_s0 = n_s;
+		n_f0 = n_f;
+	}
+}
 
 void env_init(void)
 {
 	int i;
-	for (i = 0; i < LEN(envs); i++) {
-		struct env *e = &envs[i];
-		e->f = 1;
-		e->i = 0;
-		e->j = 1;
-		e->l = SC_IN * 65 / 10;
-		e->s = 10;
-		e->u = 1;
-		e->v = 12 * SC_PT;
-		e->s0 = e->s;
-		e->f0 = e->f;
-		e->adj = adj_alloc();
-	}
-	env = &envs[0];
+	for (i = 0; i < LEN(eregs); i++)
+		eregs_idx[eregs[i]] = i + 1;
+	env_set(0);
 }
 
 void env_free(void)
 {
 	int i;
 	for (i = 0; i < LEN(envs); i++)
-		adj_free(envs[i].adj);
+		if (envs[i].adj)
+			adj_free(envs[i].adj);
 }
 
-static int oenv[NPREV];
+static int oenv[NPREV];		/* environment stack */
 static int nenv;
 
 void tr_ev(char **args)
@@ -84,5 +114,10 @@ void tr_ev(char **args)
 		return;
 	if (args[1] && env && nenv < NPREV)
 		oenv[nenv++] = env - envs;
-	env = &envs[id];
+	env_set(id);
+}
+
+struct adj *env_adj(void)
+{
+	return env->adj;
 }

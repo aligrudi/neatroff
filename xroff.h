@@ -22,9 +22,8 @@
 #define LEN(a)		(sizeof(a) / sizeof((a)[0]))
 
 /* number registers */
-extern int nreg[];
-int num_get(int id);
-int num_set(int id, int n);
+char *num_get(int id);
+int *nreg(int id);
 int tr_int(char *s, int orig, int unit);
 
 /* string registers */
@@ -32,14 +31,9 @@ void str_set(int id, char *s);
 char *str_get(int id);
 
 /* enviroments */
-struct env {
-	int f, u, v, s, l, i, f0, s0, j;
-	struct adj *adj;
-};
-
-extern struct env *env;
 void env_init(void);
 void env_free(void);
+struct adj *env_adj(void);
 
 /* device related variables */
 extern int dev_res;
@@ -152,17 +146,17 @@ int adj_empty(struct adj *adj, int mode);
 
 /* builtin number registers; n_X for .X register */
 #define REG(c1, c2)	((c1) * 256 + (c2))
-#define n_d		nreg[REG('.', 'd')]
-#define n_f		env->f
-#define n_i		env->i
-#define n_j		env->j
-#define n_l		env->l
-#define n_o		nreg[REG('.', 'o')]
-#define n_p		nreg[REG('.', 'p')]
-#define n_s		env->s
-#define n_u		env->u
-#define n_v		env->v
-#define n_nl		nreg[REG('n', 'l')]
-#define n_pg		nreg[REG('%', '\0')]	/* % */
-#define n_f0		env->f0			/* last font */
-#define n_s0		env->s0			/* last size */
+#define n_d		(*nreg(REG('.', 'd')))
+#define n_f		(*nreg(REG('.', 'f')))
+#define n_i		(*nreg(REG('.', 'i')))
+#define n_j		(*nreg(REG('.', 'j')))
+#define n_l		(*nreg(REG('.', 'l')))
+#define n_o		(*nreg(REG('.', 'o')))
+#define n_p		(*nreg(REG('.', 'p')))
+#define n_s		(*nreg(REG('.', 's')))
+#define n_u		(*nreg(REG('.', 'u')))
+#define n_v		(*nreg(REG('.', 'v')))
+#define n_nl		(*nreg(REG('n', 'l')))
+#define n_pg		(*nreg(REG('%', '\0')))	/* % */
+#define n_f0		(*nreg(REG(0, 'f')))	/* last font */
+#define n_s0		(*nreg(REG(0, 's')))	/* last size */

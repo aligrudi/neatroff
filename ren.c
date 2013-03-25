@@ -6,7 +6,7 @@
 
 #define ADJ_LL		(n_l - n_i)	/* effective line length */
 #define ADJ_MODE	(n_u ? n_j : ADJ_N)
-#define adj		env->adj	/* line buffer */
+#define adj		env_adj()	/* line buffer */
 
 /* diversion */
 struct div {

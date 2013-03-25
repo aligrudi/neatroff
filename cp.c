@@ -21,9 +21,9 @@ static int regid(void)
 
 static void cp_num(void)
 {
-	char buf[32];
-	sprintf(buf, "%d", num_get(regid()));
-	in_push(buf, NULL);
+	char *buf = num_get(regid());
+	if (buf)
+		in_push(buf, NULL);
 }
 
 static void cp_str(void)
