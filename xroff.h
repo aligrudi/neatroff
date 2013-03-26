@@ -28,7 +28,11 @@ int tr_int(char *s, int orig, int unit);
 
 /* string registers */
 void str_set(int id, char *s);
+void str_dset(int id, void *d);
 char *str_get(int id);
+void *str_dget(int id);
+void str_rm(int id);
+void str_rn(int src, int dst);
 
 /* enviroments */
 void env_init(void);
@@ -104,9 +108,10 @@ void tr_fp(char **args);
 void tr_ft(char **args);
 void tr_in(char **args);
 void tr_nf(char **args);
-void tr_nr(char **args);
 void tr_ps(char **args);
 void tr_sp(char **args);
+
+void tr_init(void);
 
 /* helpers */
 void errmsg(char *msg, ...);

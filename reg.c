@@ -14,6 +14,7 @@ struct env {
 
 static int nregs[NREGS];	/* global number registers */
 static char *sregs[NREGS];	/* global string registers */
+static void *sregs_dat[NREGS];	/* builtin function data */
 static struct env envs[3];	/* environments */
 static struct env *env;		/* current enviroment */
 static int eregs_idx[NREGS];	/* register environment index in eregs[] */
@@ -46,15 +47,6 @@ char *num_get(int id)
 	return numbuf;
 }
 
-void tr_nr(char **args)
-{
-	int id;
-	if (!args[2])
-		return;
-	id = REG(args[1][0], args[1][1]);
-	*nreg(id) = tr_int(args[2], *nreg(id), 'u');
-}
-
 void str_set(int id, char *s)
 {
 	int len = strlen(s) + 1;
@@ -67,6 +59,33 @@ void str_set(int id, char *s)
 char *str_get(int id)
 {
 	return sregs[id];
+}
+
+void *str_dget(int id)
+{
+	return sregs_dat[id];
+}
+
+void str_dset(int id, void *d)
+{
+	sregs_dat[id] = d;
+}
+
+void str_rm(int id)
+{
+	if (sregs[id])
+		free(sregs[id]);
+	sregs[id] = NULL;
+	sregs_dat[id] = NULL;
+}
+
+void str_rn(int src, int dst)
+{
+	str_rm(dst);
+	sregs[dst] = sregs[src];
+	sregs_dat[dst] = sregs_dat[src];
+	sregs[src] = NULL;
+	sregs_dat[src] = NULL;
 }
 
 static void env_set(int id)

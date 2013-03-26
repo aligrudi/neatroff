@@ -99,11 +99,34 @@ static void tr_pl(char **args)
 		n_p = tr_int(args[1], n_p, 'v');
 }
 
+static void tr_nr(char **args)
+{
+	int id;
+	if (!args[2])
+		return;
+	id = REG(args[1][0], args[1][1]);
+	*nreg(id) = tr_int(args[2], *nreg(id), 'u');
+}
+
 static void tr_ds(char **args)
 {
 	if (!args[2])
 		return;
 	str_set(REG(args[1][0], args[1][1]), args[2]);
+}
+
+static void tr_rm(char **args)
+{
+	if (!args[1])
+		return;
+	str_rm(REG(args[1][0], args[1][1]));
+}
+
+static void tr_rn(char **args)
+{
+	if (!args[2])
+		return;
+	str_rn(REG(args[1][0], args[1][1]), REG(args[2][0], args[2][1]));
 }
 
 static char *arg_regname(char *s, int len);
@@ -277,6 +300,8 @@ static struct cmd {
 	{"nr", tr_nr, mkargs_reg1},
 	{"pl", tr_pl},
 	{"ps", tr_ps},
+	{"rm", tr_rm},
+	{"rn", tr_rn},
 	{"sp", tr_sp},
 	{"vs", tr_vs},
 };
@@ -289,16 +314,13 @@ int tr_next(void)
 	char cmd[RLEN];
 	char buf[LNLEN];
 	struct cmd *req;
-	int i;
 	while (tr_nl && (c == '.' || c == '\'')) {
 		nl = 1;
 		args[0] = cmd;
 		cmd[0] = c;
 		req = NULL;
 		arg_regname(cmd + 1, sizeof(cmd) - 1);
-		for (i = 0; i < LEN(cmds); i++)
-			if (!strcmp(cmd + 1, cmds[i].id))
-				req = &cmds[i];
+		req = str_dget(REG(cmd[1], cmd[2]));
 		if (req) {
 			if (req->args)
 				req->args(args + 1, buf, sizeof(buf));
@@ -314,4 +336,11 @@ int tr_next(void)
 	}
 	tr_nl = nl;
 	return c;
+}
+
+void tr_init(void)
+{
+	int i;
+	for (i = 0; i < LEN(cmds); i++)
+		str_dset(REG(cmds[i].id[0], cmds[i].id[1]), &cmds[i]);
 }

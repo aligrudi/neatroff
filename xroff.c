@@ -36,6 +36,7 @@ int main(void)
 {
 	dev_open("/root/troff/home/font/devutf");
 	env_init();
+	tr_init();
 	g_init();
 	compile();
 	env_free();
