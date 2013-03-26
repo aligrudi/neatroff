@@ -53,7 +53,8 @@ void str_set(int id, char *s)
 	if (sregs[id])
 		free(sregs[id]);
 	sregs[id] = malloc(len);
-	strcpy(sregs[id], s);
+	memcpy(sregs[id], s, len);
+	sregs_dat[id] = NULL;
 }
 
 char *str_get(int id)
