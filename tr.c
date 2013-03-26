@@ -136,15 +136,17 @@ static void tr_de(char **args)
 	struct sbuf sbuf;
 	char buf[4];
 	int end[4] = {'.'};
-	int c;
-	int i;
+	int id, c, i;
 	if (!args[1])
 		return;
 	if (args[2]) {
 		end[0] = args[2][0];
 		end[1] = args[2][1];
 	}
+	id = REG(args[1][0], args[1][1]);
 	sbuf_init(&sbuf);
+	if (args[0][1] == 'a' && args[0][2] == 'm' && str_get(id))
+		sbuf_append(&sbuf, str_get(id));
 	while ((c = cp_next()) >= 0) {
 		sbuf_add(&sbuf, c);
 		if (c == '\n') {
@@ -164,7 +166,7 @@ static void tr_de(char **args)
 			}
 		}
 	}
-	str_set(REG(args[1][0], args[1][1]), sbuf_buf(&sbuf));
+	str_set(id, sbuf_buf(&sbuf));
 	sbuf_done(&sbuf);
 }
 
@@ -285,6 +287,7 @@ static struct cmd {
 	void (*f)(char **args);
 	int (*args)(char **args, char *buf, int len);
 } cmds[] = {
+	{"am", tr_de, mkargs_reg1},
 	{"bp", tr_bp},
 	{"br", tr_br},
 	{"de", tr_de, mkargs_reg1},
