@@ -8,9 +8,15 @@
 #define ADJ_MODE	(n_u ? n_j : ADJ_N)
 #define adj		env_adj()	/* line buffer */
 
-static int ren_backed = -1;		/* pushed back character */
-static int ren_div;			/* current diversion */
-static struct sbuf out_div;		/* current diversion output */
+/* diversions */
+struct div {
+	struct sbuf sbuf;	/* diversion output */
+	int reg;		/* diversion register */
+};
+static struct div divs[NPREV];	/* diversion stack */
+static struct div *cdiv;	/* current diversion */
+
+static int ren_backed = -1;	/* pushed back character */
 
 static int ren_next(void)
 {
@@ -40,23 +46,24 @@ static int nextchar(char *s)
 
 static void ren_ne(int n)
 {
-	if (n_nl + n > n_p && !ren_div)
+	if (n_nl + n > n_p && !cdiv)
 		ren_page(n_pg + 1);
 }
 
 void tr_di(char **args)
 {
 	if (args[1]) {
-		sbuf_init(&out_div);
-		ren_div = REG(args[1][0], args[1][1]);
-		if (args[0][2] == 'a')	/* .da */
-			sbuf_append(&out_div, str_get(ren_div));
+		cdiv = cdiv ? cdiv + 1 : divs;
+		sbuf_init(&cdiv->sbuf);
+		cdiv->reg = REG(args[1][0], args[1][1]);
+		if (args[0][2] == 'a' && str_get(cdiv->reg))	/* .da */
+			sbuf_append(&cdiv->sbuf, str_get(cdiv->reg));
 		n_d = 0;
-	} else if (ren_div) {
-		sbuf_putnl(&out_div);
-		str_set(ren_div, sbuf_buf(&out_div));
-		sbuf_done(&out_div);
-		ren_div = 0;
+	} else if (cdiv) {
+		sbuf_putnl(&cdiv->sbuf);
+		str_set(cdiv->reg, sbuf_buf(&cdiv->sbuf));
+		sbuf_done(&cdiv->sbuf);
+		cdiv = cdiv > divs ? cdiv - 1 : NULL;
 	}
 }
 
@@ -65,10 +72,10 @@ static void down(int n)
 {
 	char cmd[32];
 	n_d += n;
-	if (ren_div) {
-		sbuf_putnl(&out_div);
+	if (cdiv) {
+		sbuf_putnl(&cdiv->sbuf);
 		sprintf(cmd, ".sp %du\n", n);
-		sbuf_append(&out_div, cmd);
+		sbuf_append(&cdiv->sbuf, cmd);
 	} else {
 		n_nl = n_d;
 		if (n_nl <= n_p)
@@ -80,14 +87,14 @@ static void down(int n)
 static void out_line(char *out)
 {
 	char cmd[32];
-	if (ren_div) {
-		if (!sbuf_empty(&out_div))
+	if (cdiv) {
+		if (!sbuf_empty(&cdiv->sbuf))
 			down(n_v);
 		sprintf(cmd, "\\h'%d'", n_i);
-		sbuf_append(&out_div, DIV_BEG);
-		sbuf_append(&out_div, cmd);
-		sbuf_append(&out_div, out);
-		sbuf_append(&out_div, DIV_END);
+		sbuf_append(&cdiv->sbuf, DIV_BEG);
+		sbuf_append(&cdiv->sbuf, cmd);
+		sbuf_append(&cdiv->sbuf, out);
+		sbuf_append(&cdiv->sbuf, DIV_END);
 	} else {
 		down(n_v);
 		OUT("H%d\n", n_o + n_i);
@@ -132,7 +139,7 @@ void ren_page(int pg)
 
 void tr_bp(char **args)
 {
-	if (!ren_div) {
+	if (!cdiv) {
 		ren_br(0, 1);
 		ren_page(args[1] ? tr_int(args[1], n_pg, 'v') : n_pg + 1);
 	}
