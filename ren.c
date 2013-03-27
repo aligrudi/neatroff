@@ -8,15 +8,9 @@
 #define ADJ_MODE	(n_u ? n_j : ADJ_N)
 #define adj		env_adj()	/* line buffer */
 
-/* diversion */
-struct div {
-	int f, s, f0, s0;		/* backup variables */
-};
-
 static int ren_backed = -1;		/* pushed back character */
 static int ren_div;			/* current diversion */
 static struct sbuf out_div;		/* current diversion output */
-static struct div cur_div;
 
 static int ren_next(void)
 {
@@ -55,6 +49,8 @@ void tr_di(char **args)
 	if (args[1]) {
 		sbuf_init(&out_div);
 		ren_div = REG(args[1][0], args[1][1]);
+		if (args[0][2] == 'a')	/* .da */
+			sbuf_append(&out_div, str_get(ren_div));
 		n_d = 0;
 	} else if (ren_div) {
 		sbuf_putnl(&out_div);
@@ -62,24 +58,6 @@ void tr_di(char **args)
 		sbuf_done(&out_div);
 		ren_div = 0;
 	}
-}
-
-/* begin outputting diverted line */
-static void div_beg(void)
-{
-	cur_div.f = n_f;
-	cur_div.s = n_s;
-	cur_div.f0 = n_f0;
-	cur_div.s0 = n_s0;
-}
-
-/* end outputting diverted line */
-static void div_end(void)
-{
-	n_f = cur_div.f;
-	n_s = cur_div.s;
-	n_f0 = cur_div.f0;
-	n_s0 = cur_div.s0;
 }
 
 /* vertical motion before rendering lines */
@@ -269,9 +247,9 @@ void render(void)
 			if (c[0] == DIV_BEG[1]) {
 				nextchar(c);
 				if (c[0] == DIV_BEG[2])
-					div_beg();
+					odiv_beg();
 				if (c[0] == DIV_END[2])
-					div_end();
+					odiv_end();
 				continue;
 			}
 			if (c[0] == '(') {

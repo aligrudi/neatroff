@@ -141,3 +141,31 @@ struct adj *env_adj(void)
 {
 	return env->adj;
 }
+
+/* saving and restoring registers around diverted lines */
+struct odiv {
+	int f, s, f0, s0;
+};
+
+static struct odiv odivs[NPREV];	/* state before diverted text */
+static int nodivs;
+
+/* begin outputting diverted line */
+void odiv_beg(void)
+{
+	struct odiv *o = &odivs[nodivs++];
+	o->f = n_f;
+	o->s = n_s;
+	o->f0 = n_f0;
+	o->s0 = n_s0;
+}
+
+/* end outputting diverted line */
+void odiv_end(void)
+{
+	struct odiv *o = &odivs[--nodivs];
+	n_f = o->f;
+	n_s = o->s;
+	n_f0 = o->f0;
+	n_s0 = o->s0;
+}

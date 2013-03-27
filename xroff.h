@@ -34,6 +34,10 @@ void *str_dget(int id);
 void str_rm(int id);
 void str_rn(int src, int dst);
 
+/* saving and restoring registers before and after printing diverted lines */
+void odiv_beg(void);
+void odiv_end(void);
+
 /* enviroments */
 void env_init(void);
 void env_free(void);
