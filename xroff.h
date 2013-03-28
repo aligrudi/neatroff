@@ -161,6 +161,7 @@ int adj_empty(struct adj *adj, int mode);
 #define n_i		(*nreg(REG('.', 'i')))
 #define n_j		(*nreg(REG('.', 'j')))
 #define n_l		(*nreg(REG('.', 'l')))
+#define n_n		(*nreg(REG('.', 'n')))
 #define n_o		(*nreg(REG('.', 'o')))
 #define n_p		(*nreg(REG('.', 'p')))
 #define n_s		(*nreg(REG('.', 's')))

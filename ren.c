@@ -96,6 +96,7 @@ static void out_line(char *out, int w)
 {
 	char cmd[32];
 	down(0);
+	n_n = w;
 	if (cdiv) {
 		if (cdiv->dl < w)
 			cdiv->dl = w;
