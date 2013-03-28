@@ -53,7 +53,7 @@ void adj_swid(struct adj *adj, int swid)
 }
 
 /* move n words from the adjustment buffer to s */
-static void adj_move(struct adj *a, int n, char *s)
+static int adj_move(struct adj *a, int n, char *s)
 {
 	struct word *cur;
 	int lendiff;
@@ -68,7 +68,7 @@ static void adj_move(struct adj *a, int n, char *s)
 	}
 	*s = '\0';
 	if (!n)
-		return;
+		return 0;
 	lendiff = n < a->nwords ? a->words[n].beg : a->len;
 	memmove(a->buf, a->buf + lendiff, a->len - lendiff + 1);
 	a->len -= lendiff;
@@ -79,18 +79,18 @@ static void adj_move(struct adj *a, int n, char *s)
 		a->words[i].beg -= lendiff;
 		a->words[i].end -= lendiff;
 	}
+	return w;
 }
 
 /* fill and copy a line into s */
-void adj_fill(struct adj *a, int mode, int ll, char *s)
+int adj_fill(struct adj *a, int mode, int ll, char *s)
 {
 	int adj_div, adj_rem;
 	int w = 0;
 	int i, n;
 	if (mode == ADJ_N || adj_fullnf(a)) {
 		a->nls--;
-		adj_move(a, a->nwords, s);
-		return;
+		return adj_move(a, a->nwords, s);
 	}
 	for (n = 0; n < a->nwords; n++) {
 		if (n && w + a->words[n].wid + a->words[n].gap > ll)
@@ -104,10 +104,11 @@ void adj_fill(struct adj *a, int mode, int ll, char *s)
 		for (i = 0; i < n - 1; i++)
 			a->words[i + 1].gap += adj_div + (i < adj_rem);
 	}
-	adj_move(a, n, s);
+	w = adj_move(a, n, s);
 	if (a->nwords)
 		a->wid -= a->words[0].gap;
 	a->words[0].gap = 0;
+	return w;
 }
 
 static void adj_wordbeg(struct adj *adj, int gap)

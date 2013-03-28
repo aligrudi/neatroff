@@ -147,7 +147,7 @@ int sbuf_empty(struct sbuf *sbuf);
 
 struct adj *adj_alloc(void);
 void adj_free(struct adj *adj);
-void adj_fill(struct adj *adj, int mode, int linelen, char *dst);
+int adj_fill(struct adj *adj, int mode, int linelen, char *dst);
 void adj_put(struct adj *adj, int wid, char *s, ...);
 void adj_swid(struct adj *adj, int swid);
 int adj_full(struct adj *adj, int mode, int linelen);
@@ -165,6 +165,8 @@ int adj_empty(struct adj *adj, int mode);
 #define n_s		(*nreg(REG('.', 's')))
 #define n_u		(*nreg(REG('.', 'u')))
 #define n_v		(*nreg(REG('.', 'v')))
+#define n_dl		(*nreg(REG('d', 'l')))
+#define n_dn		(*nreg(REG('d', 'n')))
 #define n_nl		(*nreg(REG('n', 'l')))
 #define n_pg		(*nreg(REG('%', '\0')))	/* % */
 #define n_f0		(*nreg(REG(0, 'f')))	/* last font */

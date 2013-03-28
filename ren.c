@@ -12,6 +12,8 @@
 struct div {
 	struct sbuf sbuf;	/* diversion output */
 	int reg;		/* diversion register */
+	int dl;			/* diversion width */
+	int prev_d;		/* previous \(.d value */
 };
 static struct div divs[NPREV];	/* diversion stack */
 static struct div *cdiv;	/* current diversion */
@@ -56,6 +58,8 @@ void tr_di(char **args)
 		cdiv = cdiv ? cdiv + 1 : divs;
 		sbuf_init(&cdiv->sbuf);
 		cdiv->reg = REG(args[1][0], args[1][1]);
+		cdiv->dl = 0;
+		cdiv->prev_d = n_d;
 		if (args[0][2] == 'a' && str_get(cdiv->reg))	/* .da */
 			sbuf_append(&cdiv->sbuf, str_get(cdiv->reg));
 		n_d = 0;
@@ -63,6 +67,9 @@ void tr_di(char **args)
 		sbuf_putnl(&cdiv->sbuf);
 		str_set(cdiv->reg, sbuf_buf(&cdiv->sbuf));
 		sbuf_done(&cdiv->sbuf);
+		n_dl = cdiv->dl;
+		n_dn = n_d;
+		n_d = cdiv->prev_d;
 		cdiv = cdiv > divs ? cdiv - 1 : NULL;
 	}
 }
@@ -71,32 +78,33 @@ void tr_di(char **args)
 static void down(int n)
 {
 	char cmd[32];
-	n_d += n;
+	n_d += n ? n : n_v;
 	if (cdiv) {
 		sbuf_putnl(&cdiv->sbuf);
 		sprintf(cmd, ".sp %du\n", n);
-		sbuf_append(&cdiv->sbuf, cmd);
+		if (n)
+			sbuf_append(&cdiv->sbuf, cmd);
 	} else {
 		n_nl = n_d;
 		if (n_nl <= n_p)
-			OUT("v%d\n", n);
+			OUT("v%d\n", n ? n : n_v);
 	}
 	ren_ne(0);
 }
 
-static void out_line(char *out)
+static void out_line(char *out, int w)
 {
 	char cmd[32];
+	down(0);
 	if (cdiv) {
-		if (!sbuf_empty(&cdiv->sbuf))
-			down(n_v);
+		if (cdiv->dl < w)
+			cdiv->dl = w;
 		sprintf(cmd, "\\h'%d'", n_i);
 		sbuf_append(&cdiv->sbuf, DIV_BEG);
 		sbuf_append(&cdiv->sbuf, cmd);
 		sbuf_append(&cdiv->sbuf, out);
 		sbuf_append(&cdiv->sbuf, DIV_END);
 	} else {
-		down(n_v);
 		OUT("H%d\n", n_o + n_i);
 		output(out);
 	}
@@ -105,10 +113,11 @@ static void out_line(char *out)
 static void ren_br(int sp, int force)
 {
 	char out[LNLEN];
+	int w;
 	if (!adj_empty(adj, ADJ_MODE)) {
-		adj_fill(adj, force ? ADJ_N : ADJ_MODE, ADJ_LL, out);
+		w = adj_fill(adj, force ? ADJ_N : ADJ_MODE, ADJ_LL, out);
 		ren_ne(n_v);
-		out_line(out);
+		out_line(out, w);
 		ren_ne(n_v);
 	}
 	if (sp)
