@@ -92,7 +92,7 @@ void output(char *s)
 			if (c[0] == '(') {
 				s = utf8get(c, s);
 				s = utf8get(c + strlen(c), s);
-			} else if (strchr("sfh", c[0])) {
+			} else if (strchr("sfhv", c[0])) {
 				s = escarg(s, arg, c[0]);
 				if (c[0] == 's') {
 					out_ps(tr_int(arg, o_s, '\0'));
@@ -104,6 +104,10 @@ void output(char *s)
 				}
 				if (c[0] == 'h') {
 					OUT("h%d", tr_int(arg, 0, 'm'));
+					continue;
+				}
+				if (c[0] == 'v') {
+					OUT("v%d", tr_int(arg, 0, 'm'));
 					continue;
 				}
 			}
