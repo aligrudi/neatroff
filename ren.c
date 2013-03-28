@@ -202,6 +202,12 @@ void tr_nf(char **args)
 	n_u = 0;
 }
 
+void tr_fi(char **args)
+{
+	ren_br(0, 1);
+	n_u = 1;
+}
+
 static void escarg_ren(char *d, int cmd)
 {
 	int c, q;

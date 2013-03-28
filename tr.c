@@ -295,6 +295,7 @@ static struct cmd {
 	{"di", tr_di},
 	{"ds", tr_ds, mkargs_ds},
 	{"ev", tr_ev},
+	{"fi", tr_fi},
 	{"fp", tr_fp},
 	{"ft", tr_ft},
 	{"in", tr_in},

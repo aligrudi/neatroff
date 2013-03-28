@@ -108,6 +108,7 @@ void tr_bp(char **args);
 void tr_br(char **args);
 void tr_di(char **args);
 void tr_ev(char **args);
+void tr_fi(char **args);
 void tr_fp(char **args);
 void tr_ft(char **args);
 void tr_in(char **args);
