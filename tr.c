@@ -115,6 +115,22 @@ static void tr_ds(char **args)
 	str_set(REG(args[1][0], args[1][1]), args[2]);
 }
 
+static void tr_as(char **args)
+{
+	int reg;
+	char *s1, *s2, *s;
+	if (!args[2])
+		return;
+	reg = REG(args[1][0], args[1][1]);
+	s1 = str_get(reg) ? str_get(reg) : "";
+	s2 = args[2];
+	s = malloc(strlen(s1) + strlen(s2) + 1);
+	strcpy(s, s1);
+	strcat(s, s2);
+	str_set(reg, s);
+	free(s);
+}
+
 static void tr_rm(char **args)
 {
 	if (!args[1])
@@ -288,6 +304,7 @@ static struct cmd {
 	int (*args)(char **args, char *buf, int len);
 } cmds[] = {
 	{"am", tr_de, mkargs_reg1},
+	{"as", tr_as, mkargs_ds},
 	{"bp", tr_bp},
 	{"br", tr_br},
 	{"da", tr_di},
