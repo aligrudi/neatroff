@@ -17,6 +17,9 @@ struct div {
 };
 static struct div divs[NPREV];	/* diversion stack */
 static struct div *cdiv;	/* current diversion */
+static int ren_f;		/* last rendered n_f */
+static int ren_s;		/* last rendered n_s */
+static int ren_div;		/* rendering a diversion */
 
 static int ren_backed = -1;	/* pushed back character */
 
@@ -63,27 +66,46 @@ void tr_di(char **args)
 		if (args[0][2] == 'a' && str_get(cdiv->reg))	/* .da */
 			sbuf_append(&cdiv->sbuf, str_get(cdiv->reg));
 		n_d = 0;
+		sbuf_append(&cdiv->sbuf, DIV_BEG "\n");
+		ren_f = 0;
+		ren_s = 0;
 	} else if (cdiv) {
 		sbuf_putnl(&cdiv->sbuf);
+		sbuf_append(&cdiv->sbuf, DIV_END "\n");
 		str_set(cdiv->reg, sbuf_buf(&cdiv->sbuf));
 		sbuf_done(&cdiv->sbuf);
 		n_dl = cdiv->dl;
 		n_dn = n_d;
 		n_d = cdiv->prev_d;
 		cdiv = cdiv > divs ? cdiv - 1 : NULL;
+		ren_f = 0;
+		ren_s = 0;
 	}
+}
+
+void tr_divbeg(char **args)
+{
+	odiv_beg();
+	ren_div++;
+}
+
+void tr_divend(char **args)
+{
+	odiv_end();
+	ren_div--;
 }
 
 /* vertical motion before rendering lines */
 static void down(int n)
 {
 	char cmd[32];
+	if (!n && ren_div && !n_u)
+		return;
 	n_d += n ? n : n_v;
 	if (cdiv) {
 		sbuf_putnl(&cdiv->sbuf);
-		sprintf(cmd, ".sp %du\n", n);
-		if (n)
-			sbuf_append(&cdiv->sbuf, cmd);
+		sprintf(cmd, ".sp %du\n", n ? n : n_v);
+		sbuf_append(&cdiv->sbuf, cmd);
 	} else {
 		n_nl = n_d;
 		if (n_nl <= n_p)
@@ -94,17 +116,12 @@ static void down(int n)
 
 static void out_line(char *out, int w)
 {
-	char cmd[32];
 	down(0);
 	n_n = w;
 	if (cdiv) {
 		if (cdiv->dl < w)
 			cdiv->dl = w;
-		sprintf(cmd, "\\h'%d'", n_i);
-		sbuf_append(&cdiv->sbuf, DIV_BEG);
-		sbuf_append(&cdiv->sbuf, cmd);
 		sbuf_append(&cdiv->sbuf, out);
-		sbuf_append(&cdiv->sbuf, DIV_END);
 	} else {
 		OUT("H%d\n", n_o + n_i);
 		output(out);
@@ -132,7 +149,7 @@ void tr_br(char **args)
 
 void tr_sp(char **args)
 {
-	int sp = 0;
+	int sp = n_v;
 	if (args[1])
 		sp = tr_int(args[1], 0, 'v');
 	ren_br(sp, 1);
@@ -251,8 +268,6 @@ void render(void)
 	char c[GNLEN * 2];
 	char arg[ILNLEN];
 	struct glyph *g;
-	int r_s = n_s;
-	int r_f = n_f;
 	int esc = 0;
 	ren_br(0, 1);
 	while (nextchar(c) > 0) {
@@ -266,15 +281,6 @@ void render(void)
 		if (c[0] == '\\') {
 			esc = 1;
 			nextchar(c);
-			/* rendered lines inside diversions */
-			if (c[0] == DIV_BEG[1]) {
-				nextchar(c);
-				if (c[0] == DIV_BEG[2])
-					odiv_beg();
-				if (c[0] == DIV_END[2])
-					odiv_end();
-				continue;
-			}
 			if (c[0] == '(') {
 				int l = nextchar(c);
 				l += nextchar(c + l);
@@ -288,14 +294,14 @@ void render(void)
 				continue;
 			}
 		}
-		if (r_s != n_s) {
+		if (ren_s != n_s) {
 			adj_swid(adj, charwid(dev_spacewid(), n_s));
 			adj_put(adj, 0, "\\s(%02d", n_s);
-			r_s = n_s;
+			ren_s = n_s;
 		}
-		if (r_f != n_f) {
+		if (ren_f != n_f) {
 			adj_put(adj, 0, "\\f(%02d", n_f);
-			r_f = n_f;
+			ren_f = n_f;
 		}
 		if (utf8len(c[0]) == strlen(c))
 			sprintf(arg, "%s%s", esc ? "\\" : "", c);

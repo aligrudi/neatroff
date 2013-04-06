@@ -303,6 +303,8 @@ static struct cmd {
 	void (*f)(char **args);
 	int (*args)(char **args, char *buf, int len);
 } cmds[] = {
+	{DIV_BEG + 1, tr_divbeg},
+	{DIV_END + 1, tr_divend},
 	{"am", tr_de, mkargs_reg1},
 	{"as", tr_as, mkargs_ds},
 	{"bp", tr_bp},

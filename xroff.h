@@ -107,6 +107,8 @@ void ren_page(int pg);
 void tr_bp(char **args);
 void tr_br(char **args);
 void tr_di(char **args);
+void tr_divbeg(char **args);
+void tr_divend(char **args);
 void tr_ev(char **args);
 void tr_fi(char **args);
 void tr_fp(char **args);
@@ -138,8 +140,8 @@ void sbuf_putnl(struct sbuf *sbuf);
 int sbuf_empty(struct sbuf *sbuf);
 
 /* diversions */
-#define DIV_BEG		"\\I<"
-#define DIV_END		"\\I>"
+#define DIV_BEG		".&<"
+#define DIV_END		".&>"
 
 /* adjustment */
 #define ADJ_L		0
