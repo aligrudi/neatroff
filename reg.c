@@ -43,7 +43,13 @@ int *nreg(int id)
 char *num_get(int id)
 {
 	static char numbuf[128];
-	sprintf(numbuf, "%d", *nreg(id));
+	switch (id) {
+	case REG('.', 't'):
+		sprintf(numbuf, "%d", trap_next());
+		break;
+	default:
+		sprintf(numbuf, "%d", *nreg(id));
+	}
 	return numbuf;
 }
 

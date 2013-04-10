@@ -309,10 +309,12 @@ static struct cmd {
 	{"as", tr_as, mkargs_ds},
 	{"bp", tr_bp},
 	{"br", tr_br},
+	{"ch", tr_ch},
 	{"da", tr_di},
 	{"de", tr_de, mkargs_reg1},
 	{"di", tr_di},
 	{"ds", tr_ds, mkargs_ds},
+	{"dt", tr_dt},
 	{"ev", tr_ev},
 	{"fi", tr_fi},
 	{"fp", tr_fp},
@@ -320,6 +322,7 @@ static struct cmd {
 	{"in", tr_in},
 	{"ll", tr_ll},
 	{"na", tr_na},
+	{"ne", tr_ne},
 	{"nf", tr_nf},
 	{"nr", tr_nr, mkargs_reg1},
 	{"pl", tr_pl},
@@ -328,6 +331,7 @@ static struct cmd {
 	{"rn", tr_rn},
 	{"sp", tr_sp},
 	{"vs", tr_vs},
+	{"wh", tr_wh},
 };
 
 int tr_next(void)
@@ -340,6 +344,7 @@ int tr_next(void)
 	struct cmd *req;
 	while (tr_nl && (c == '.' || c == '\'')) {
 		nl = 1;
+		memset(args, 0, sizeof(args));
 		args[0] = cmd;
 		cmd[0] = c;
 		req = NULL;

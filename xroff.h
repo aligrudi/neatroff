@@ -14,6 +14,7 @@
 #define NARGS		9	/* number of macro arguments */
 #define RLEN		4	/* register/macro name */
 #define NPREV		16	/* environment stack depth */
+#define NTRAPS		1024	/* number of traps per page */
 
 /* escape sequences */
 #define ESC_Q	"bCDhHlLNoSvwxX"	/* quoted escape sequences */
@@ -102,21 +103,27 @@ void cp_back(int c);
 void render(void);	/* read from in.c and print the output */
 void output(char *s);	/* output the given rendered line */
 void ren_page(int pg);
+int trap_next(void);
+
 
 /* troff commands */
 void tr_bp(char **args);
 void tr_br(char **args);
+void tr_ch(char **args);
 void tr_di(char **args);
 void tr_divbeg(char **args);
 void tr_divend(char **args);
+void tr_dt(char **args);
 void tr_ev(char **args);
 void tr_fi(char **args);
 void tr_fp(char **args);
 void tr_ft(char **args);
 void tr_in(char **args);
+void tr_ne(char **args);
 void tr_nf(char **args);
 void tr_ps(char **args);
 void tr_sp(char **args);
+void tr_wh(char **args);
 
 void tr_init(void);
 
