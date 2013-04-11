@@ -1,76 +1,9 @@
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "xroff.h"
 
 static int tr_nl = 1;
-
-static int unit_scale(int c, int n, int mag)
-{
-	int mul = 1;
-	int div = 1;
-	switch (c) {
-	case 'i':
-		mul = SC_IN;
-		break;
-	case 'c':
-		mul = SC_IN * 50;
-		div = 127;
-		break;
-	case 'p':
-		mul = SC_IN;
-		div = 72;
-		break;
-	case 'P':
-		mul = SC_IN;
-		div = 6;
-		break;
-	case 'v':
-		mul = n_v;
-		break;
-	case 'm':
-		mul = n_s * SC_IN;
-		div = 72;
-		break;
-	case 'n':
-		mul = n_s * SC_IN;
-		div = 144;
-		break;
-	}
-	/* it may overflow */
-	return n * mul / div / mag;
-}
-
-int tr_int(char *s, int orig, int unit)
-{
-	int n = 0;		/* the result */
-	int mag = 0;		/* n should be divided by mag */
-	int rel = 0;		/* n should be added to orig */
-	int neg = *s == '-';	/* n should be negated */
-	if (*s == '+' || *s == '-') {
-		rel = 1;
-		s++;
-	}
-	while (isdigit(*s) || *s == '.') {
-		if (*s == '.') {
-			mag = 1;
-			s++;
-			continue;
-		}
-		mag *= 10;
-		n = n * 10 + *s++ - '0';
-	}
-	if (!mag)
-		mag = 1;
-	if (unit)
-		n = unit_scale(*s ? *s : unit, n, mag);
-	else
-		n /= mag;
-	if (neg)
-		n = -n;
-	return rel ? orig + n : n;
-}
 
 /* skip everything until the end of line */
 static void jmp_eol(void)
@@ -84,19 +17,19 @@ static void jmp_eol(void)
 static void tr_ll(char **args)
 {
 	if (args[1])
-		n_l = tr_int(args[1], n_l, 'm');
+		n_l = eval(args[1], n_l, 'm');
 }
 
 static void tr_vs(char **args)
 {
 	if (args[1])
-		n_v = tr_int(args[1], n_v, 'p');
+		n_v = eval(args[1], n_v, 'p');
 }
 
 static void tr_pl(char **args)
 {
 	if (args[1])
-		n_p = tr_int(args[1], n_p, 'v');
+		n_p = eval(args[1], n_p, 'v');
 }
 
 static void tr_nr(char **args)
@@ -105,7 +38,7 @@ static void tr_nr(char **args)
 	if (!args[2])
 		return;
 	id = REG(args[1][0], args[1][1]);
-	*nreg(id) = tr_int(args[2], *nreg(id), 'u');
+	*nreg(id) = eval(args[2], *nreg(id), 'u');
 }
 
 static void tr_ds(char **args)

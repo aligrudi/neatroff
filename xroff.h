@@ -25,7 +25,7 @@
 /* number registers */
 char *num_get(int id);
 int *nreg(int id);
-int tr_int(char *s, int orig, int unit);
+int eval(char *s, int orig, int unit);
 
 /* string registers */
 void str_set(int id, char *s);

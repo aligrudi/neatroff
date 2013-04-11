@@ -95,7 +95,7 @@ void output(char *s)
 			} else if (strchr("sfhv", c[0])) {
 				s = escarg(s, arg, c[0]);
 				if (c[0] == 's') {
-					out_ps(tr_int(arg, o_s, '\0'));
+					out_ps(eval(arg, o_s, '\0'));
 					continue;
 				}
 				if (c[0] == 'f') {
@@ -103,11 +103,11 @@ void output(char *s)
 					continue;
 				}
 				if (c[0] == 'h') {
-					OUT("h%d", tr_int(arg, 0, 'm'));
+					OUT("h%d", eval(arg, 0, 'm'));
 					continue;
 				}
 				if (c[0] == 'v') {
-					OUT("v%d", tr_int(arg, 0, 'm'));
+					OUT("v%d", eval(arg, 0, 'm'));
 					continue;
 				}
 			}

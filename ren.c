@@ -201,7 +201,7 @@ void tr_sp(char **args)
 {
 	if (args[0][0] == '.')
 		ren_br(1);
-	down(args[1] ? tr_int(args[1], 0, 'v') : n_v);
+	down(args[1] ? eval(args[1], 0, 'v') : n_v);
 }
 
 void ren_page(int pg)
@@ -216,7 +216,7 @@ void ren_page(int pg)
 
 void tr_ne(char **args)
 {
-	int n = args[1] ? tr_int(args[1], 0, 'v') : n_v;
+	int n = args[1] ? eval(args[1], 0, 'v') : n_v;
 	ren_br(1);
 	if (!ren_traps(n_d, n_d + n, 1))
 		ren_pagelimit(n);
@@ -227,14 +227,14 @@ void tr_bp(char **args)
 	if (!cdiv) {
 		bp_force = 1;
 		if (args[1])
-			bp_next = tr_int(args[1], n_pg, '\0');
+			bp_next = eval(args[1], n_pg, '\0');
 		push_ne(args[0][0] == '.');
 	}
 }
 
 static void ren_ps(char *s)
 {
-	int ps = !s || !*s || !strcmp("0", s) ? n_s0 : tr_int(s, n_s, '\0');
+	int ps = !s || !*s || !strcmp("0", s) ? n_s0 : eval(s, n_s, '\0');
 	n_s0 = n_s;
 	n_s = ps;
 }
@@ -249,7 +249,7 @@ void tr_in(char **args)
 	if (args[0][0] == '.')
 		ren_br(1);
 	if (args[1])
-		n_i = tr_int(args[1], n_i, 'm');
+		n_i = eval(args[1], n_i, 'm');
 }
 
 static void ren_ft(char *s)
@@ -412,7 +412,7 @@ static int trap_bypos(int reg, int pos)
 
 static int tpos_parse(char *s)
 {
-	int pos = tr_int(s, 0, 'v');
+	int pos = eval(s, 0, 'v');
 	return pos >= 0 ? pos : n_p + pos;
 }
 
@@ -454,7 +454,7 @@ void tr_dt(char **args)
 	if (!cdiv)
 		return;
 	if (args[2]) {
-		cdiv->tpos = tr_int(args[1], 0, 'v');
+		cdiv->tpos = eval(args[1], 0, 'v');
 		cdiv->treg = REG(args[2][0], args[2][1]);
 	} else {
 		cdiv->treg = -1;
