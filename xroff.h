@@ -15,6 +15,7 @@
 #define RLEN		4	/* register/macro name */
 #define NPREV		16	/* environment stack depth */
 #define NTRAPS		1024	/* number of traps per page */
+#define NIES		128	/* number of nested .ie commands */
 
 /* escape sequences */
 #define ESC_Q	"bCDhHlLNoSvwxX"	/* quoted escape sequences */
@@ -98,6 +99,7 @@ void in_push(char *s, char **args);
 char *in_arg(int i);
 void in_back(int c);
 void cp_back(int c);
+void cp_skip(void);	/* skip current input line or block */
 
 /* rendering */
 void render(void);	/* read from in.c and print the output */

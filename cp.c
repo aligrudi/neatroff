@@ -4,8 +4,9 @@
 
 #define CPBUF		4
 
-static int cp_backed = 0;
-static int cp_buf[CPBUF];
+static int cp_buf[CPBUF];	/* pushed character stack */
+static int cp_backed;		/* number of pushed characters */
+static int cp_blk;		/* input block depth (text in \{ and \}) */
 
 static int regid(void)
 {
@@ -44,7 +45,7 @@ static void cp_arg(void)
 		in_push(arg, NULL);
 }
 
-int cp_next(void)
+static int cp_raw(void)
 {
 	int c;
 	if (cp_backed)
@@ -52,21 +53,45 @@ int cp_next(void)
 	c = in_next();
 	if (c == '\\') {
 		c = in_next();
-		if (c == 'n') {
+		if (c == '\n')
+			return in_next();
+		if (c == '.')
+			return '.';
+		if (c == '{') {
+			cp_blk++;
+			return cp_raw();
+		}
+		if (c == '}') {
+			cp_blk--;
+			return cp_raw();
+		}
+		cp_back(c);
+		return '\\';
+	}
+	return c;
+}
+
+int cp_next(void)
+{
+	int c;
+	if (cp_backed)
+		return cp_buf[--cp_backed];
+	c = cp_raw();
+	if (c == '\\') {
+		c = cp_raw();
+		if (c == '"') {
+			while (c >= 0 && c != '\n')
+				c = cp_raw();
+		} else if (c == 'n') {
 			cp_num();
-			c = in_next();
+			c = cp_raw();
 		} else if (c == '*') {
 			cp_str();
-			c = in_next();
+			c = cp_raw();
 		} else if (c == '$') {
 			cp_arg();
-			c = in_next();
-		} else if (c == '\n') {
-			c = cp_next();
-		} else if (c == '"') {
-			while (c >= 0 && c != '\n')
-				c = in_next();
-		} else if (c != '.') {
+			c = cp_raw();
+		} else {
 			cp_back(c);
 			c = '\\';
 		}
@@ -78,4 +103,17 @@ void cp_back(int c)
 {
 	if (cp_backed < CPBUF)
 		cp_buf[cp_backed++] = c;
+}
+
+void cp_skip(void)
+{
+	int c;
+	int old_blk = cp_blk;
+	do {
+		c = cp_raw();
+	} while (c == ' ' || c == '\t');
+	while (cp_blk > old_blk && c >= 0)
+		c = cp_raw();
+	while (c != '\n')
+		c = cp_raw();
 }

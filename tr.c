@@ -119,6 +119,105 @@ static void tr_de(char **args)
 	sbuf_done(&sbuf);
 }
 
+/* read into sbuf until stop */
+static void read_until(struct sbuf *sbuf, int stop)
+{
+	int c;
+	while ((c = cp_next()) >= 0) {
+		if (c == stop)
+			return;
+		if (c == '\n') {
+			cp_back(c);
+			return;
+		}
+		sbuf_add(sbuf, c);
+	}
+}
+
+/* evaluate .if strcmp (i.e. 'str'str') */
+static int if_strcmp(void)
+{
+	struct sbuf s1, s2;
+	int ret;
+	sbuf_init(&s1);
+	sbuf_init(&s2);
+	read_until(&s1, '\'');
+	read_until(&s2, '\'');
+	ret = !strcmp(sbuf_buf(&s1), sbuf_buf(&s2));
+	sbuf_done(&s1);
+	sbuf_done(&s2);
+	return ret;
+}
+
+/* evaluate .if condition */
+static int if_cond(void)
+{
+	struct sbuf sbuf;
+	char *s;
+	int ret;
+	sbuf_init(&sbuf);
+	read_until(&sbuf, ' ');
+	s = sbuf_buf(&sbuf);
+	if (s[0] == 'o' && s[1] == '\0')
+		ret = n_pg % 2;
+	else if (s[0] == 'e' && s[1] == '\0')
+		ret = !(n_pg % 2);
+	else if (s[0] == 't' && s[1] == '\0')
+		ret = 1;
+	else if (s[0] == 'n' && s[1] == '\0')
+		ret = 0;
+	else
+		ret = eval(s, 0, '\0') > 0;
+	sbuf_done(&sbuf);
+	return ret;
+}
+
+/* execute or skip the line or block following .if */
+static void if_blk(int doexec)
+{
+	int c;
+	if (doexec) {
+		do {
+			c = cp_next();
+		} while (c == ' ');
+		cp_back(c);
+	} else {
+		cp_skip();
+	}
+}
+
+static int ie_cond[NIES];	/* .ie condition stack */
+static int ie_depth;
+
+static void tr_if(char **args)
+{
+	int neg = 0;
+	int ret;
+	int c;
+	do {
+		c = cp_next();
+	} while (c == ' ' || c == '\t');
+	if (c == '!') {
+		neg = 1;
+		c = cp_next();
+	}
+	if (c == '\'') {
+		ret = if_strcmp();
+	} else {
+		cp_back(c);
+		ret = if_cond();
+	}
+	if (args[0][1] == 'i' && args[0][2] == 'e')	/* .ie command */
+		if (ie_depth < NIES)
+			ie_cond[ie_depth++] = ret != neg;
+	if_blk(ret != neg);
+}
+
+static void tr_el(char **args)
+{
+	if_blk(ie_depth > 0 ? !ie_cond[--ie_depth] : 0);
+}
+
 static void tr_na(char **args)
 {
 	n_j = 0;
@@ -231,6 +330,12 @@ static int mkargs_reg1(char **args, char *buf, int len)
 	return mkargs(args + 1, s, e - s) + 1;
 }
 
+/* do not read arguments; for .if, .ie and .el */
+static int mkargs_null(char **args, char *buf, int len)
+{
+	return 0;
+}
+
 static struct cmd {
 	char *id;
 	void (*f)(char **args);
@@ -248,10 +353,13 @@ static struct cmd {
 	{"di", tr_di},
 	{"ds", tr_ds, mkargs_ds},
 	{"dt", tr_dt},
+	{"el", tr_el, mkargs_null},
 	{"ev", tr_ev},
 	{"fi", tr_fi},
 	{"fp", tr_fp},
 	{"ft", tr_ft},
+	{"ie", tr_if, mkargs_null},
+	{"if", tr_if, mkargs_null},
 	{"in", tr_in},
 	{"ll", tr_ll},
 	{"na", tr_na},
