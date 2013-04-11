@@ -68,7 +68,7 @@ void in_back(int c)
 char *in_arg(int i)
 {
 	struct inbuf *cur = buf;
-	while (cur->prev && !cur->prev)
+	while (!cur->args && cur->prev)
 		cur = cur->prev;
 	return cur->args && cur->args[i - 1] ? cur->args[i - 1] : "";
 }
