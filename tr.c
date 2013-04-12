@@ -223,6 +223,11 @@ static void tr_na(char **args)
 	n_j = 0;
 }
 
+static void tr_tm(char **args)
+{
+	fprintf(stderr, "%s\n", args[1]);
+}
+
 static char *arg_regname(char *s, int len)
 {
 	char *e = s + 2;
@@ -336,6 +341,24 @@ static int mkargs_null(char **args, char *buf, int len)
 	return 0;
 }
 
+/* read the whole line for .tm */
+static int mkargs_eol(char **args, char *buf, int len)
+{
+	char *s = buf;
+	char *e = buf + len - 1;
+	int c;
+	args[0] = s;
+	c = cp_next();
+	while (c == ' ')
+		c = cp_next();
+	while (s < e && c >= 0 && c != '\n') {
+		*s++ = c;
+		c = cp_next();
+	}
+	*s = '\0';
+	return 1;
+}
+
 static struct cmd {
 	char *id;
 	void (*f)(char **args);
@@ -371,6 +394,7 @@ static struct cmd {
 	{"rm", tr_rm},
 	{"rn", tr_rn},
 	{"sp", tr_sp},
+	{"tm", tr_tm, mkargs_eol},
 	{"vs", tr_vs},
 	{"wh", tr_wh},
 };
