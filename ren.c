@@ -88,6 +88,11 @@ int f_divreg(void)
 	return cdiv ? cdiv->reg : -1;
 }
 
+int f_hpos(void)
+{
+	return adj_wid(cadj);
+}
+
 void tr_divbeg(char **args)
 {
 	odiv_beg();

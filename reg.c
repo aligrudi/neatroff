@@ -52,6 +52,9 @@ char *num_get(int id)
 	static char numbuf[128];
 	numbuf[0] = '\0';
 	switch (id) {
+	case REG('.', 'k'):
+		sprintf(numbuf, "%d", f_hpos());
+		break;
 	case REG('.', 't'):
 		sprintf(numbuf, "%d", f_nexttrap());
 		break;

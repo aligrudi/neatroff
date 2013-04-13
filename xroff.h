@@ -170,6 +170,7 @@ int adj_wid(struct adj *adj);
 #define n_f		(*nreg(REG('.', 'f')))
 #define n_i		(*nreg(REG('.', 'i')))
 #define n_j		(*nreg(REG('.', 'j')))
+#define n_k		(*nreg(REG('.', 'k')))
 #define n_l		(*nreg(REG('.', 'l')))
 #define n_n		(*nreg(REG('.', 'n')))
 #define n_o		(*nreg(REG('.', 'o')))
@@ -177,14 +178,15 @@ int adj_wid(struct adj *adj);
 #define n_s		(*nreg(REG('.', 's')))
 #define n_u		(*nreg(REG('.', 'u')))
 #define n_v		(*nreg(REG('.', 'v')))
+#define n_ct		(*nreg(REG('c', 't')))
 #define n_dl		(*nreg(REG('d', 'l')))
 #define n_dn		(*nreg(REG('d', 'n')))
 #define n_nl		(*nreg(REG('n', 'l')))
-#define n_ct		(*nreg(REG('c', 't')))
 #define n_pg		(*nreg(REG('%', '\0')))	/* % */
 #define n_f0		(*nreg(REG(0, 'f')))	/* last font */
 #define n_s0		(*nreg(REG(0, 's')))	/* last size */
 
 /* functions for implementing read-only registers */
-int f_nexttrap(void);
-int f_divreg(void);
+int f_nexttrap(void);	/* .t */
+int f_divreg(void);	/* .z */
+int f_hpos(void);	/* .k */
