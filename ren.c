@@ -83,6 +83,11 @@ void tr_di(char **args)
 	}
 }
 
+int f_divreg(void)
+{
+	return cdiv ? cdiv->reg : -1;
+}
+
 void tr_divbeg(char **args)
 {
 	odiv_beg();
@@ -525,7 +530,7 @@ static int trap_reg(int pos)
 	return ret >= 0 ? treg[ret] : -1;
 }
 
-int trap_next(void)
+int f_nexttrap(void)
 {
 	int pos = trap_pos(n_d);
 	if (cdiv)

@@ -39,13 +39,25 @@ int *nreg(int id)
 	return &nregs[id];
 }
 
+static void reg_name(char *s, int id)
+{
+	s[0] = (id >> 8) & 0xff;
+	s[1] = id & 0xff;
+	s[3] = '\0';
+}
+
 /* the contents of a number register (returns a static buffer) */
 char *num_get(int id)
 {
 	static char numbuf[128];
+	numbuf[0] = '\0';
 	switch (id) {
 	case REG('.', 't'):
-		sprintf(numbuf, "%d", trap_next());
+		sprintf(numbuf, "%d", f_nexttrap());
+		break;
+	case REG('.', 'z'):
+		if (f_divreg() >= 0)
+			reg_name(numbuf, f_divreg());
 		break;
 	default:
 		sprintf(numbuf, "%d", *nreg(id));

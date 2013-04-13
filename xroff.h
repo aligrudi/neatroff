@@ -105,8 +105,6 @@ void cp_skip(void);	/* skip current input line or block */
 void render(void);	/* read from in.c and print the output */
 void output(char *s);	/* output the given rendered line */
 void ren_page(int pg);
-int trap_next(void);
-
 
 /* troff commands */
 void tr_bp(char **args);
@@ -186,3 +184,7 @@ int adj_wid(struct adj *adj);
 #define n_pg		(*nreg(REG('%', '\0')))	/* % */
 #define n_f0		(*nreg(REG(0, 'f')))	/* last font */
 #define n_s0		(*nreg(REG(0, 's')))	/* last size */
+
+/* functions for implementing read-only registers */
+int f_nexttrap(void);
+int f_divreg(void);
