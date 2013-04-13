@@ -4,8 +4,8 @@
 #include <string.h>
 #include "xroff.h"
 
-#define ADJ_LL		(n_l - n_i)		/* effective line length */
-#define ADJ_MODE	(n_u ? n_j : ADJ_N)
+#define ADJ_LL		(n_u ? n_l - n_i : 0)	/* effective line length */
+#define ADJ_B		(n_u && !n_na && n_j == AD_B)
 #define cadj		env_adj()		/* line buffer */
 
 /* diversions */
@@ -177,14 +177,22 @@ static void down(int n)
 static void out_line(char *out, int w)
 {
 	int prev_d = n_d;
+	int ljust = 0;
+	char cmd[32];
 	ren_sp(0);
 	n_n = w;
+	if (n_u && !n_na && (n_j == AD_C || n_j == AD_R))
+		ljust = n_j == AD_C ? (ADJ_LL - w) / 2 : ADJ_LL - w;
 	if (cdiv) {
 		if (cdiv->dl < w)
 			cdiv->dl = w;
+		if (ljust) {
+			sprintf(cmd, "\\h'%du'", ljust);
+			sbuf_append(&cdiv->sbuf, cmd);
+		}
 		sbuf_append(&cdiv->sbuf, out);
 	} else {
-		OUT("H%d\n", n_o + n_i);
+		OUT("H%d\n", n_o + n_i + ljust);
 		output(out);
 	}
 	if (!ren_traps(prev_d, n_d, 0))
@@ -195,8 +203,8 @@ static void ren_br(int force)
 {
 	char out[LNLEN];
 	int w;
-	if (!adj_empty(cadj, ADJ_MODE)) {
-		w = adj_fill(cadj, force ? ADJ_N : ADJ_MODE, ADJ_LL, out);
+	if (!adj_empty(cadj, n_u)) {
+		w = adj_fill(cadj, !force && ADJ_B, force ? 0: ADJ_LL, out);
 		out_line(out, w);
 	}
 }
@@ -386,7 +394,7 @@ static int render_char(struct adj *adj)
 			return 0;
 		}
 	}
-	if (n_ti && adj_empty(cadj, ADJ_MODE)) {
+	if (n_ti && adj_empty(cadj, n_u)) {
 		adj_put(adj, n_ti, "\\h'%du'", n_ti);
 		n_ti = 0;
 	}
@@ -441,7 +449,7 @@ void render(void)
 			ren_back(c);
 			render_char(cadj);
 		}
-		while (adj_full(cadj, ADJ_MODE, ADJ_LL))
+		while (adj_full(cadj, ADJ_LL))
 			ren_br(0);
 		if (c != ' ' && c != '\n') {
 			ren_back(c);

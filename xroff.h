@@ -152,17 +152,18 @@ int sbuf_empty(struct sbuf *sbuf);
 #define DIV_END		".&>"
 
 /* adjustment */
-#define ADJ_L		0
-#define ADJ_B		1
-#define ADJ_N		2		/* no adjustment (.nf) */
+#define AD_L		0
+#define AD_B		1
+#define AD_C		3
+#define AD_R		5
 
 struct adj *adj_alloc(void);
 void adj_free(struct adj *adj);
-int adj_fill(struct adj *adj, int mode, int linelen, char *dst);
+int adj_fill(struct adj *adj, int ad_b, int linelen, char *dst);
 void adj_put(struct adj *adj, int wid, char *s, ...);
 void adj_swid(struct adj *adj, int swid);
-int adj_full(struct adj *adj, int mode, int linelen);
-int adj_empty(struct adj *adj, int mode);
+int adj_full(struct adj *adj, int linelen);
+int adj_empty(struct adj *adj, int fill);
 int adj_wid(struct adj *adj);
 
 /* builtin number registers; n_X for .X register */
@@ -184,8 +185,9 @@ int adj_wid(struct adj *adj);
 #define n_dn		(*nreg(REG('d', 'n')))
 #define n_nl		(*nreg(REG('n', 'l')))
 #define n_pg		(*nreg(REG('%', '\0')))	/* % */
-#define n_f0		(*nreg(REG(0, 'f')))	/* last font */
 #define n_lb		(*nreg(REG(0, 'b')))	/* input line beg */
+#define n_f0		(*nreg(REG(0, 'f')))	/* last font */
+#define n_na		(*nreg(REG(0, 'n')))	/* .na mode */
 #define n_s0		(*nreg(REG(0, 's')))	/* last size */
 #define n_ti		(*nreg(REG(0, 't')))	/* temp indent */
 

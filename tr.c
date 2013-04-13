@@ -220,7 +220,33 @@ static void tr_el(char **args)
 
 static void tr_na(char **args)
 {
-	n_j = 0;
+	n_na = 1;
+}
+
+static void tr_ad(char **args)
+{
+	n_na = 0;
+	if (!args[1])
+		return;
+	switch (args[1][0]) {
+	case '0' + AD_L:
+	case 'l':
+		n_j = AD_L;
+		break;
+	case '0' + AD_R:
+	case 'r':
+		n_j = AD_R;
+		break;
+	case '0' + AD_C:
+	case 'c':
+		n_j = AD_C;
+		break;
+	case '0' + AD_B:
+	case 'b':
+	case 'n':
+		n_j = AD_B;
+		break;
+	}
 }
 
 static void tr_tm(char **args)
@@ -366,6 +392,7 @@ static struct cmd {
 } cmds[] = {
 	{DIV_BEG + 1, tr_divbeg},
 	{DIV_END + 1, tr_divend},
+	{"ad", tr_ad},
 	{"am", tr_de, mkargs_reg1},
 	{"as", tr_as, mkargs_ds},
 	{"bp", tr_bp},

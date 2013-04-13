@@ -28,6 +28,7 @@ static int eregs[] = {		/* environment-specific number registers */
 	REG('.', 'u'),
 	REG('.', 'v'),
 	REG(0, 'f'),
+	REG(0, 'n'),
 	REG(0, 's'),
 	REG(0, 't'),
 };
@@ -118,13 +119,14 @@ static void env_set(int id)
 		env->adj = adj_alloc();
 		n_f = 1;
 		n_i = 0;
-		n_j = 1;
+		n_j = AD_B;
 		n_l = SC_IN * 65 / 10;
 		n_s = 10;
 		n_u = 1;
 		n_v = 12 * SC_PT;
 		n_s0 = n_s;
 		n_f0 = n_f;
+		n_na = 0;
 	}
 }
 

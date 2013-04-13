@@ -31,9 +31,9 @@ static int adj_fullnf(struct adj *a)
 }
 
 /* does the adjustment buffer need to be flushed? */
-int adj_full(struct adj *a, int mode, int linelen)
+int adj_full(struct adj *a, int linelen)
 {
-	if (mode == ADJ_N)
+	if (!linelen)
 		return a->nls;
 	if (adj_fullnf(a))
 		return 1;
@@ -41,9 +41,9 @@ int adj_full(struct adj *a, int mode, int linelen)
 }
 
 /* is the adjustment buffer empty? */
-int adj_empty(struct adj *a, int mode)
+int adj_empty(struct adj *a, int fill)
 {
-	return mode == ADJ_N ? !a->nls : !a->nwords && !adj_fullnf(a);
+	return !fill ? !a->nls : !a->nwords && !adj_fullnf(a);
 }
 
 /* set space width */
@@ -83,12 +83,12 @@ static int adj_move(struct adj *a, int n, char *s)
 }
 
 /* fill and copy a line into s */
-int adj_fill(struct adj *a, int mode, int ll, char *s)
+int adj_fill(struct adj *a, int ad_b, int ll, char *s)
 {
 	int adj_div, adj_rem;
 	int w = 0;
 	int i, n;
-	if (mode == ADJ_N || adj_fullnf(a)) {
+	if (!ll || adj_fullnf(a)) {
 		a->nls--;
 		return adj_move(a, a->nwords, s);
 	}
@@ -97,7 +97,7 @@ int adj_fill(struct adj *a, int mode, int ll, char *s)
 			break;
 		w += a->words[n].wid + a->words[n].gap;
 	}
-	if (mode == ADJ_B && n > 1 && n < a->nwords) {
+	if (ad_b && n > 1 && n < a->nwords) {
 		adj_div = (ll - w) / (n - 1);
 		adj_rem = ll - w - adj_div * (n - 1);
 		a->wid += ll - w;
