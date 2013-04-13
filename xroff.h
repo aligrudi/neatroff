@@ -123,6 +123,7 @@ void tr_ne(char **args);
 void tr_nf(char **args);
 void tr_ps(char **args);
 void tr_sp(char **args);
+void tr_ti(char **args);
 void tr_wh(char **args);
 
 void tr_init(void);
@@ -184,7 +185,9 @@ int adj_wid(struct adj *adj);
 #define n_nl		(*nreg(REG('n', 'l')))
 #define n_pg		(*nreg(REG('%', '\0')))	/* % */
 #define n_f0		(*nreg(REG(0, 'f')))	/* last font */
+#define n_lb		(*nreg(REG(0, 'b')))	/* input line beg */
 #define n_s0		(*nreg(REG(0, 's')))	/* last size */
+#define n_ti		(*nreg(REG(0, 't')))	/* temp indent */
 
 /* functions for implementing read-only registers */
 int f_nexttrap(void);	/* .t */

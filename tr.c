@@ -394,6 +394,7 @@ static struct cmd {
 	{"rm", tr_rm},
 	{"rn", tr_rn},
 	{"sp", tr_sp},
+	{"ti", tr_ti},
 	{"tm", tr_tm, mkargs_eol},
 	{"vs", tr_vs},
 	{"wh", tr_wh},

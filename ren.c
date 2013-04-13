@@ -4,9 +4,9 @@
 #include <string.h>
 #include "xroff.h"
 
-#define ADJ_LL		(n_l - n_i)	/* effective line length */
+#define ADJ_LL		(n_l - n_i)		/* effective line length */
 #define ADJ_MODE	(n_u ? n_j : ADJ_N)
-#define cadj		env_adj()	/* line buffer */
+#define cadj		env_adj()		/* line buffer */
 
 /* diversions */
 struct div {
@@ -262,6 +262,14 @@ void tr_in(char **args)
 		n_i = eval(args[1], n_i, 'm');
 }
 
+void tr_ti(char **args)
+{
+	if (args[0][0] == '.')
+		ren_br(1);
+	if (args[1])
+		n_ti = eval(args[1], 0, 'm');
+}
+
 static void ren_ft(char *s)
 {
 	int fn = !*s || !strcmp("P", s) ? n_f0 : dev_font(s);
@@ -344,10 +352,12 @@ static int render_char(struct adj *adj)
 	char c[GNLEN * 2];
 	char arg[ILNLEN];
 	struct glyph *g;
-	int esc = 0;
+	int esc = 0, n;
 	nextchar(c);
+	if (c[0] == '\n')
+		n_lb = adj_wid(cadj);
 	if (c[0] == ' ' || c[0] == '\n') {
-		adj_put(cadj, charwid(dev_spacewid(), n_s), c);
+		adj_put(adj, charwid(dev_spacewid(), n_s), c);
 		return 0;
 	}
 	if (c[0] == '\\') {
@@ -357,7 +367,7 @@ static int render_char(struct adj *adj)
 			int l = nextchar(c);
 			l += nextchar(c + l);
 			c[l] = '\0';
-		} else if (strchr("sfw", c[0])) {
+		} else if (strchr("fhsvw", c[0])) {
 			if (c[0] == 'w') {
 				render_wid();
 				return 0;
@@ -365,10 +375,20 @@ static int render_char(struct adj *adj)
 			escarg_ren(arg, c[0]);
 			if (c[0] == 'f')
 				ren_ft(arg);
+			if (c[0] == 'h') {
+				n = eval(arg, 0, 'm');
+				adj_put(adj, n, "\\h'%du'", n);
+			}
 			if (c[0] == 's')
 				ren_ps(arg);
+			if (c[0] == 'v')
+				adj_put(adj, 0, "\\v'%du'", eval(arg, 0, 'v'));
 			return 0;
 		}
+	}
+	if (n_ti && adj_empty(cadj, ADJ_MODE)) {
+		adj_put(adj, n_ti, "\\h'%du'", n_ti);
+		n_ti = 0;
 	}
 	if (ren_s != n_s) {
 		adj_swid(adj, charwid(dev_spacewid(), n_s));

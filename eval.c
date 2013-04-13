@@ -3,6 +3,7 @@
 #include "xroff.h"
 
 static int defunit = 0;		/* default scale indicator */
+static int abspos = 0;		/* absolute position like |1i */
 
 static int readunit(int c, int *mul, int *div)
 {
@@ -87,6 +88,8 @@ static int evalatom(char **s)
 		return -evalatom(s);
 	if (!evaljmp(s, '+'))
 		return evalatom(s);
+	if (!evaljmp(s, '|'))
+		return abspos + evalatom(s);
 	if (evalisnum(s))
 		return evalnum(s);
 	if (!evaljmp(s, '(')) {
@@ -136,6 +139,10 @@ int eval(char *s, int orig, int unit)
 		s++;
 	}
 	defunit = unit;
+	if (unit == 'v')
+		abspos = -n_d;
+	if (unit == 'm')
+		abspos = n_lb - n_k;
 	n = evalexpr(&s);
 	if (rel)
 		return rel > 0 ? orig + n : orig - n;
