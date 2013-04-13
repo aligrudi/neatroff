@@ -6,7 +6,7 @@
 
 #define ADJ_LL		(n_l - n_i)	/* effective line length */
 #define ADJ_MODE	(n_u ? n_j : ADJ_N)
-#define adj		env_adj()	/* line buffer */
+#define cadj		env_adj()	/* line buffer */
 
 /* diversions */
 struct div {
@@ -185,8 +185,8 @@ static void ren_br(int force)
 {
 	char out[LNLEN];
 	int w;
-	if (!adj_empty(adj, ADJ_MODE)) {
-		w = adj_fill(adj, force ? ADJ_N : ADJ_MODE, ADJ_LL, out);
+	if (!adj_empty(cadj, ADJ_MODE)) {
+		w = adj_fill(cadj, force ? ADJ_N : ADJ_MODE, ADJ_LL, out);
 		out_line(out, w);
 	}
 }
@@ -326,55 +326,103 @@ static void escarg_ren(char *d, int cmd)
 	*d = '\0';
 }
 
-void render(void)
+static void render_wid(void);
+
+/* read one character and place it inside adj buffer */
+static int render_char(struct adj *adj)
 {
 	char c[GNLEN * 2];
 	char arg[ILNLEN];
 	struct glyph *g;
 	int esc = 0;
-	ren_br(1);
-	while (nextchar(c) > 0) {
-		if (c[0] == ' ' || c[0] == '\n')
-			adj_put(adj, charwid(dev_spacewid(), n_s), c);
-		while (adj_full(adj, ADJ_MODE, ADJ_LL))
-			ren_br(0);
-		if (c[0] == ' ' || c[0] == '\n')
-			continue;
-		esc = 0;
-		if (c[0] == '\\') {
-			esc = 1;
-			nextchar(c);
-			if (c[0] == '(') {
-				int l = nextchar(c);
-				l += nextchar(c + l);
-				c[l] = '\0';
-			} else if (strchr("sf", c[0])) {
-				escarg_ren(arg, c[0]);
-				if (c[0] == 'f')
-					ren_ft(arg);
-				if (c[0] == 's')
-					ren_ps(arg);
-				continue;
+	nextchar(c);
+	if (c[0] == ' ' || c[0] == '\n') {
+		adj_put(cadj, charwid(dev_spacewid(), n_s), c);
+		return 0;
+	}
+	if (c[0] == '\\') {
+		esc = 1;
+		nextchar(c);
+		if (c[0] == '(') {
+			int l = nextchar(c);
+			l += nextchar(c + l);
+			c[l] = '\0';
+		} else if (strchr("sfw", c[0])) {
+			if (c[0] == 'w') {
+				render_wid();
+				return 0;
 			}
+			escarg_ren(arg, c[0]);
+			if (c[0] == 'f')
+				ren_ft(arg);
+			if (c[0] == 's')
+				ren_ps(arg);
+			return 0;
 		}
-		if (ren_s != n_s) {
-			adj_swid(adj, charwid(dev_spacewid(), n_s));
-			adj_put(adj, 0, "\\s(%02d", n_s);
-			ren_s = n_s;
+	}
+	if (ren_s != n_s) {
+		adj_swid(adj, charwid(dev_spacewid(), n_s));
+		adj_put(adj, 0, "\\s(%02d", n_s);
+		ren_s = n_s;
+	}
+	if (ren_f != n_f) {
+		adj_put(adj, 0, "\\f(%02d", n_f);
+		ren_f = n_f;
+	}
+	if (utf8len(c[0]) == strlen(c))
+		sprintf(arg, "%s%s", esc ? "\\" : "", c);
+	else
+		sprintf(arg, "\\(%s", c);
+	g = dev_glyph(c, n_f);
+	adj_put(adj, charwid(g ? g->wid : dev_spacewid(), n_s), arg);
+	return g ? g->type : 0;
+}
+
+/* read the argument of \w and push its width */
+static void render_wid(void)
+{
+	char widbuf[16];
+	struct adj *adj = adj_alloc();
+	int c, wid_c;
+	int type = 0;
+	wid_c = ren_next();
+	c = ren_next();
+	odiv_beg();
+	while (c >= 0 && c != wid_c) {
+		ren_back(c);
+		type |= render_char(adj);
+		c = ren_next();
+	}
+	odiv_end();
+	sprintf(widbuf, "%d", adj_wid(adj));
+	in_push(widbuf, NULL);
+	n_ct = type;
+	adj_free(adj);
+}
+
+/* read characters from in.c and pass rendered lines to out.c */
+void render(void)
+{
+	int c;
+	ren_br(1);
+	c = ren_next();
+	while (c >= 0) {
+		if (c == ' ' || c == '\n') {
+			ren_back(c);
+			render_char(cadj);
 		}
-		if (ren_f != n_f) {
-			adj_put(adj, 0, "\\f(%02d", n_f);
-			ren_f = n_f;
+		while (adj_full(cadj, ADJ_MODE, ADJ_LL))
+			ren_br(0);
+		if (c != ' ' && c != '\n') {
+			ren_back(c);
+			render_char(cadj);
 		}
-		if (utf8len(c[0]) == strlen(c))
-			sprintf(arg, "%s%s", esc ? "\\" : "", c);
-		else
-			sprintf(arg, "\\(%s", c);
-		g = dev_glyph(c, n_f);
-		adj_put(adj, charwid(g ? g->wid : dev_spacewid(), n_s), arg);
+		c = ren_next();
 	}
 	ren_br(1);
 }
+
+/* trap handling */
 
 static int tpos[NTRAPS];	/* trap positions */
 static int treg[NTRAPS];	/* trap registers */

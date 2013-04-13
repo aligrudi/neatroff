@@ -164,6 +164,7 @@ void adj_put(struct adj *adj, int wid, char *s, ...);
 void adj_swid(struct adj *adj, int swid);
 int adj_full(struct adj *adj, int mode, int linelen);
 int adj_empty(struct adj *adj, int mode);
+int adj_wid(struct adj *adj);
 
 /* builtin number registers; n_X for .X register */
 #define REG(c1, c2)	((c1) * 256 + (c2))
@@ -181,6 +182,7 @@ int adj_empty(struct adj *adj, int mode);
 #define n_dl		(*nreg(REG('d', 'l')))
 #define n_dn		(*nreg(REG('d', 'n')))
 #define n_nl		(*nreg(REG('n', 'l')))
+#define n_ct		(*nreg(REG('c', 't')))
 #define n_pg		(*nreg(REG('%', '\0')))	/* % */
 #define n_f0		(*nreg(REG(0, 'f')))	/* last font */
 #define n_s0		(*nreg(REG(0, 's')))	/* last size */

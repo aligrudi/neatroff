@@ -169,3 +169,8 @@ void adj_free(struct adj *adj)
 {
 	free(adj);
 }
+
+int adj_wid(struct adj *adj)
+{
+	return adj->wid;
+}
