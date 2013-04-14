@@ -16,14 +16,16 @@ static void jmp_eol(void)
 
 static void tr_ll(char **args)
 {
-	if (args[1])
-		n_l = eval(args[1], n_l, 'm');
+	int ll = args[1] ? eval(args[1], n_l, 'm') : n_l0;
+	n_l0 = n_l;
+	n_l = ll;
 }
 
 static void tr_vs(char **args)
 {
-	if (args[1])
-		n_v = eval(args[1], n_v, 'p');
+	int vs = args[1] ? eval(args[1], n_v, 'p') : n_v0;
+	n_v0 = n_v;
+	n_v = vs;
 }
 
 static void tr_pl(char **args)
@@ -77,6 +79,13 @@ static void tr_rn(char **args)
 	if (!args[2])
 		return;
 	str_rn(REG(args[1][0], args[1][1]), REG(args[2][0], args[2][1]));
+}
+
+static void tr_po(char **args)
+{
+	int po = args[1] ? eval(args[1], n_o, 'm') : n_o0;
+	n_o0 = n_o;
+	n_o = po;
 }
 
 static char *arg_regname(char *s, int len);
@@ -453,6 +462,7 @@ static struct cmd {
 	{"nf", tr_nf},
 	{"nr", tr_nr, mkargs_reg1},
 	{"pl", tr_pl},
+	{"po", tr_po},
 	{"ps", tr_ps},
 	{"rm", tr_rm},
 	{"rn", tr_rn},

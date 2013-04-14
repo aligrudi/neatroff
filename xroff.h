@@ -190,10 +190,14 @@ int adj_wid(struct adj *adj);
 #define n_nl		(*nreg(REG('n', 'l')))
 #define n_pg		(*nreg(REG('%', '\0')))	/* % */
 #define n_lb		(*nreg(REG(0, 'b')))	/* input line beg */
-#define n_f0		(*nreg(REG(0, 'f')))	/* last font */
+#define n_f0		(*nreg(REG(0, 'f')))	/* last .f */
+#define n_i0		(*nreg(REG(0, 'i')))	/* last .i */
+#define n_l0		(*nreg(REG(0, 'l')))	/* last .l */
 #define n_na		(*nreg(REG(0, 'n')))	/* .na mode */
-#define n_s0		(*nreg(REG(0, 's')))	/* last size */
+#define n_o0		(*nreg(REG(0, 'o')))	/* last .o */
+#define n_s0		(*nreg(REG(0, 's')))	/* last .s */
 #define n_ti		(*nreg(REG(0, 't')))	/* temp indent */
+#define n_v0		(*nreg(REG(0, 'v')))	/* last .v */
 
 /* functions for implementing read-only registers */
 int f_nexttrap(void);	/* .t */

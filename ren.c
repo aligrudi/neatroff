@@ -264,10 +264,11 @@ void tr_ps(char **args)
 
 void tr_in(char **args)
 {
+	int in = args[1] ? eval(args[1], n_i, 'm') : n_i0;
 	if (args[0][0] == '.')
 		ren_br(1);
-	if (args[1])
-		n_i = eval(args[1], n_i, 'm');
+	n_i0 = n_i;
+	n_i = in;
 }
 
 void tr_ti(char **args)

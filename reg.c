@@ -28,9 +28,12 @@ static int eregs[] = {		/* environment-specific number registers */
 	REG('.', 'u'),
 	REG('.', 'v'),
 	REG(0, 'f'),
+	REG(0, 'i'),
+	REG(0, 'l'),
 	REG(0, 'n'),
 	REG(0, 's'),
 	REG(0, 't'),
+	REG(0, 'v'),
 };
 
 /* return the address of a number register */
