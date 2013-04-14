@@ -128,7 +128,7 @@ static int trap_pos(int pos);
 static void push_ne(int dobr)
 {
 	char buf[32];
-	sprintf(buf, "%cne %du\n", dobr ? '.' : '\'', n_p);
+	sprintf(buf, "%s.ne %du\n", dobr ? ".br\n" : "", n_p);
 	in_push(buf, NULL);
 }
 
@@ -235,8 +235,7 @@ void ren_page(int pg)
 void tr_ne(char **args)
 {
 	int n = args[1] ? eval(args[1], 0, 'v') : n_v;
-	ren_br(1);
-	if (!ren_traps(n_d, n_d + n, 1))
+	if (!ren_traps(n_d, n_d + n - 1, 1))
 		ren_pagelimit(n);
 }
 
