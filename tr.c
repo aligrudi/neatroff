@@ -254,6 +254,12 @@ static void tr_tm(char **args)
 	fprintf(stderr, "%s\n", args[1]);
 }
 
+static void tr_so(char **args)
+{
+	if (args[1])
+		in_source(args[1]);
+}
+
 static char *arg_regname(char *s, int len)
 {
 	char *e = s + 2;
@@ -420,6 +426,7 @@ static struct cmd {
 	{"ps", tr_ps},
 	{"rm", tr_rm},
 	{"rn", tr_rn},
+	{"so", tr_so},
 	{"sp", tr_sp},
 	{"ti", tr_ti},
 	{"tm", tr_tm, mkargs_eol},

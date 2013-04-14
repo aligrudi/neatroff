@@ -4,7 +4,9 @@
 #include "xroff.h"
 
 struct inbuf {
-	char *buf;
+	char path[64];		/* for file buffers */
+	FILE *fin;
+	char *buf;		/* for string buffers */
 	char **args;
 	int pos;
 	int len;
@@ -12,24 +14,39 @@ struct inbuf {
 	struct inbuf *prev;
 };
 
-static struct inbuf in_main = {.backed = -1};
-static struct inbuf *buf = &in_main;
+static struct inbuf *buf;
 
 static char **args_init(char **args);
 static void args_free(char **args);
 
-void in_push(char *s, char **args)
+static void in_new(void)
 {
-	struct inbuf *next = malloc(sizeof(*buf));
-	int len = strlen(s);
-	next->buf = malloc(len + 1);
-	strcpy(next->buf, s);
-	next->pos = 0;
-	next->len = len;
+	struct inbuf *next = malloc(sizeof(*next));
+	memset(next, 0, sizeof(*next));
 	next->backed = -1;
 	next->prev = buf;
-	next->args = args ? args_init(args) : NULL;
 	buf = next;
+}
+
+void in_push(char *s, char **args)
+{
+	int len = strlen(s);
+	in_new();
+	buf->buf = malloc(len + 1);
+	buf->len = len;
+	strcpy(buf->buf, s);
+	buf->args = args ? args_init(args) : NULL;
+}
+
+void in_source(char *path)
+{
+	FILE *fin = path ? fopen(path, "r") : stdin;
+	if (fin) {
+		in_new();
+		buf->fin = fin;
+		if (path)
+			snprintf(buf->path, sizeof(buf->path) - 1, "%s", path);
+	}
 }
 
 static void in_pop(void)
@@ -38,21 +55,30 @@ static void in_pop(void)
 	buf = buf->prev;
 	if (old->args)
 		args_free(old->args);
+	if (old->fin && old->path[0])
+		fclose(old->fin);
 	free(old->buf);
 	free(old);
 }
 
 int in_next(void)
 {
-	int c = buf->backed;
-	buf->backed = -1;
-	if (c >= 0)
+	int c;
+	if (!buf)
+		return -1;
+	if (buf->backed >= 0) {
+		c = buf->backed;
+		buf->backed = -1;
 		return c;
-	while (buf->pos == buf->len && buf->prev)
+	}
+	while (buf) {
+		if (buf->buf && buf->pos < buf->len)
+			break;
+		if (!buf->buf && (c = getc(buf->fin)) >= 0)
+			return c;
 		in_pop();
-	if (!buf->buf)
-		return getchar();
-	if (buf->pos >= buf->len)
+	}
+	if (!buf)
 		return -1;
 	/* replacing \\ with \ only for buffers inserted via in_push() */
 	if (buf->buf[buf->pos] == '\\' && buf->buf[buf->pos + 1] == '\\')
@@ -62,15 +88,24 @@ int in_next(void)
 
 void in_back(int c)
 {
-	buf->backed = c;
+	if (buf)
+		buf->backed = c;
 }
 
 char *in_arg(int i)
 {
 	struct inbuf *cur = buf;
-	while (!cur->args && cur->prev)
+	while (cur && !cur->args)
 		cur = cur->prev;
-	return cur->args && cur->args[i - 1] ? cur->args[i - 1] : "";
+	return cur && cur->args && cur->args[i - 1] ? cur->args[i - 1] : "";
+}
+
+char *in_filename(void)
+{
+	struct inbuf *cur = buf;
+	while (cur && !cur->fin)
+		cur = cur->prev;
+	return cur && cur->path[0] ? cur->path : "-";
 }
 
 static char **args_init(char **args)

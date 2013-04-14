@@ -38,6 +38,7 @@ int main(void)
 	env_init();
 	tr_init();
 	g_init();
+	in_source(NULL);	/* reading from standard input */
 	compile();
 	env_free();
 	dev_close();

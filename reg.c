@@ -64,6 +64,9 @@ char *num_get(int id)
 		if (f_divreg() >= 0)
 			reg_name(numbuf, f_divreg());
 		break;
+	case REG('.', 'F'):
+		sprintf(numbuf, "%s", in_filename());
+		break;
 	default:
 		sprintf(numbuf, "%d", *nreg(id));
 	}

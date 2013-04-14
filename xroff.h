@@ -96,8 +96,10 @@ int in_next(void);	/* input layer */
 int cp_next(void);	/* copy-mode layer */
 int tr_next(void);	/* troff layer */
 void in_push(char *s, char **args);
+void in_source(char *path);
 char *in_arg(int i);
 void in_back(int c);
+char *in_filename(void);
 void cp_back(int c);
 void cp_skip(void);	/* skip current input line or block */
 
