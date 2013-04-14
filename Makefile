@@ -1,5 +1,5 @@
 CC = cc
-CFLAGS = -Wall -O2
+CFLAGS = -Wall -O2 -DTROFFROOT=\"/root/troff/home\"
 LDFLAGS =
 
 all: xroff

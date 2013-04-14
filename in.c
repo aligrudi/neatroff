@@ -15,6 +15,9 @@ struct inbuf {
 };
 
 static struct inbuf *buf;
+static char files[NFILES][PATHLEN];
+static int nfiles;
+static int cfile;
 
 static char **args_init(char **args);
 static void args_free(char **args);
@@ -40,13 +43,19 @@ void in_push(char *s, char **args)
 
 void in_source(char *path)
 {
-	FILE *fin = path ? fopen(path, "r") : stdin;
+	FILE *fin = path && path[0] ? fopen(path, "r") : stdin;
 	if (fin) {
 		in_new();
 		buf->fin = fin;
 		if (path)
 			snprintf(buf->path, sizeof(buf->path) - 1, "%s", path);
 	}
+}
+
+void in_queue(char *path)
+{
+	if (nfiles < NFILES)
+		snprintf(files[nfiles++], PATHLEN - 1, "%s", path ? path : "");
 }
 
 static void in_pop(void)
@@ -61,17 +70,24 @@ static void in_pop(void)
 	free(old);
 }
 
+static int in_nextfile(void)
+{
+	while (!buf && cfile < nfiles)
+		in_source(files[cfile++]);
+	return !buf;
+}
+
 int in_next(void)
 {
 	int c;
-	if (!buf)
+	if (!buf && in_nextfile())
 		return -1;
 	if (buf->backed >= 0) {
 		c = buf->backed;
 		buf->backed = -1;
 		return c;
 	}
-	while (buf) {
+	while (buf || !in_nextfile()) {
 		if (buf->buf && buf->pos < buf->len)
 			break;
 		if (!buf->buf && (c = getc(buf->fin)) >= 0)

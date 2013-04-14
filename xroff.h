@@ -4,6 +4,7 @@
 
 /* predefined array limits */
 #define PATHLEN		1024	/* path length */
+#define NFILES		16	/* number of input files */
 #define NFONTS		32	/* number of fonts */
 #define FNLEN		32	/* font name length */
 #define NGLYPHS		512	/* glyphs in fonts */
@@ -92,16 +93,17 @@ struct glyph *dev_glyph_byid(char *id, int fn);
 int dev_spacewid(void);
 
 /* different layers of neatroff */
-int in_next(void);	/* input layer */
-int cp_next(void);	/* copy-mode layer */
-int tr_next(void);	/* troff layer */
+int in_next(void);		/* input layer */
+int cp_next(void);		/* copy-mode layer */
+int tr_next(void);		/* troff layer */
 void in_push(char *s, char **args);
-void in_source(char *path);
-char *in_arg(int i);
-void in_back(int c);
-char *in_filename(void);
-void cp_back(int c);
-void cp_skip(void);	/* skip current input line or block */
+void in_source(char *path);	/* .so request */
+void in_queue(char *path);	/* next input file */
+char *in_arg(int i);		/* look up argument */
+void in_back(int c);		/* push back input character */
+char *in_filename(void);	/* current filename */
+void cp_back(int c);		/* push back copy-mode character */
+void cp_skip(void);		/* skip current input line or block */
 
 /* rendering */
 void render(void);	/* read from in.c and print the output */
