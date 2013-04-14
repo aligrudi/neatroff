@@ -66,9 +66,10 @@ static void tr_as(char **args)
 
 static void tr_rm(char **args)
 {
-	if (!args[1])
-		return;
-	str_rm(REG(args[1][0], args[1][1]));
+	int i;
+	for (i = 1; i <= NARGS; i++)
+		if (args[i])
+			str_rm(REG(args[i][0], args[i][1]));
 }
 
 static void tr_rn(char **args)
@@ -281,8 +282,9 @@ static char *arg_normal(char *s, int len)
 	char *e = s + len - 1;
 	int quoted = 0;
 	int c;
-	while ((c = cp_next()) == ' ')
-		;
+	c = cp_next();
+	while (c == ' ')
+		c = cp_next();
 	if (c == '"') {
 		quoted = 1;
 		c = cp_next();
@@ -322,7 +324,7 @@ static char *arg_string(char *s, int len)
 	return s;
 }
 
-/* read macro arguments */
+/* read macro arguments; trims tabs if rmtabs is nonzero */
 static int mkargs(char **args, char *buf, int len)
 {
 	char *s = buf;
@@ -330,12 +332,40 @@ static int mkargs(char **args, char *buf, int len)
 	int c;
 	int n = 0;
 	while (n < NARGS) {
+		char *r = s;
 		c = cp_next();
 		if (c < 0 || c == '\n')
 			return n;
 		cp_back(c);
-		args[n++] = s;
 		s = arg_normal(s, e - s);
+		if (*r != '\0')
+			args[n++] = r;
+	}
+	jmp_eol();
+	return n;
+}
+
+/* read request arguments; trims tabs too */
+static int mkargs_req(char **args, char *buf, int len)
+{
+	char *r, *s = buf;
+	char *e = buf + len - 1;
+	int c;
+	int n = 0;
+	c = cp_next();
+	while (n < NARGS && s < e) {
+		r = s;
+		while (c == ' ' || c == '\t')
+			c = cp_next();
+		while (c >= 0 && c != '\n' && c != ' ' && c != '\t' && s < e) {
+			*s++ = c;
+			c = cp_next();
+		}
+		*s++ = '\0';
+		if (*r != '\0')
+			args[n++] = r;
+		if (c < 0 || c == '\n')
+			return n;
 	}
 	jmp_eol();
 	return n;
@@ -364,7 +394,7 @@ static int mkargs_reg1(char **args, char *buf, int len)
 	char *e = buf + len - 1;
 	args[0] = s;
 	s = arg_regname(s, e - s);
-	return mkargs(args + 1, s, e - s) + 1;
+	return mkargs_req(args + 1, s, e - s) + 1;
 }
 
 /* do not read arguments; for .if, .ie and .el */
@@ -454,7 +484,7 @@ int tr_next(void)
 			if (req->args)
 				req->args(args + 1, buf, sizeof(buf));
 			else
-				mkargs(args + 1, buf, sizeof(buf));
+				mkargs_req(args + 1, buf, sizeof(buf));
 			req->f(args);
 		} else {
 			mkargs(args + 1, buf, sizeof(buf));
