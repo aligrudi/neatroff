@@ -90,24 +90,13 @@ static void tr_po(char **args)
 
 static char *arg_regname(char *s, int len);
 
-static void tr_de(char **args)
+static void macrobody(struct sbuf *sbuf, char *end)
 {
-	struct sbuf sbuf;
 	char buf[4];
-	int end[4] = {'.'};
-	int id, c, i;
-	if (!args[1])
-		return;
-	if (args[2]) {
-		end[0] = args[2][0];
-		end[1] = args[2][1];
-	}
-	id = REG(args[1][0], args[1][1]);
-	sbuf_init(&sbuf);
-	if (args[0][1] == 'a' && args[0][2] == 'm' && str_get(id))
-		sbuf_append(&sbuf, str_get(id));
+	int i, c;
 	while ((c = cp_next()) >= 0) {
-		sbuf_add(&sbuf, c);
+		if (sbuf)
+			sbuf_add(sbuf, c);
 		if (c == '\n') {
 			c = cp_next();
 			if (c == '.') {
@@ -116,17 +105,37 @@ static void tr_de(char **args)
 					jmp_eol();
 					break;
 				}
-				sbuf_add(&sbuf, '.');
+				if (!sbuf)
+					continue;
+				sbuf_add(sbuf, '.');
 				for (i = 0; buf[i]; i++)
-					sbuf_add(&sbuf, (unsigned char) buf[i]);
-			} else {
-				if (c >= 0)
-					sbuf_add(&sbuf, c);
+					sbuf_add(sbuf, (unsigned char) buf[i]);
+				continue;
 			}
+			if (sbuf && c >= 0)
+				sbuf_add(sbuf, c);
 		}
 	}
+}
+
+static void tr_de(char **args)
+{
+	struct sbuf sbuf;
+	int id;
+	if (!args[1])
+		return;
+	id = REG(args[1][0], args[1][1]);
+	sbuf_init(&sbuf);
+	if (args[0][1] == 'a' && args[0][2] == 'm' && str_get(id))
+		sbuf_append(&sbuf, str_get(id));
+	macrobody(&sbuf, args[2] ? args[2] : ".");
 	str_set(id, sbuf_buf(&sbuf));
 	sbuf_done(&sbuf);
+}
+
+static void tr_ig(char **args)
+{
+	macrobody(NULL, args[1] ? args[1] : ".");
 }
 
 /* read into sbuf until stop */
@@ -455,6 +464,7 @@ static struct cmd {
 	{"ft", tr_ft},
 	{"ie", tr_if, mkargs_null},
 	{"if", tr_if, mkargs_null},
+	{"ig", tr_ig},
 	{"in", tr_in},
 	{"ll", tr_ll},
 	{"na", tr_na},
