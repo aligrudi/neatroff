@@ -109,6 +109,7 @@ void cp_skip(void);		/* skip current input line or block */
 void render(void);	/* read from in.c and print the output */
 void output(char *s);	/* output the given rendered line */
 void ren_page(int pg);
+int out_draw(char *s, char *cc);
 
 /* troff commands */
 void tr_bp(char **args);

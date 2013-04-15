@@ -193,6 +193,7 @@ static void out_line(char *out, int w)
 		sbuf_append(&cdiv->sbuf, out);
 	} else {
 		OUT("H%d\n", n_o + n_i + ljust);
+		OUT("V%d\n", n_d);
 		output(out);
 	}
 	if (!ren_traps(prev_d, n_d, 0))
@@ -359,8 +360,9 @@ static int render_char(struct adj *adj)
 {
 	char c[GNLEN * 2];
 	char arg[ILNLEN];
+	char draw_arg[ILNLEN];
 	struct glyph *g;
-	int esc = 0, n;
+	int esc = 0, n, w;
 	nextchar(c);
 	if (c[0] == '\n')
 		n_lb = adj_wid(cadj);
@@ -375,12 +377,16 @@ static int render_char(struct adj *adj)
 			int l = nextchar(c);
 			l += nextchar(c + l);
 			c[l] = '\0';
-		} else if (strchr("fhsvw", c[0])) {
+		} else if (strchr("Dfhsvw", c[0])) {
 			if (c[0] == 'w') {
 				render_wid();
 				return 0;
 			}
 			escarg_ren(arg, c[0]);
+			if (c[0] == 'D') {
+				w = out_draw(arg, draw_arg);
+				adj_put(adj, w, "\\D'%s'", draw_arg);
+			}
 			if (c[0] == 'f')
 				ren_ft(arg);
 			if (c[0] == 'h') {

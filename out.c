@@ -80,6 +80,86 @@ static char *escarg(char *s, char *d, int cmd)
 	return s;
 }
 
+static char *tok_str(char *d, char *s)
+{
+	while (isspace(*s))
+		s++;
+	while (*s && !isspace(*s))
+		*d++ = *s++;
+	*d = '\0';
+	return s;
+}
+
+static char *tok_num(int *d, char *s, char **cc, int scale)
+{
+	char tok[ILNLEN];
+	s = tok_str(tok, s);
+	*d = eval(tok, 0, scale);
+	if (*cc)
+		*cc += sprintf(*cc, " %du", *d);
+	else
+		OUT(" %d", *d);
+	return s;
+}
+
+/* parse \D arguments and copy them into cc; return the width */
+int out_draw(char *s, char *cc)
+{
+	int h1, h2, v1, v2;
+	int hd = 0, vd = 0;
+	int c = *s++;
+	if (cc)
+		*cc++ = c;
+	else
+		OUT("D%c", c);
+	switch (c) {
+	case 'l':
+		s = tok_num(&h1, s, &cc, 'm');
+		s = tok_num(&v1, s, &cc, 'v');
+		if (!cc)			/* dpost requires this */
+			OUT(" .");
+		hd = h1;
+		vd = v1;
+		break;
+	case 'c':
+		s = tok_num(&h1, s, &cc, 'm');
+		hd = h1;
+		vd = 0;
+		break;
+	case 'e':
+		s = tok_num(&h1, s, &cc, 'm');
+		s = tok_num(&v1, s, &cc, 'v');
+		hd = h1;
+		vd = 0;
+		break;
+	case 'a':
+		s = tok_num(&h1, s, &cc, 'm');
+		s = tok_num(&v1, s, &cc, 'v');
+		s = tok_num(&h2, s, &cc, 'm');
+		s = tok_num(&v2, s, &cc, 'v');
+		hd = h1 + h2;
+		vd = v1 + v2;
+		break;
+	default:
+		s = tok_num(&h1, s, &cc, 'm');
+		s = tok_num(&v1, s, &cc, 'v');
+		hd = h1;
+		vd = v1;
+		while (*s) {
+			s = tok_num(&h2, s, &cc, 'm');
+			s = tok_num(&v2, s, &cc, 'v');
+			hd += h2;
+			vd += v2;
+		}
+		break;
+	}
+	if (cc)
+		*cc = '\0';
+	else
+		OUT("\n");
+	return hd;
+}
+
 void output(char *s)
 {
 	struct glyph *g;
@@ -92,10 +172,10 @@ void output(char *s)
 			if (c[0] == '(') {
 				s = utf8get(c, s);
 				s = utf8get(c + strlen(c), s);
-			} else if (strchr("fhsv", c[0])) {
+			} else if (strchr("Dfhsv", c[0])) {
 				s = escarg(s, arg, c[0]);
-				if (c[0] == 's') {
-					out_ps(eval(arg, o_s, '\0'));
+				if (c[0] == 'D') {
+					out_draw(arg, NULL);
 					continue;
 				}
 				if (c[0] == 'f') {
@@ -104,6 +184,10 @@ void output(char *s)
 				}
 				if (c[0] == 'h') {
 					OUT("h%d", eval(arg, 0, 'm'));
+					continue;
+				}
+				if (c[0] == 's') {
+					out_ps(eval(arg, o_s, '\0'));
 					continue;
 				}
 				if (c[0] == 'v') {
