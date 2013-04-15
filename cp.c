@@ -22,9 +22,15 @@ static int regid(void)
 
 static void cp_num(void)
 {
-	char *buf = num_get(regid());
-	if (buf)
-		in_push(buf, NULL);
+	int id;
+	int c = cp_next();
+	if (c != '-' && c != '+')
+		cp_back(c);
+	id = regid();
+	if (c == '-' || c == '+')
+		num_get(id, c == '+' ? 1 : -1);
+	if (num_str(id))
+		in_push(num_str(id), NULL);
 }
 
 static void cp_str(void)

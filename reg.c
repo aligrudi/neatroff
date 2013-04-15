@@ -13,6 +13,7 @@ struct env {
 };
 
 static int nregs[NREGS];	/* global number registers */
+static int nregs_inc[NREGS];	/* number register auto-increment size */
 static char *sregs[NREGS];	/* global string registers */
 static void *sregs_dat[NREGS];	/* builtin function data */
 static struct env envs[3];	/* environments */
@@ -52,7 +53,7 @@ static void reg_name(char *s, int id)
 }
 
 /* the contents of a number register (returns a static buffer) */
-char *num_get(int id)
+char *num_str(int id)
 {
 	static char numbuf[128];
 	numbuf[0] = '\0';
@@ -74,6 +75,25 @@ char *num_get(int id)
 		sprintf(numbuf, "%d", *nreg(id));
 	}
 	return numbuf;
+}
+
+void num_set(int id, int val, int inc)
+{
+	*nreg(id) = val;
+	nregs_inc[id] = inc;
+}
+
+void num_del(int id)
+{
+	*nreg(id) = 0;
+	nregs_inc[id] = 0;
+}
+
+int num_get(int id, int inc)
+{
+	if (inc)
+		*nreg(id) += inc > 0 ? nregs_inc[id] : -nregs_inc[id];
+	return *nreg(id);
 }
 
 void str_set(int id, char *s)

@@ -40,7 +40,16 @@ static void tr_nr(char **args)
 	if (!args[2])
 		return;
 	id = REG(args[1][0], args[1][1]);
-	*nreg(id) = eval(args[2], *nreg(id), 'u');
+	num_set(id, eval(args[2], num_get(id, 0), 'u'),
+			args[3] ? eval(args[3], 0, 'u') : 0);
+}
+
+static void tr_rr(char **args)
+{
+	int i;
+	for (i = 1; i <= NARGS; i++)
+		if (args[i])
+			num_del(REG(args[i][0], args[i][1]));
 }
 
 static void tr_ds(char **args)
@@ -476,6 +485,7 @@ static struct cmd {
 	{"ps", tr_ps},
 	{"rm", tr_rm},
 	{"rn", tr_rn},
+	{"rr", tr_rr},
 	{"so", tr_so},
 	{"sp", tr_sp},
 	{"ti", tr_ti},

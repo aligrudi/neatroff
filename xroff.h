@@ -25,7 +25,10 @@
 #define LEN(a)		(sizeof(a) / sizeof((a)[0]))
 
 /* number registers */
-char *num_get(int id);
+int num_get(int id, int inc);
+void num_set(int id, int val, int inc);
+void num_del(int id);
+char *num_str(int id);
 int *nreg(int id);
 int eval(char *s, int orig, int unit);
 
