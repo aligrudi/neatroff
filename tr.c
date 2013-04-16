@@ -474,6 +474,7 @@ static struct cmd {
 	{"nf", tr_nf},
 	{"nr", tr_nr, mkargs_reg1},
 	{"pl", tr_pl},
+	{"pn", tr_pn},
 	{"po", tr_po},
 	{"ps", tr_ps},
 	{"rm", tr_rm},

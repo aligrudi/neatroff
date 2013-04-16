@@ -20,7 +20,6 @@ static void compile(void)
 {
 	OUT("s%d\n", n_s);
 	OUT("f%d\n", n_f);
-	ren_page(1);
 	render();
 	OUT("V%d\n", n_p);
 }

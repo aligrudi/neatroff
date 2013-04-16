@@ -23,7 +23,8 @@ static int ren_div;		/* rendering a diversion */
 
 static int ren_backed = -1;	/* pushed back character */
 
-static int bp_next;		/* next page number */
+static int bp_first = 1;	/* prior to the first page */
+static int bp_next = 1;		/* next page number */
 static int bp_force;		/* execute the traps until the next page */
 
 static int ren_next(void)
@@ -103,20 +104,37 @@ void tr_divend(char **args)
 	ren_div--;
 }
 
+static void ren_page(int pg)
+{
+	n_nl = 0;
+	n_d = 0;
+	n_pg = pg;
+	bp_next = n_pg + 1;
+	OUT("p%d\n", pg);
+	OUT("V%d\n", 0);
+}
+
+static void ren_first(void)
+{
+	if (bp_first) {
+		ren_page(bp_next);
+		bp_first = 0;
+	}
+}
+
 static void ren_sp(int n)
 {
 	char cmd[32];
+	ren_first();
 	if (!n && ren_div && !n_u)
 		return;
 	n_d += n ? n : n_v;
 	if (cdiv) {
 		sbuf_putnl(&cdiv->sbuf);
-		sprintf(cmd, ".sp %du\n", n ? n : n_v);
+		sprintf(cmd, "'sp %du\n", n ? n : n_v);
 		sbuf_append(&cdiv->sbuf, cmd);
 	} else {
 		n_nl = n_d;
-		if (n_nl <= n_p)
-			OUT("v%d\n", n ? n : n_v);
 	}
 }
 
@@ -205,6 +223,7 @@ static void ren_br(int force)
 {
 	char out[LNLEN];
 	int adj_b, w;
+	ren_first();
 	if (!adj_empty(cadj, n_u)) {
 		adj_b = n_u && !n_na && n_j == AD_B;
 		w = adj_fill(cadj, !force && adj_b, !force && n_u, out);
@@ -225,16 +244,6 @@ void tr_sp(char **args)
 	down(args[1] ? eval(args[1], 0, 'v') : n_v);
 }
 
-void ren_page(int pg)
-{
-	n_nl = -1;
-	n_d = 0;
-	n_pg = pg;
-	bp_next = n_pg + 1;
-	OUT("p%d\n", pg);
-	OUT("V%d\n", 0);
-}
-
 void tr_ne(char **args)
 {
 	int n = args[1] ? eval(args[1], 0, 'v') : n_v;
@@ -247,14 +256,20 @@ void tr_bp(char **args)
 	if (!cdiv) {
 		bp_force = 1;
 		if (args[1])
-			bp_next = eval(args[1], n_pg, '\0');
+			bp_next = eval(args[1], n_pg, 0);
 		push_ne(args[0][0] == '.');
 	}
 }
 
+void tr_pn(char **args)
+{
+	if (args[1])
+		bp_next = eval(args[1], n_pg, 0);
+}
+
 static void ren_ps(char *s)
 {
-	int ps = !s || !*s || !strcmp("0", s) ? n_s0 : eval(s, n_s, '\0');
+	int ps = !s || !*s || !strcmp("0", s) ? n_s0 : eval(s, n_s, 0);
 	n_s0 = n_s;
 	n_s = ps;
 }
@@ -456,7 +471,7 @@ static void render_wid(void)
 void render(void)
 {
 	int c;
-	ren_br(1);
+	n_nl = -1;
 	c = ren_next();
 	while (c >= 0) {
 		if (c == ' ' || c == '\n') {
