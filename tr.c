@@ -33,8 +33,8 @@ static void tr_nr(char **args)
 	if (!args[2])
 		return;
 	id = REG(args[1][0], args[1][1]);
-	num_set(id, eval(args[2], num_get(id, 0), 'u'),
-			args[3] ? eval(args[3], 0, 'u') : 0);
+	num_set(id, eval(args[2], num_get(id, 0), 'u'));
+	num_inc(id, args[3] ? eval(args[3], 0, 'u') : 0);
 }
 
 static void tr_rr(char **args)
@@ -469,6 +469,7 @@ static struct cmd {
 	{"ig", tr_ig},
 	{"in", tr_in},
 	{"ll", tr_ll},
+	{"mk", tr_mk},
 	{"na", tr_na},
 	{"ne", tr_ne},
 	{"nf", tr_nf},
@@ -480,6 +481,7 @@ static struct cmd {
 	{"rm", tr_rm},
 	{"rn", tr_rn},
 	{"rr", tr_rr},
+	{"rt", tr_rt},
 	{"so", tr_so},
 	{"sp", tr_sp},
 	{"ti", tr_ti},

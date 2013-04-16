@@ -76,10 +76,14 @@ char *num_str(int id)
 	return numbuf;
 }
 
-void num_set(int id, int val, int inc)
+void num_set(int id, int val)
 {
 	*nreg(id) = val;
-	nregs_inc[id] = inc;
+}
+
+void num_inc(int id, int val)
+{
+	nregs_inc[id] = val;
 }
 
 void num_del(int id)

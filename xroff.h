@@ -26,7 +26,8 @@
 
 /* number registers */
 int num_get(int id, int inc);
-void num_set(int id, int val, int inc);
+void num_set(int id, int val);
+void num_inc(int id, int val);
 void num_del(int id);
 char *num_str(int id);
 int *nreg(int id);
@@ -127,10 +128,12 @@ void tr_fp(char **args);
 void tr_ft(char **args);
 void tr_in(char **args);
 void tr_ll(char **args);
+void tr_mk(char **args);
 void tr_ne(char **args);
 void tr_nf(char **args);
 void tr_pn(char **args);
 void tr_ps(char **args);
+void tr_rt(char **args);
 void tr_sp(char **args);
 void tr_ti(char **args);
 void tr_wh(char **args);
@@ -202,6 +205,7 @@ void adj_conf(struct adj *adj, int *ll, int *in, int *ti);
 #define n_f0		(*nreg(REG(0, 'f')))	/* last .f */
 #define n_i0		(*nreg(REG(0, 'i')))	/* last .i */
 #define n_l0		(*nreg(REG(0, 'l')))	/* last .l */
+#define n_mk		(*nreg(REG(0, 'm')))	/* .mk internal register */
 #define n_na		(*nreg(REG(0, 'n')))	/* .na mode */
 #define n_o0		(*nreg(REG(0, 'o')))	/* last .o */
 #define n_s0		(*nreg(REG(0, 's')))	/* last .s */

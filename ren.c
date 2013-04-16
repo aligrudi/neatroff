@@ -12,6 +12,7 @@ struct div {
 	int reg;		/* diversion register */
 	int dl;			/* diversion width */
 	int prev_d;		/* previous \(.d value */
+	int prev_mk;		/* previous .mk internal register */
 	int tpos;		/* diversion trap position */
 	int treg;		/* diversion trap register */
 };
@@ -61,6 +62,7 @@ void tr_di(char **args)
 		sbuf_init(&cdiv->sbuf);
 		cdiv->reg = REG(args[1][0], args[1][1]);
 		cdiv->prev_d = n_d;
+		cdiv->prev_mk = n_mk;
 		cdiv->treg = -1;
 		if (args[0][2] == 'a' && str_get(cdiv->reg))	/* .da */
 			sbuf_append(&cdiv->sbuf, str_get(cdiv->reg));
@@ -76,6 +78,7 @@ void tr_di(char **args)
 		n_dl = cdiv->dl;
 		n_dn = n_d;
 		n_d = cdiv->prev_d;
+		n_mk = cdiv->prev_mk;
 		cdiv = cdiv > divs ? cdiv - 1 : NULL;
 		ren_f = 0;
 		ren_s = 0;
@@ -242,6 +245,21 @@ void tr_sp(char **args)
 	if (args[0][0] == '.')
 		ren_br(1);
 	down(args[1] ? eval(args[1], 0, 'v') : n_v);
+}
+
+void tr_mk(char **args)
+{
+	if (args[1])
+		num_set(REG(args[1][0], args[1][1]), n_d);
+	else
+		n_mk = n_d;
+}
+
+void tr_rt(char **args)
+{
+	int n = args[1] ? eval(args[1], n_d, 'v') : n_mk;
+	if (n >= 0 && n < n_d)
+		ren_sp(n - n_d);
 }
 
 void tr_ne(char **args)
