@@ -4,6 +4,8 @@
 #include <string.h>
 #include "xroff.h"
 
+#define ADJ_LL(a)	((a)->ll > (a)->li + (a)->lt ? (a)->ll - (a)->li - (a)->lt : 0)
+
 struct word {
 	int beg;	/* word beginning offset */
 	int end;	/* word ending offset */
@@ -21,7 +23,40 @@ struct adj {
 	int swid;			/* current space width */
 	int gap;			/* space before the next word */
 	int nls;			/* newlines before the next word */
+	int l, i, t;			/* current .l, .i and ti */
+	int ll, li, lt;			/* current line's .l, .i and ti */
 };
+
+void adj_ll(struct adj *adj, int ll)
+{
+	adj->l = ll;
+}
+
+void adj_ti(struct adj *adj, int ti)
+{
+	adj->t = ti;
+}
+
+void adj_in(struct adj *adj, int in)
+{
+	adj->i = in;
+}
+
+void adj_conf(struct adj *adj, int *ll, int *in, int *ti)
+{
+	*ll = adj->ll;
+	*in = adj->li;
+	*ti = adj->lt;
+}
+
+/* .ll, .in and .ti are delayed until the partial line is output */
+static void adj_confupdate(struct adj *adj)
+{
+	adj->ll = adj->l;
+	adj->li = adj->i;
+	adj->lt = adj->t;
+	adj->t = 0;
+}
 
 /* does the adjustment buffer need to be flushed without filling? */
 static int adj_fullnf(struct adj *a)
@@ -31,13 +66,13 @@ static int adj_fullnf(struct adj *a)
 }
 
 /* does the adjustment buffer need to be flushed? */
-int adj_full(struct adj *a, int linelen)
+int adj_full(struct adj *a, int fill)
 {
-	if (!linelen)
+	if (!fill)
 		return a->nls;
 	if (adj_fullnf(a))
 		return 1;
-	return !a->word && a->wid > linelen;
+	return !a->word && a->wid > ADJ_LL(a);
 }
 
 /* is the adjustment buffer empty? */
@@ -79,16 +114,19 @@ static int adj_move(struct adj *a, int n, char *s)
 		a->words[i].beg -= lendiff;
 		a->words[i].end -= lendiff;
 	}
+	if (a->nwords)		/* apply the new .l and .i */
+		adj_confupdate(a);
 	return w;
 }
 
 /* fill and copy a line into s */
-int adj_fill(struct adj *a, int ad_b, int ll, char *s)
+int adj_fill(struct adj *a, int ad_b, int fill, char *s)
 {
 	int adj_div, adj_rem;
 	int w = 0;
 	int i, n;
-	if (!ll || adj_fullnf(a)) {
+	int ll = ADJ_LL(a);
+	if (!fill || adj_fullnf(a)) {
 		a->nls--;
 		return adj_move(a, a->nwords, s);
 	}
@@ -144,6 +182,8 @@ void adj_put(struct adj *adj, int wid, char *s, ...)
 		adj->swid = wid;
 		return;
 	}
+	if (!adj->nwords)	/* apply the new .l and .i */
+		adj_confupdate(adj);
 	if (!adj->word) {
 		if (adj->nls && !adj->gap && adj->nwords >= 1)
 			adj->gap = adj->swid;

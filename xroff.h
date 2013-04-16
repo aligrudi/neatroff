@@ -127,6 +127,7 @@ void tr_fi(char **args);
 void tr_fp(char **args);
 void tr_ft(char **args);
 void tr_in(char **args);
+void tr_ll(char **args);
 void tr_ne(char **args);
 void tr_nf(char **args);
 void tr_ps(char **args);
@@ -167,12 +168,16 @@ int sbuf_empty(struct sbuf *sbuf);
 
 struct adj *adj_alloc(void);
 void adj_free(struct adj *adj);
-int adj_fill(struct adj *adj, int ad_b, int linelen, char *dst);
+int adj_fill(struct adj *adj, int ad_b, int fill, char *dst);
 void adj_put(struct adj *adj, int wid, char *s, ...);
 void adj_swid(struct adj *adj, int swid);
-int adj_full(struct adj *adj, int linelen);
+int adj_full(struct adj *adj, int fill);
 int adj_empty(struct adj *adj, int fill);
 int adj_wid(struct adj *adj);
+void adj_ll(struct adj *adj, int ll);
+void adj_in(struct adj *adj, int in);
+void adj_ti(struct adj *adj, int ti);
+void adj_conf(struct adj *adj, int *ll, int *in, int *ti);
 
 /* builtin number registers; n_X for .X register */
 #define REG(c1, c2)	((c1) * 256 + (c2))
@@ -200,7 +205,6 @@ int adj_wid(struct adj *adj);
 #define n_na		(*nreg(REG(0, 'n')))	/* .na mode */
 #define n_o0		(*nreg(REG(0, 'o')))	/* last .o */
 #define n_s0		(*nreg(REG(0, 's')))	/* last .s */
-#define n_ti		(*nreg(REG(0, 't')))	/* temp indent */
 #define n_v0		(*nreg(REG(0, 'v')))	/* last .v */
 
 /* functions for implementing read-only registers */

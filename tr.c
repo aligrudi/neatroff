@@ -14,13 +14,6 @@ static void jmp_eol(void)
 	} while (c >= 0 && c != '\n');
 }
 
-static void tr_ll(char **args)
-{
-	int ll = args[1] ? eval(args[1], n_l, 'm') : n_l0;
-	n_l0 = n_l;
-	n_l = ll;
-}
-
 static void tr_vs(char **args)
 {
 	int vs = args[1] ? eval(args[1], n_v, 'p') : n_v0;

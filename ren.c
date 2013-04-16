@@ -4,8 +4,6 @@
 #include <string.h>
 #include "xroff.h"
 
-#define ADJ_LL		(n_u ? n_l - n_i : 0)	/* effective line length */
-#define ADJ_B		(n_u && !n_na && n_j == AD_B)
 #define cadj		env_adj()		/* line buffer */
 
 /* diversions */
@@ -179,10 +177,13 @@ static void out_line(char *out, int w)
 	int prev_d = n_d;
 	int ljust = 0;
 	char cmd[32];
+	int ll, li, lt, linelen;
 	ren_sp(0);
 	n_n = w;
+	adj_conf(cadj, &ll, &li, &lt);
+	linelen = ll - li - lt;
 	if (n_u && !n_na && (n_j == AD_C || n_j == AD_R))
-		ljust = n_j == AD_C ? (ADJ_LL - w) / 2 : ADJ_LL - w;
+		ljust = n_j == AD_C ? (linelen - w) / 2 : linelen - w;
 	if (cdiv) {
 		if (cdiv->dl < w)
 			cdiv->dl = w;
@@ -192,7 +193,7 @@ static void out_line(char *out, int w)
 		}
 		sbuf_append(&cdiv->sbuf, out);
 	} else {
-		OUT("H%d\n", n_o + n_i + ljust);
+		OUT("H%d\n", n_o + li + lt + ljust);
 		OUT("V%d\n", n_d);
 		output(out);
 	}
@@ -203,9 +204,10 @@ static void out_line(char *out, int w)
 static void ren_br(int force)
 {
 	char out[LNLEN];
-	int w;
+	int adj_b, w;
 	if (!adj_empty(cadj, n_u)) {
-		w = adj_fill(cadj, !force && ADJ_B, force ? 0: ADJ_LL, out);
+		adj_b = n_u && !n_na && n_j == AD_B;
+		w = adj_fill(cadj, !force && adj_b, !force && n_u, out);
 		out_line(out, w);
 	}
 }
@@ -262,6 +264,14 @@ void tr_ps(char **args)
 	ren_ps(args[1]);
 }
 
+void tr_ll(char **args)
+{
+	int ll = args[1] ? eval(args[1], n_l, 'm') : n_l0;
+	n_l0 = n_l;
+	n_l = ll;
+	adj_ll(cadj, ll);
+}
+
 void tr_in(char **args)
 {
 	int in = args[1] ? eval(args[1], n_i, 'm') : n_i0;
@@ -269,6 +279,7 @@ void tr_in(char **args)
 		ren_br(1);
 	n_i0 = n_i;
 	n_i = in;
+	adj_in(cadj, in);
 }
 
 void tr_ti(char **args)
@@ -276,7 +287,7 @@ void tr_ti(char **args)
 	if (args[0][0] == '.')
 		ren_br(1);
 	if (args[1])
-		n_ti = eval(args[1], 0, 'm');
+		adj_ti(cadj, eval(args[1], 0, 'm'));
 }
 
 static void ren_ft(char *s)
@@ -400,10 +411,6 @@ static int render_char(struct adj *adj)
 			return 0;
 		}
 	}
-	if (n_ti && adj_empty(cadj, n_u)) {
-		adj_put(adj, n_ti, "\\h'%du'", n_ti);
-		n_ti = 0;
-	}
 	if (ren_s != n_s) {
 		adj_swid(adj, charwid(dev_spacewid(), n_s));
 		adj_put(adj, 0, "\\s(%02d", n_s);
@@ -431,6 +438,7 @@ static void render_wid(void)
 	int type = 0;
 	wid_c = ren_next();
 	c = ren_next();
+	adj_ll(adj, n_l);
 	odiv_beg();
 	while (c >= 0 && c != wid_c) {
 		ren_back(c);
@@ -455,7 +463,7 @@ void render(void)
 			ren_back(c);
 			render_char(cadj);
 		}
-		while (adj_full(cadj, ADJ_LL))
+		while (adj_full(cadj, n_u))
 			ren_br(0);
 		if (c != ' ' && c != '\n') {
 			ren_back(c);
