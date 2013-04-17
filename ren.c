@@ -10,11 +10,12 @@
 struct div {
 	struct sbuf sbuf;	/* diversion output */
 	int reg;		/* diversion register */
-	int dl;			/* diversion width */
-	int prev_d;		/* previous \(.d value */
-	int prev_mk;		/* previous .mk internal register */
 	int tpos;		/* diversion trap position */
 	int treg;		/* diversion trap register */
+	int dl;			/* diversion width */
+	int prev_d;		/* previous \(.d value */
+	int prev_h;		/* previous \(.h value */
+	int prev_mk;		/* previous .mk internal register */
 };
 static struct div divs[NPREV];	/* diversion stack */
 static struct div *cdiv;	/* current diversion */
@@ -62,12 +63,15 @@ void tr_di(char **args)
 		sbuf_init(&cdiv->sbuf);
 		cdiv->reg = REG(args[1][0], args[1][1]);
 		cdiv->prev_d = n_d;
+		cdiv->prev_h = n_h;
 		cdiv->prev_mk = n_mk;
 		cdiv->treg = -1;
 		if (args[0][2] == 'a' && str_get(cdiv->reg))	/* .da */
 			sbuf_append(&cdiv->sbuf, str_get(cdiv->reg));
-		n_d = 0;
 		sbuf_append(&cdiv->sbuf, DIV_BEG "\n");
+		n_d = 0;
+		n_h = 0;
+		n_mk = 0;
 		ren_f = 0;
 		ren_s = 0;
 	} else if (cdiv) {
@@ -78,6 +82,7 @@ void tr_di(char **args)
 		n_dl = cdiv->dl;
 		n_dn = n_d;
 		n_d = cdiv->prev_d;
+		n_h = cdiv->prev_h;
 		n_mk = cdiv->prev_mk;
 		cdiv = cdiv > divs ? cdiv - 1 : NULL;
 		ren_f = 0;
@@ -111,6 +116,7 @@ static void ren_page(int pg)
 {
 	n_nl = 0;
 	n_d = 0;
+	n_h = 0;
 	n_pg = pg;
 	bp_next = n_pg + 1;
 	OUT("p%d\n", pg);
@@ -132,6 +138,8 @@ static void ren_sp(int n)
 	if (!n && ren_div && !n_u)
 		return;
 	n_d += n ? n : n_v;
+	if (n_d > n_h)
+		n_h = n_d;
 	if (cdiv) {
 		sbuf_putnl(&cdiv->sbuf);
 		sprintf(cmd, "'sp %du\n", n ? n : n_v);
