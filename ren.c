@@ -193,18 +193,14 @@ static void down(int n)
 	}
 }
 
-static void out_line(char *out, int w)
+static void out_line(char *out, int w, int ll, int li, int lt)
 {
-	int prev_d = n_d;
 	int ljust = 0;
 	char cmd[32];
-	int ll, li, lt, linelen;
-	ren_sp(0);
+	int llen = ll - li - lt;
 	n_n = w;
-	adj_conf(cadj, &ll, &li, &lt);
-	linelen = ll - li - lt;
 	if (n_u && !n_na && (n_j == AD_C || n_j == AD_R))
-		ljust = n_j == AD_C ? (linelen - w) / 2 : linelen - w;
+		ljust = n_j == AD_C ? (llen - w) / 2 : llen - w;
 	if (cdiv) {
 		if (cdiv->dl < w)
 			cdiv->dl = w;
@@ -218,19 +214,27 @@ static void out_line(char *out, int w)
 		OUT("V%d\n", n_d);
 		output(out);
 	}
-	if (!ren_traps(prev_d, n_d, 0))
-		ren_pagelimit(0);
 }
 
 static void ren_br(int force)
 {
 	char out[LNLEN];
-	int adj_b, w;
+	int ll, li, lt, els_neg, els_pos;
+	int adj_b, w, prev_d;
 	ren_first();
 	if (!adj_empty(cadj, n_u)) {
 		adj_b = n_u && !n_na && n_j == AD_B;
-		w = adj_fill(cadj, !force && adj_b, !force && n_u, out);
-		out_line(out, w);
+		w = adj_fill(cadj, !force && adj_b, !force && n_u, out,
+				&ll, &li, &lt, &els_neg, &els_pos);
+		prev_d = n_d;
+		if (els_neg)
+			ren_sp(-els_neg);
+		ren_sp(0);
+		out_line(out, w, ll, li, lt);
+		if (els_pos)
+			ren_sp(els_pos);
+		if (!ren_traps(prev_d, n_d, 0))
+			ren_pagelimit(0);
 	}
 }
 
@@ -421,7 +425,7 @@ static int render_char(struct adj *adj)
 			int l = nextchar(c);
 			l += nextchar(c + l);
 			c[l] = '\0';
-		} else if (strchr("Dfhsvw", c[0])) {
+		} else if (strchr("Dfhsvwx", c[0])) {
 			if (c[0] == 'w') {
 				render_wid();
 				return 0;
@@ -441,6 +445,8 @@ static int render_char(struct adj *adj)
 				ren_ps(arg);
 			if (c[0] == 'v')
 				adj_put(adj, 0, "\\v'%du'", eval(arg, 0, 'v'));
+			if (c[0] == 'x')
+				adj_els(adj, eval(arg, 0, 'v'));
 			return 0;
 		}
 	}

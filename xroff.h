@@ -171,7 +171,8 @@ int sbuf_empty(struct sbuf *sbuf);
 
 struct adj *adj_alloc(void);
 void adj_free(struct adj *adj);
-int adj_fill(struct adj *adj, int ad_b, int fill, char *dst);
+int adj_fill(struct adj *adj, int ad_b, int fill, char *dst,
+		int *ll, int *in, int *ti, int *els_neg, int *els_pos);
 void adj_put(struct adj *adj, int wid, char *s, ...);
 void adj_swid(struct adj *adj, int swid);
 int adj_full(struct adj *adj, int fill);
@@ -180,6 +181,7 @@ int adj_wid(struct adj *adj);
 void adj_ll(struct adj *adj, int ll);
 void adj_in(struct adj *adj, int in);
 void adj_ti(struct adj *adj, int ti);
+void adj_els(struct adj *adj, int els);
 void adj_conf(struct adj *adj, int *ll, int *in, int *ti);
 
 /* builtin number registers; n_X for .X register */

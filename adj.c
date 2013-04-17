@@ -4,13 +4,15 @@
 #include <string.h>
 #include "xroff.h"
 
-#define ADJ_LL(a)	((a)->ll > (a)->li + (a)->lt ? (a)->ll - (a)->li - (a)->lt : 0)
+#define ADJ_LLEN(a)	((a)->ll > (a)->li + (a)->lt ? (a)->ll - (a)->li - (a)->lt : 0)
 
 struct word {
 	int beg;	/* word beginning offset */
 	int end;	/* word ending offset */
 	int wid;	/* word width */
 	int gap;	/* the space before this word */
+	int els_neg;	/* pre-extra line space */
+	int els_pos;	/* post-extra line space */
 };
 
 struct adj {
@@ -42,13 +44,6 @@ void adj_in(struct adj *adj, int in)
 	adj->i = in;
 }
 
-void adj_conf(struct adj *adj, int *ll, int *in, int *ti)
-{
-	*ll = adj->ll;
-	*in = adj->li;
-	*ti = adj->lt;
-}
-
 /* .ll, .in and .ti are delayed until the partial line is output */
 static void adj_confupdate(struct adj *adj)
 {
@@ -72,7 +67,7 @@ int adj_full(struct adj *a, int fill)
 		return a->nls;
 	if (adj_fullnf(a))
 		return 1;
-	return !a->word && a->wid > ADJ_LL(a);
+	return !a->word && a->wid > ADJ_LLEN(a);
 }
 
 /* is the adjustment buffer empty? */
@@ -88,18 +83,24 @@ void adj_swid(struct adj *adj, int swid)
 }
 
 /* move n words from the adjustment buffer to s */
-static int adj_move(struct adj *a, int n, char *s)
+static int adj_move(struct adj *a, int n, char *s, int *els_neg, int *els_pos)
 {
 	struct word *cur;
 	int lendiff;
 	int w = 0;
 	int i;
+	*els_neg = 0;
+	*els_pos = 0;
 	for (i = 0; i < n; i++) {
 		cur = &a->words[i];
 		s += sprintf(s, "\\h'%du'", cur->gap);
 		memcpy(s, a->buf + cur->beg, cur->end - cur->beg);
 		s += cur->end - cur->beg;
 		w += cur->wid + cur->gap;
+		if (cur->els_neg < *els_neg)
+			*els_neg = cur->els_neg;
+		if (cur->els_pos > *els_pos)
+			*els_pos = cur->els_pos;
 	}
 	*s = '\0';
 	if (!n)
@@ -120,29 +121,33 @@ static int adj_move(struct adj *a, int n, char *s)
 }
 
 /* fill and copy a line into s */
-int adj_fill(struct adj *a, int ad_b, int fill, char *s)
+int adj_fill(struct adj *a, int ad_b, int fill, char *s,
+		int *ll, int *in, int *ti, int *els_neg, int *els_pos)
 {
 	int adj_div, adj_rem;
 	int w = 0;
 	int i, n;
-	int ll = ADJ_LL(a);
+	int llen = ADJ_LLEN(a);
+	*ll = a->ll;
+	*in = a->li;
+	*ti = a->lt;
 	if (!fill || adj_fullnf(a)) {
 		a->nls--;
-		return adj_move(a, a->nwords, s);
+		return adj_move(a, a->nwords, s, els_neg, els_pos);
 	}
 	for (n = 0; n < a->nwords; n++) {
-		if (n && w + a->words[n].wid + a->words[n].gap > ll)
+		if (n && w + a->words[n].wid + a->words[n].gap > llen)
 			break;
 		w += a->words[n].wid + a->words[n].gap;
 	}
 	if (ad_b && n > 1 && n < a->nwords) {
-		adj_div = (ll - w) / (n - 1);
-		adj_rem = ll - w - adj_div * (n - 1);
-		a->wid += ll - w;
+		adj_div = (llen - w) / (n - 1);
+		adj_rem = llen - w - adj_div * (n - 1);
+		a->wid += llen - w;
 		for (i = 0; i < n - 1; i++)
 			a->words[i + 1].gap += adj_div + (i < adj_rem);
 	}
-	w = adj_move(a, n, s);
+	w = adj_move(a, n, s, els_neg, els_pos);
 	if (a->nwords)
 		a->wid -= a->words[0].gap;
 	a->words[0].gap = 0;
@@ -156,6 +161,8 @@ static void adj_wordbeg(struct adj *adj, int gap)
 	adj->word->wid = 0;
 	adj->word->gap = gap;
 	adj->wid += gap;
+	adj->word->els_neg = 0;
+	adj->word->els_pos = 0;
 }
 
 static void adj_wordend(struct adj *adj)
@@ -196,6 +203,17 @@ void adj_put(struct adj *adj, int wid, char *s, ...)
 	va_end(ap);
 	adj->word->wid += wid;
 	adj->wid += wid;
+}
+
+/* extra line-space requests */
+void adj_els(struct adj *adj, int els)
+{
+	if (!adj->word)
+		adj_put(adj, 0, "");
+	if (els < adj->word->els_neg)
+		adj->word->els_neg = els;
+	if (els > adj->word->els_pos)
+		adj->word->els_pos = els;
 }
 
 struct adj *adj_alloc(void)
