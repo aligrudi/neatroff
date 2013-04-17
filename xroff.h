@@ -186,6 +186,7 @@ void adj_conf(struct adj *adj, int *ll, int *in, int *ti);
 
 /* builtin number registers; n_X for .X register */
 #define REG(c1, c2)	((c1) * 256 + (c2))
+#define n_a		(*nreg(REG('.', 'a')))
 #define n_d		(*nreg(REG('.', 'd')))
 #define n_f		(*nreg(REG('.', 'f')))
 #define n_i		(*nreg(REG('.', 'i')))

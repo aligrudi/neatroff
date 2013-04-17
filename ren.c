@@ -235,6 +235,8 @@ static void ren_br(int force)
 			ren_sp(els_pos);
 		if (!ren_traps(prev_d, n_d, 0))
 			ren_pagelimit(0);
+		if (els_pos >= 0)
+			n_a = els_pos;
 	}
 }
 
