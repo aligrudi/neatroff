@@ -422,8 +422,6 @@ static int render_char(struct adj *adj)
 	struct glyph *g;
 	int esc = 0, n, w;
 	nextchar(c);
-	if (c[0] == '\n')
-		n_lb = adj_wid(cadj);
 	if (c[0] == ' ' || c[0] == '\n') {
 		adj_put(adj, charwid(dev_spacewid(), n_s), c);
 		return 0;
@@ -435,7 +433,7 @@ static int render_char(struct adj *adj)
 			int l = nextchar(c);
 			l += nextchar(c + l);
 			c[l] = '\0';
-		} else if (strchr("Dfhsvwx", c[0])) {
+		} else if (strchr("Dfhksvwx", c[0])) {
 			if (c[0] == 'w') {
 				render_wid();
 				return 0;
@@ -451,6 +449,8 @@ static int render_char(struct adj *adj)
 				n = eval(arg, 0, 'm');
 				adj_put(adj, n, "\\h'%du'", n);
 			}
+			if (c[0] == 'k')
+				num_set(REG(arg[0], arg[1]), f_hpos() - n_lb);
 			if (c[0] == 's')
 				ren_ps(arg);
 			if (c[0] == 'v')
@@ -514,6 +514,8 @@ void render(void)
 		}
 		while (adj_full(cadj, n_u))
 			ren_br(0);
+		if (c == '\n')
+			n_lb = adj_wid(cadj);
 		if (c != ' ' && c != '\n') {
 			ren_back(c);
 			render_char(cadj);

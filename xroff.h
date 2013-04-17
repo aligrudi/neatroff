@@ -192,7 +192,6 @@ void adj_conf(struct adj *adj, int *ll, int *in, int *ti);
 #define n_h		(*nreg(REG('.', 'h')))
 #define n_i		(*nreg(REG('.', 'i')))
 #define n_j		(*nreg(REG('.', 'j')))
-#define n_k		(*nreg(REG('.', 'k')))
 #define n_l		(*nreg(REG('.', 'l')))
 #define n_n		(*nreg(REG('.', 'n')))
 #define n_o		(*nreg(REG('.', 'o')))

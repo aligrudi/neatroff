@@ -230,5 +230,5 @@ void adj_free(struct adj *adj)
 
 int adj_wid(struct adj *adj)
 {
-	return adj->wid;
+	return adj->wid + (adj->nls ? adj->swid : adj->gap);
 }

@@ -142,7 +142,7 @@ int eval(char *s, int orig, int unit)
 	if (unit == 'v')
 		abspos = -n_d;
 	if (unit == 'm')
-		abspos = n_lb - n_k;
+		abspos = n_lb - f_hpos();
 	n = evalexpr(&s);
 	if (rel)
 		return rel > 0 ? orig + n : orig - n;
