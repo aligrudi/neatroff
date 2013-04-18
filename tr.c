@@ -291,10 +291,10 @@ static void tr_so(char **args)
 static char *arg_regname(char *s, int len)
 {
 	char *e = s + 2;
-	int c;
-	while ((c = cp_next()) == ' ')
-		;
-	while (s < e && c >= 0 && c != ' ' && c != '\n') {
+	int c = cp_next();
+	while (c == ' ' || c == '\t')
+		c = cp_next();
+	while (s < e && c >= 0 && c != ' ' && c != '\t' && c != '\n') {
 		*s++ = c;
 		c = cp_next();
 	}
