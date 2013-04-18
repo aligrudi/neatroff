@@ -131,10 +131,12 @@ void tr_ll(char **args);
 void tr_mk(char **args);
 void tr_ne(char **args);
 void tr_nf(char **args);
+void tr_os(char **args);
 void tr_pn(char **args);
 void tr_ps(char **args);
 void tr_rt(char **args);
 void tr_sp(char **args);
+void tr_sv(char **args);
 void tr_ti(char **args);
 void tr_wh(char **args);
 
@@ -212,6 +214,7 @@ void adj_conf(struct adj *adj, int *ll, int *in, int *ti);
 #define n_na		(*nreg(REG(0, 'n')))	/* .na mode */
 #define n_o0		(*nreg(REG(0, 'o')))	/* last .o */
 #define n_s0		(*nreg(REG(0, 's')))	/* last .s */
+#define n_sv		(*nreg(REG(0, 'S')))	/* .sv value */
 #define n_v0		(*nreg(REG(0, 'v')))	/* last .v */
 
 /* functions for implementing read-only registers */

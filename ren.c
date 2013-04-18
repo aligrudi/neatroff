@@ -171,7 +171,7 @@ static void trap_exec(int reg)
 static int ren_traps(int beg, int end, int dosp)
 {
 	int pos = trap_pos(beg);
-	if (pos >= 0 && pos < n_p && pos <= end) {
+	if (pos >= 0 && (cdiv || pos < n_p) && pos <= end) {
 		if (dosp && pos > beg)
 			ren_sp(pos - beg);
 		trap_exec(trap_reg(beg));
@@ -259,6 +259,23 @@ void tr_sp(char **args)
 	if (args[0][0] == '.')
 		ren_br(1);
 	down(args[1] ? eval(args[1], 0, 'v') : n_v);
+}
+
+void tr_sv(char **args)
+{
+	int n = eval(args[1], 0, 'v');
+	n_sv = 0;
+	if (n_d + n < f_nexttrap())
+		down(n);
+	else
+		n_sv = n;
+}
+
+void tr_os(char **args)
+{
+	if (n_sv)
+		down(n_sv);
+	n_sv = 0;
 }
 
 void tr_mk(char **args)
