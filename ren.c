@@ -248,9 +248,13 @@ static void ren_br(int force)
 		}
 		if (els_pos)
 			ren_sp(els_pos);
-		if (!ren_traps(prev_d, n_d, 0))
-			ren_pagelimit(0);
 		n_a = els_pos;
+		if (!ren_traps(prev_d, n_d, 0)) {
+			if (n_L > n_v && (cdiv || n_d < n_p))
+				down(n_L - n_v);
+			else
+				ren_pagelimit(0);
+		}
 	}
 }
 

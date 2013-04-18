@@ -197,6 +197,7 @@ void adj_conf(struct adj *adj, int *ll, int *in, int *ti);
 #define n_i		(*nreg(REG('.', 'i')))
 #define n_j		(*nreg(REG('.', 'j')))
 #define n_l		(*nreg(REG('.', 'l')))
+#define n_L		(*nreg(REG('.', 'L')))
 #define n_n		(*nreg(REG('.', 'n')))
 #define n_o		(*nreg(REG('.', 'o')))
 #define n_p		(*nreg(REG('.', 'p')))
@@ -212,6 +213,7 @@ void adj_conf(struct adj *adj, int *ll, int *in, int *ti);
 #define n_f0		(*nreg(REG(0, 'f')))	/* last .f */
 #define n_i0		(*nreg(REG(0, 'i')))	/* last .i */
 #define n_l0		(*nreg(REG(0, 'l')))	/* last .l */
+#define n_L0		(*nreg(REG(0, 'L')))	/* last .L */
 #define n_mk		(*nreg(REG(0, 'm')))	/* .mk internal register */
 #define n_na		(*nreg(REG(0, 'n')))	/* .na mode */
 #define n_ns		(*nreg(REG(0, 'N')))	/* .ns mode */

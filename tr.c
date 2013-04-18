@@ -21,6 +21,13 @@ static void tr_vs(char **args)
 	n_v = vs;
 }
 
+static void tr_ls(char **args)
+{
+	int ls = args[1] ? eval(args[1], n_L, 'v') : n_L0;
+	n_L0 = n_L;
+	n_L = ls;
+}
+
 static void tr_pl(char **args)
 {
 	if (args[1])
@@ -469,6 +476,7 @@ static struct cmd {
 	{"ig", tr_ig},
 	{"in", tr_in},
 	{"ll", tr_ll},
+	{"ls", tr_ls},
 	{"mk", tr_mk},
 	{"na", tr_na},
 	{"ne", tr_ne},
