@@ -1,8 +1,38 @@
 #include <ctype.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "xroff.h"
+
+static int out_nl = 1;
+
+/* output troff code; newlines may appear only at the end of s */
+static void out_out(char *s, va_list ap)
+{
+	out_nl = strchr(s, '\n') != NULL;
+	vfprintf(stdout, s, ap);
+}
+
+/* output troff code; no preceding newline is necessary */
+static void outnn(char *s, ...)
+{
+	va_list ap;
+	va_start(ap, s);
+	out_out(s, ap);
+	va_end(ap);
+}
+
+/* output troff cmd; should appear after a newline */
+void out(char *s, ...)
+{
+	va_list ap;
+	if (!out_nl)
+		outnn("\n");
+	va_start(ap, s);
+	out_out(s, ap);
+	va_end(ap);
+}
 
 int utf8len(int c)
 {
@@ -38,7 +68,7 @@ static void out_ps(int n)
 {
 	if (o_s != n) {
 		o_s = n;
-		OUT("s%d\n", o_s);
+		out("s%d\n", o_s);
 	}
 }
 
@@ -46,7 +76,7 @@ static void out_ft(int n)
 {
 	if (n >= 0 && o_f != n) {
 		o_f = n;
-		OUT("f%d\n", o_f);
+		out("f%d\n", o_f);
 	}
 }
 
@@ -98,7 +128,7 @@ static char *tok_num(int *d, char *s, char **cc, int scale)
 	if (*cc)
 		*cc += sprintf(*cc, " %du", *d);
 	else
-		OUT(" %d", *d);
+		outnn(" %d", *d);
 	return s;
 }
 
@@ -111,13 +141,13 @@ int out_draw(char *s, char *cc)
 	if (cc)
 		*cc++ = c;
 	else
-		OUT("D%c", c);
+		out("D%c", c);
 	switch (c) {
 	case 'l':
 		s = tok_num(&h1, s, &cc, 'm');
 		s = tok_num(&v1, s, &cc, 'v');
 		if (!cc)			/* dpost requires this */
-			OUT(" .");
+			outnn(" .");
 		hd = h1;
 		vd = v1;
 		break;
@@ -156,11 +186,11 @@ int out_draw(char *s, char *cc)
 	if (cc)
 		*cc = '\0';
 	else
-		OUT("\n");
+		outnn("\n");
 	return hd;
 }
 
-void output(char *s)
+void out_line(char *s)
 {
 	struct glyph *g;
 	char c[GNLEN * 2];
@@ -172,7 +202,7 @@ void output(char *s)
 			if (c[0] == '(') {
 				s = utf8get(c, s);
 				s = utf8get(c + strlen(c), s);
-			} else if (strchr("Dfhsv", c[0])) {
+			} else if (strchr("DfhsvX", c[0])) {
 				s = escarg(s, arg, c[0]);
 				if (c[0] == 'D') {
 					out_draw(arg, NULL);
@@ -183,7 +213,7 @@ void output(char *s)
 					continue;
 				}
 				if (c[0] == 'h') {
-					OUT("h%d", eval(arg, 0, 'm'));
+					outnn("h%d", eval(arg, 0, 'm'));
 					continue;
 				}
 				if (c[0] == 's') {
@@ -191,7 +221,11 @@ void output(char *s)
 					continue;
 				}
 				if (c[0] == 'v') {
-					OUT("v%d", eval(arg, 0, 'v'));
+					outnn("v%d", eval(arg, 0, 'v'));
+					continue;
+				}
+				if (c[0] == 'X') {
+					out("x X %s\n", arg);
 					continue;
 				}
 			}
@@ -199,11 +233,11 @@ void output(char *s)
 		g = dev_glyph(c, o_f);
 		if (g) {
 			if (utf8len(c[0]) == strlen(c)) {
-				OUT("c%s%s", c, c[1] ? "\n" : "");
+				outnn("c%s%s", c, c[1] ? "\n" : "");
 			} else {
-				OUT("C%s\n", c);
+				out("C%s\n", c);
 			}
 		}
-		OUT("h%d", charwid(g ? g->wid : dev_spacewid(), o_s));
+		outnn("h%d", charwid(g ? g->wid : dev_spacewid(), o_s));
 	}
 }

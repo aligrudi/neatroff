@@ -123,8 +123,8 @@ static void ren_page(int pg)
 	n_h = 0;
 	n_pg = pg;
 	bp_next = n_pg + 1;
-	OUT("p%d\n", pg);
-	OUT("V%d\n", 0);
+	out("p%d\n", pg);
+	out("V%d\n", 0);
 }
 
 static void ren_first(void)
@@ -205,7 +205,8 @@ static void down(int n)
 	}
 }
 
-static void out_line(char *out, int w, int ll, int li, int lt)
+/* flush the given line and send it to out.c */
+static void ren_line(char *s, int w, int ll, int li, int lt)
 {
 	int ljust = 0;
 	char cmd[32];
@@ -220,30 +221,30 @@ static void out_line(char *out, int w, int ll, int li, int lt)
 			sprintf(cmd, "\\h'%du'", ljust);
 			sbuf_append(&cdiv->sbuf, cmd);
 		}
-		sbuf_append(&cdiv->sbuf, out);
+		sbuf_append(&cdiv->sbuf, s);
 	} else {
-		OUT("H%d\n", n_o + li + lt + ljust);
-		OUT("V%d\n", n_d);
-		output(out);
+		out("H%d\n", n_o + li + lt + ljust);
+		out("V%d\n", n_d);
+		out_line(s);
 	}
 }
 
 static void ren_br(int force)
 {
-	char out[LNLEN];
+	char buf[LNLEN];
 	int ll, li, lt, els_neg, els_pos;
 	int adj_b, w, prev_d;
 	ren_first();
 	if (!adj_empty(cadj, n_u)) {
 		adj_b = n_u && !n_na && n_j == AD_B;
-		w = adj_fill(cadj, !force && adj_b, !force && n_u, out,
+		w = adj_fill(cadj, !force && adj_b, !force && n_u, buf,
 				&ll, &li, &lt, &els_neg, &els_pos);
 		prev_d = n_d;
 		if (els_neg)
 			ren_sp(-els_neg);
 		if (!n_ns || w || els_neg || els_pos) {
 			ren_sp(0);
-			out_line(out, w, ll, li, lt);
+			ren_line(buf, w, ll, li, lt);
 			n_ns = 0;
 		}
 		if (els_pos)
@@ -471,7 +472,7 @@ static int render_char(struct adj *adj)
 			int l = nextchar(c);
 			l += nextchar(c + l);
 			c[l] = '\0';
-		} else if (strchr("Dfhksvwx", c[0])) {
+		} else if (strchr("DfhksvwXx", c[0])) {
 			if (c[0] == 'w') {
 				render_wid();
 				return 0;
@@ -493,6 +494,8 @@ static int render_char(struct adj *adj)
 				ren_ps(arg);
 			if (c[0] == 'v')
 				adj_put(adj, 0, "\\v'%du'", eval(arg, 0, 'v'));
+			if (c[0] == 'X')
+				adj_put(adj, 0, "\\X'%s'", arg);
 			if (c[0] == 'x')
 				adj_els(adj, eval(arg, 0, 'v'));
 			return 0;

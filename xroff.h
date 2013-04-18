@@ -75,9 +75,6 @@ struct font {
 	int n;				/* number of characters in charset */
 };
 
-/* troff output function */
-#define OUT	printf
-
 /* output device functions */
 int dev_open(char *path);
 void dev_close(void);
@@ -111,8 +108,9 @@ void cp_skip(void);		/* skip current input line or block */
 
 /* rendering */
 void render(void);	/* read from in.c and print the output */
-void output(char *s);	/* output the given rendered line */
+void out_line(char *s);	/* output the given rendered line */
 int out_draw(char *s, char *cc);
+void out(char *s, ...);	/* output troff cmd */
 
 /* troff commands */
 void tr_bp(char **args);

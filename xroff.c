@@ -18,10 +18,10 @@ static void g_init(void)
 
 static void compile(void)
 {
-	OUT("s%d\n", n_s);
-	OUT("f%d\n", n_f);
+	out("s%d\n", n_s);
+	out("f%d\n", n_f);
 	render();
-	OUT("V%d\n", n_p);
+	out("V%d\n", n_p);
 }
 
 void errmsg(char *fmt, ...)

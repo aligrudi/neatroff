@@ -25,9 +25,9 @@ static void skipline(FILE* filp)
 
 static void dev_prologue(void)
 {
-	OUT("x T utf\n");
-	OUT("x res %d %d %d\n", dev_res, dev_hor, dev_ver);
-	OUT("x init\n");
+	out("x T utf\n");
+	out("x res %d %d %d\n", dev_res, dev_hor, dev_ver);
+	out("x init\n");
 }
 
 int dev_mnt(int pos, char *id, char *name)
@@ -43,7 +43,7 @@ int dev_mnt(int pos, char *id, char *name)
 	if (fn_name[pos] != name)	/* ignore if fn_name[pos] is passed */
 		strcpy(fn_name[pos], id);
 	fn_font[pos] = fn;
-	OUT("x font %d %s\n", pos, name);
+	out("x font %d %s\n", pos, name);
 	return pos;
 }
 
@@ -104,8 +104,8 @@ int dev_open(char *dir)
 
 static void dev_epilogue(void)
 {
-	OUT("x trailer\n");
-	OUT("x stop\n");
+	out("x trailer\n");
+	out("x stop\n");
 }
 
 void dev_close(void)
