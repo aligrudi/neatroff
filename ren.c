@@ -16,6 +16,7 @@ struct div {
 	int prev_d;		/* previous \(.d value */
 	int prev_h;		/* previous \(.h value */
 	int prev_mk;		/* previous .mk internal register */
+	int prev_ns;		/* previous .ns value */
 };
 static struct div divs[NPREV];	/* diversion stack */
 static struct div *cdiv;	/* current diversion */
@@ -62,18 +63,20 @@ void tr_di(char **args)
 		memset(cdiv, 0, sizeof(*cdiv));
 		sbuf_init(&cdiv->sbuf);
 		cdiv->reg = REG(args[1][0], args[1][1]);
-		cdiv->prev_d = n_d;
-		cdiv->prev_h = n_h;
-		cdiv->prev_mk = n_mk;
 		cdiv->treg = -1;
 		if (args[0][2] == 'a' && str_get(cdiv->reg))	/* .da */
 			sbuf_append(&cdiv->sbuf, str_get(cdiv->reg));
 		sbuf_append(&cdiv->sbuf, DIV_BEG "\n");
+		ren_f = 0;
+		ren_s = 0;
+		cdiv->prev_d = n_d;
+		cdiv->prev_h = n_h;
+		cdiv->prev_mk = n_mk;
+		cdiv->prev_ns = n_ns;
 		n_d = 0;
 		n_h = 0;
 		n_mk = 0;
-		ren_f = 0;
-		ren_s = 0;
+		n_ns = 0;
 	} else if (cdiv) {
 		sbuf_putnl(&cdiv->sbuf);
 		sbuf_append(&cdiv->sbuf, DIV_END "\n");
@@ -84,6 +87,7 @@ void tr_di(char **args)
 		n_d = cdiv->prev_d;
 		n_h = cdiv->prev_h;
 		n_mk = cdiv->prev_mk;
+		n_ns = cdiv->prev_ns;
 		cdiv = cdiv > divs ? cdiv - 1 : NULL;
 		ren_f = 0;
 		ren_s = 0;
@@ -237,14 +241,16 @@ static void ren_br(int force)
 		prev_d = n_d;
 		if (els_neg)
 			ren_sp(-els_neg);
-		ren_sp(0);
-		out_line(out, w, ll, li, lt);
+		if (!n_ns || w || els_neg || els_pos) {
+			ren_sp(0);
+			out_line(out, w, ll, li, lt);
+			n_ns = 0;
+		}
 		if (els_pos)
 			ren_sp(els_pos);
 		if (!ren_traps(prev_d, n_d, 0))
 			ren_pagelimit(0);
-		if (els_pos >= 0)
-			n_a = els_pos;
+		n_a = els_pos;
 	}
 }
 
@@ -258,7 +264,8 @@ void tr_sp(char **args)
 {
 	if (args[0][0] == '.')
 		ren_br(1);
-	down(args[1] ? eval(args[1], 0, 'v') : n_v);
+	if (!n_ns)
+		down(args[1] ? eval(args[1], 0, 'v') : n_v);
 }
 
 void tr_sv(char **args)
@@ -269,6 +276,16 @@ void tr_sv(char **args)
 		down(n);
 	else
 		n_sv = n;
+}
+
+void tr_ns(char **args)
+{
+	n_ns = 1;
+}
+
+void tr_rs(char **args)
+{
+	n_ns = 0;
 }
 
 void tr_os(char **args)
@@ -302,7 +319,7 @@ void tr_ne(char **args)
 
 void tr_bp(char **args)
 {
-	if (!cdiv) {
+	if (!cdiv && (args[1] || !n_ns)) {
 		bp_force = 1;
 		if (args[1])
 			bp_next = eval(args[1], n_pg, 0);
