@@ -99,11 +99,11 @@ int in_next(void);		/* input layer */
 int cp_next(void);		/* copy-mode layer */
 int tr_next(void);		/* troff layer */
 void in_push(char *s, char **args);
+void in_pushnl(char *s, char **args);
 void in_source(char *path);	/* .so request */
 void in_queue(char *path);	/* next input file */
 char *in_arg(int i);		/* look up argument */
 void in_back(int c);		/* push back input character */
-void in_pushnl(void);		/* push a \n, if the last char was not */
 char *in_filename(void);	/* current filename */
 void cp_back(int c);		/* push back copy-mode character */
 void cp_blk(int skip);		/* skip or read the next line or block */

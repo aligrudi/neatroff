@@ -146,7 +146,7 @@ static void push_ne(int dobr)
 {
 	char buf[32];
 	sprintf(buf, "%s.ne %du\n", dobr ? ".br\n" : "", n_p);
-	in_push(buf, NULL);
+	in_pushnl(buf, NULL);
 }
 
 static void trap_exec(int reg)
@@ -154,8 +154,7 @@ static void trap_exec(int reg)
 	if (bp_force)
 		push_ne(0);
 	if (str_get(reg))
-		in_push(str_get(reg), NULL);
-	in_pushnl();
+		in_pushnl(str_get(reg), NULL);
 }
 
 /* return 1 if executed a trap */
@@ -255,7 +254,7 @@ void tr_br(char **args)
 void tr_sp(char **args)
 {
 	if (args[0][0] == '.')
-		ren_br(1);
+		 ren_br(1);
 	if (!n_ns)
 		down(args[1] ? eval(args[1], 0, 'v') : n_v);
 }

@@ -11,6 +11,7 @@ struct inbuf {
 	int pos;
 	int len;
 	int backed;
+	int nl;			/* read \n, if the previous char was not */
 	struct inbuf *prev;
 };
 
@@ -42,10 +43,10 @@ void in_push(char *s, char **args)
 	buf->args = args ? args_init(args) : NULL;
 }
 
-void in_pushnl(void)
+void in_pushnl(char *s, char **args)
 {
-	if (buf && buf->backed < 0 && in_last != '\n')
-		cp_back('\n');
+	in_push(s, args);
+	buf->nl = 1;
 }
 
 void in_source(char *path)
@@ -88,6 +89,8 @@ static int in_read(void)
 {
 	int c;
 	while (buf || !in_nextfile()) {
+		if (buf->nl-- > 0 && in_last != '\n')
+			return '\n';
 		if (buf->buf && buf->pos < buf->len)
 			break;
 		if (!buf->buf && (c = getc(buf->fin)) >= 0)
