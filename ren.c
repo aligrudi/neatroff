@@ -254,7 +254,7 @@ void tr_br(char **args)
 void tr_sp(char **args)
 {
 	if (args[0][0] == '.')
-		 ren_br(1);
+		ren_br(1);
 	if (!n_ns)
 		down(args[1] ? eval(args[1], 0, 'v') : n_v);
 }
@@ -450,15 +450,78 @@ static int nextchar(char *s, int (*next)(void))
 	return l;
 }
 
+static void ren_cmd(struct adj *adj, int c, char *arg)
+{
+	char draw_arg[ILNLEN];
+	struct glyph *g;
+	int n, w;
+	switch (c) {
+	case ' ':
+		w = dev_spacewid();
+		adj_put(adj, w, "\\h'%du'", w);
+		break;
+	case 'D':
+		w = out_draw(arg, draw_arg);
+		adj_put(adj, w, "\\D'%s'", draw_arg);
+		break;
+	case 'd':
+		adj_put(adj, 0, "\\v'%du'", eval(".5m", 0, 0));
+		break;
+	case 'f':
+		ren_ft(arg);
+		break;
+	case 'h':
+		n = eval(arg, 0, 'm');
+		adj_put(adj, n, "\\h'%du'", n);
+		break;
+	case 'k':
+		num_set(REG(arg[0], arg[1]), f_hpos() - n_lb);
+		break;
+	case 'r':
+		adj_put(adj, 0, "\\v'%du'", eval("-1m", 0, 0));
+		break;
+	case 's':
+		ren_ps(arg);
+		break;
+	case 'u':
+		adj_put(adj, 0, "\\v'%du'", eval("-.5m", 0, 0));
+		break;
+	case 'v':
+		adj_put(adj, 0, "\\v'%du'", eval(arg, 0, 'v'));
+		break;
+	case 'X':
+		adj_put(adj, 0, "\\X'%s'", arg);
+		break;
+	case 'x':
+		adj_els(adj, eval(arg, 0, 'v'));
+		break;
+	case '0':
+		g = dev_glyph("0", n_f);
+		w = charwid(g ? g->wid : dev_spacewid(), n_s);
+		adj_put(adj, w, "\\h'%du'", w);
+		break;
+	case '|':
+		w = eval("1m/6", 0, 0);
+		adj_put(adj, w, "\\h'%du'", w);
+		break;
+	case '^':
+		w = eval("1m/12", 0, 0);
+		adj_put(adj, w, "\\h'%du'", w);
+		break;
+	case '{':
+	case '}':
+		break;
+	}
+}
+
 /* read one character and place it inside adj buffer */
 static int ren_char(struct adj *adj, int (*next)(void), void (*back)(int))
 {
 	char c[GNLEN * 2];
 	char arg[ILNLEN];
 	char widbuf[16];
-	char draw_arg[ILNLEN];
 	struct glyph *g;
-	int esc = 0, n, w;
+	int esc = 0, n;
 	nextchar(c, next);
 	if (c[0] == ' ' || c[0] == '\n') {
 		adj_put(adj, charwid(dev_spacewid(), n_s), c);
@@ -471,7 +534,7 @@ static int ren_char(struct adj *adj, int (*next)(void), void (*back)(int))
 			int l = nextchar(c, next);
 			l += nextchar(c + l, next);
 			c[l] = '\0';
-		} else if (strchr("DfhksvwXx{}", c[0])) {
+		} else if (strchr(" DdfhkrsuvwXx0^|{}", c[0])) {
 			if (c[0] == 'w') {
 				n = ren_wid(next, back);
 				sprintf(widbuf, "%d", n);
@@ -479,28 +542,7 @@ static int ren_char(struct adj *adj, int (*next)(void), void (*back)(int))
 				return 0;
 			}
 			escarg_ren(arg, c[0]);
-			if (c[0] == 'D') {
-				w = out_draw(arg, draw_arg);
-				adj_put(adj, w, "\\D'%s'", draw_arg);
-			}
-			if (c[0] == 'f')
-				ren_ft(arg);
-			if (c[0] == 'h') {
-				n = eval(arg, 0, 'm');
-				adj_put(adj, n, "\\h'%du'", n);
-			}
-			if (c[0] == 'k')
-				num_set(REG(arg[0], arg[1]), f_hpos() - n_lb);
-			if (c[0] == 's')
-				ren_ps(arg);
-			if (c[0] == 'v')
-				adj_put(adj, 0, "\\v'%du'", eval(arg, 0, 'v'));
-			if (c[0] == 'X')
-				adj_put(adj, 0, "\\X'%s'", arg);
-			if (c[0] == 'x')
-				adj_els(adj, eval(arg, 0, 'v'));
-			if (c[0] == '{' || c[0] == '}')
-				;
+			ren_cmd(adj, c[0], arg);
 			return 0;
 		}
 	}
