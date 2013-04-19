@@ -200,20 +200,6 @@ static int if_cond(void)
 	return ret;
 }
 
-/* execute or skip the line or block following .if */
-static void if_blk(int doexec)
-{
-	int c;
-	if (doexec) {
-		do {
-			c = cp_next();
-		} while (c == ' ');
-		cp_back(c);
-	} else {
-		cp_skip();
-	}
-}
-
 static int ie_cond[NIES];	/* .ie condition stack */
 static int ie_depth;
 
@@ -238,12 +224,12 @@ static void tr_if(char **args)
 	if (args[0][1] == 'i' && args[0][2] == 'e')	/* .ie command */
 		if (ie_depth < NIES)
 			ie_cond[ie_depth++] = ret != neg;
-	if_blk(ret != neg);
+	cp_blk(ret == neg);
 }
 
 static void tr_el(char **args)
 {
-	if_blk(ie_depth > 0 ? !ie_cond[--ie_depth] : 0);
+	cp_blk(ie_depth > 0 ? ie_cond[--ie_depth] : 1);
 }
 
 static void tr_na(char **args)

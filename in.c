@@ -18,6 +18,7 @@ static struct inbuf *buf;
 static char files[NFILES][PATHLEN];
 static int nfiles;
 static int cfile;
+static int in_last;
 
 static char **args_init(char **args);
 static void args_free(char **args);
@@ -39,6 +40,12 @@ void in_push(char *s, char **args)
 	buf->len = len;
 	strcpy(buf->buf, s);
 	buf->args = args ? args_init(args) : NULL;
+}
+
+void in_pushnl(void)
+{
+	if (buf && buf->backed < 0 && in_last != '\n')
+		cp_back('\n');
 }
 
 void in_source(char *path)
@@ -77,16 +84,9 @@ static int in_nextfile(void)
 	return !buf;
 }
 
-int in_next(void)
+static int in_read(void)
 {
 	int c;
-	if (!buf && in_nextfile())
-		return -1;
-	if (buf->backed >= 0) {
-		c = buf->backed;
-		buf->backed = -1;
-		return c;
-	}
 	while (buf || !in_nextfile()) {
 		if (buf->buf && buf->pos < buf->len)
 			break;
@@ -100,6 +100,20 @@ int in_next(void)
 	if (buf->buf[buf->pos] == '\\' && buf->buf[buf->pos + 1] == '\\')
 		buf->pos++;
 	return buf->buf[buf->pos++];
+}
+
+int in_next(void)
+{
+	int c;
+	if (!buf && in_nextfile())
+		return -1;
+	c = buf->backed;
+	if (c >= 0)
+		buf->backed = -1;
+	else
+		c = in_read();
+	in_last = c;
+	return c;
 }
 
 void in_back(int c)

@@ -169,6 +169,7 @@ static void trap_exec(int reg)
 		push_ne(0);
 	if (str_get(reg))
 		in_push(str_get(reg), NULL);
+	in_pushnl();
 }
 
 /* return 1 if executed a trap */
@@ -472,7 +473,7 @@ static int render_char(struct adj *adj)
 			int l = nextchar(c);
 			l += nextchar(c + l);
 			c[l] = '\0';
-		} else if (strchr("DfhksvwXx", c[0])) {
+		} else if (strchr("DfhksvwXx{}", c[0])) {
 			if (c[0] == 'w') {
 				render_wid();
 				return 0;
@@ -498,6 +499,8 @@ static int render_char(struct adj *adj)
 				adj_put(adj, 0, "\\X'%s'", arg);
 			if (c[0] == 'x')
 				adj_els(adj, eval(arg, 0, 'v'));
+			if (c[0] == '{' || c[0] == '}')
+				;
 			return 0;
 		}
 	}

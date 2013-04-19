@@ -6,7 +6,8 @@
 
 static int cp_buf[CPBUF];	/* pushed character stack */
 static int cp_backed;		/* number of pushed characters */
-static int cp_blk;		/* input block depth (text in \{ and \}) */
+static int cp_nblk;		/* input block depth (text in \{ and \}) */
+static int cp_sblk[NIES];	/* skip \} escape at this depth, if set */
 
 static int regid(void)
 {
@@ -63,14 +64,11 @@ static int cp_raw(void)
 			return in_next();
 		if (c == '.')
 			return '.';
-		if (c == '{') {
-			cp_blk++;
-			return cp_raw();
-		}
-		if (c == '}') {
-			cp_blk--;
-			return cp_raw();
-		}
+		if (c == '{' && cp_nblk < LEN(cp_sblk))
+			cp_sblk[cp_nblk++] = 0;
+		if (c == '}' && cp_nblk > 0)
+			if (cp_sblk[--cp_nblk])
+				return cp_raw();
 		cp_back(c);
 		return '\\';
 	}
@@ -111,15 +109,30 @@ void cp_back(int c)
 		cp_buf[cp_backed++] = c;
 }
 
-void cp_skip(void)
+static int cp_top(void)
+{
+	return cp_backed ? cp_buf[cp_backed - 1] : -1;
+}
+
+void cp_blk(int skip)
 {
 	int c;
-	int old_blk = cp_blk;
+	int nblk = cp_nblk;
 	do {
 		c = cp_raw();
 	} while (c == ' ' || c == '\t');
-	while (cp_blk > old_blk && c >= 0)
-		c = cp_raw();
-	while (c != '\n')
+	if (c == '\\' && cp_top() == '{') {	/* a troff \{ \} block */
+		if (skip) {
+			while (skip && cp_nblk > nblk && c >= 0)
+				c = cp_raw();
+		} else {
+			cp_sblk[nblk] = 1;
+			cp_raw();
+		}
+	} else {
+		if (!skip)
+			cp_back(c);
+	}
+	while (skip && c != '\n')	/* skip until the end of the line */
 		c = cp_raw();
 }
