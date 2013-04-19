@@ -110,6 +110,7 @@ void cp_blk(int skip);		/* skip or read the next line or block */
 
 /* rendering */
 void render(void);	/* read from in.c and print the output */
+int ren_wid(int (*next)(void), void (*back)(int));
 void out_line(char *s);	/* output the given rendered line */
 int out_draw(char *s, char *cc);
 void out(char *s, ...);	/* output troff cmd */

@@ -42,20 +42,6 @@ static void ren_back(int c)
 	ren_backed = c;
 }
 
-static int nextchar(char *s)
-{
-	int c = ren_next();
-	int l = utf8len(c);
-	int i;
-	if (c < 0)
-		return 0;
-	s[0] = c;
-	for (i = 1; i < l; i++)
-		s[i] = ren_next();
-	s[l] = '\0';
-	return l;
-}
-
 void tr_di(char **args)
 {
 	if (args[1]) {
@@ -451,31 +437,46 @@ static void escarg_ren(char *d, int cmd)
 	*d = '\0';
 }
 
-static void render_wid(void);
+static int nextchar(char *s, int (*next)(void))
+{
+	int c = next();
+	int l = utf8len(c);
+	int i;
+	if (c < 0)
+		return 0;
+	s[0] = c;
+	for (i = 1; i < l; i++)
+		s[i] = next();
+	s[l] = '\0';
+	return l;
+}
 
 /* read one character and place it inside adj buffer */
-static int render_char(struct adj *adj)
+static int ren_char(struct adj *adj, int (*next)(void), void (*back)(int))
 {
 	char c[GNLEN * 2];
 	char arg[ILNLEN];
+	char widbuf[16];
 	char draw_arg[ILNLEN];
 	struct glyph *g;
 	int esc = 0, n, w;
-	nextchar(c);
+	nextchar(c, next);
 	if (c[0] == ' ' || c[0] == '\n') {
 		adj_put(adj, charwid(dev_spacewid(), n_s), c);
 		return 0;
 	}
 	if (c[0] == '\\') {
 		esc = 1;
-		nextchar(c);
+		nextchar(c, next);
 		if (c[0] == '(') {
-			int l = nextchar(c);
-			l += nextchar(c + l);
+			int l = nextchar(c, next);
+			l += nextchar(c + l, next);
 			c[l] = '\0';
 		} else if (strchr("DfhksvwXx{}", c[0])) {
 			if (c[0] == 'w') {
-				render_wid();
+				n = ren_wid(next, back);
+				sprintf(widbuf, "%d", n);
+				in_push(widbuf, NULL);
 				return 0;
 			}
 			escarg_ren(arg, c[0]);
@@ -523,26 +524,27 @@ static int render_char(struct adj *adj)
 }
 
 /* read the argument of \w and push its width */
-static void render_wid(void)
+int ren_wid(int (*next)(void), void (*back)(int))
 {
-	char widbuf[16];
 	struct adj *adj = adj_alloc();
-	int c, wid_c;
+	int c, wid_c, n;
 	int type = 0;
-	wid_c = ren_next();
-	c = ren_next();
+	wid_c = next();
+	c = next();
 	adj_ll(adj, n_l);
 	odiv_beg();
 	while (c >= 0 && c != wid_c) {
-		ren_back(c);
-		type |= render_char(adj);
-		c = ren_next();
+		back(c);
+		type |= ren_char(adj, next, back);
+		c = next();
 	}
 	odiv_end();
-	sprintf(widbuf, "%d", adj_wid(adj));
-	in_push(widbuf, NULL);
+	ren_f = 0;
+	ren_s = 0;
+	n = adj_wid(adj);
 	n_ct = type;
 	adj_free(adj);
+	return n;
 }
 
 /* read characters from in.c and pass rendered lines to out.c */
@@ -554,7 +556,7 @@ void render(void)
 	while (c >= 0) {
 		if (c == ' ' || c == '\n') {
 			ren_back(c);
-			render_char(cadj);
+			ren_char(cadj, ren_next, ren_back);
 		}
 		while (adj_full(cadj, n_u))
 			ren_br(0);
@@ -562,7 +564,7 @@ void render(void)
 			n_lb = adj_wid(cadj);
 		if (c != ' ' && c != '\n') {
 			ren_back(c);
-			render_char(cadj);
+			ren_char(cadj, ren_next, ren_back);
 		}
 		c = ren_next();
 	}

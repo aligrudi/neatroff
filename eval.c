@@ -1,55 +1,41 @@
 #include <ctype.h>
 #include <stdio.h>
+#include <string.h>
 #include "xroff.h"
+
+#define SCHAR	"icpPvmnu"	/* scale indicators */
 
 static int defunit = 0;		/* default scale indicator */
 static int abspos = 0;		/* absolute position like |1i */
 
-static int readunit(int c, int *mul, int *div)
+static int readunit(int c, int n)
 {
-	*mul = 1;
-	*div = 1;
 	switch (c) {
 	case 'i':
-		*mul = SC_IN;
-		return 0;
+		return n * SC_IN;
 	case 'c':
-		*mul = SC_IN * 50;
-		*div = 127;
-		return 0;
+		return n * SC_IN * 50 / 127;
 	case 'p':
-		*mul = SC_IN;
-		*div = 72;
-		return 0;
+		return n * SC_IN / 72;
 	case 'P':
-		*mul = SC_IN;
-		*div = 6;
-		return 0;
+		return n * SC_IN / 6;
 	case 'v':
-		*mul = n_v;
-		return 0;
+		return n * n_v;
 	case 'm':
-		*mul = n_s * SC_IN;
-		*div = 72;
-		return 0;
+		return n * n_s * SC_IN / 72;
 	case 'n':
-		*mul = n_s * SC_IN;
-		*div = 144;
-		return 0;
+		return n * n_s * SC_IN / 144;
 	case 'u':
-		return 0;
+		return n;
 	}
-	return 1;
+	return n;
 }
-
-static int evalexpr(char **s);
 
 static int evalnum(char **_s)
 {
 	char *s = *_s;
 	int n = 0;		/* the result */
 	int mag = 0;		/* n should be divided by mag */
-	int mul, div;
 	while (isdigit(*s) || *s == '.') {
 		if (*s == '.') {
 			mag = 1;
@@ -59,13 +45,9 @@ static int evalnum(char **_s)
 		mag *= 10;
 		n = n * 10 + *s++ - '0';
 	}
-	if (!readunit(*s, &mul, &div))
-		s++;
-	else
-		readunit(defunit, &mul, &div);
+	n = readunit(*s && strchr(SCHAR, *s) ? *s++ : defunit, n);
 	*_s = s;
-	/* this may overflow */
-	return n * mul / div / (mag > 0 ? mag : 1);
+	return n / (mag > 0 ? mag : 1);		/* this may overflow */
 }
 
 static int evaljmp(char **s, int c)
@@ -82,19 +64,41 @@ static int evalisnum(char **s)
 	return **s == '.' || isdigit(**s);
 }
 
+static char **wid_s;
+
+static int wid_next(void)
+{
+	return (unsigned char) *(*wid_s)++;
+}
+
+static void wid_back(int c)
+{
+	(*wid_s)--;
+}
+
+static int evalexpr(char **s);
+static int evalatom(char **s);
+
 static int evalatom(char **s)
 {
+	int ret;
+	if (evalisnum(s))
+		return evalnum(s);
 	if (!evaljmp(s, '-'))
 		return -evalatom(s);
 	if (!evaljmp(s, '+'))
 		return evalatom(s);
 	if (!evaljmp(s, '|'))
 		return abspos + evalatom(s);
-	if (evalisnum(s))
-		return evalnum(s);
 	if (!evaljmp(s, '(')) {
-		int ret = evalexpr(s);
+		ret = evalexpr(s);
 		evaljmp(s, ')');
+		return ret;
+	}
+	if (!evaljmp(s, '\\') && !evaljmp(s, 'w')) {
+		wid_s = s;
+		ret = ren_wid(wid_next, wid_back);
+		readunit(**s && strchr(SCHAR, **s) ? *(*s)++ : defunit, ret);
 		return ret;
 	}
 	return 0;
