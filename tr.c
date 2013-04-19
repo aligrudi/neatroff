@@ -18,20 +18,20 @@ static void tr_vs(char **args)
 {
 	int vs = args[1] ? eval(args[1], n_v, 'p') : n_v0;
 	n_v0 = n_v;
-	n_v = vs;
+	n_v = MAX(0, vs);
 }
 
 static void tr_ls(char **args)
 {
 	int ls = args[1] ? eval(args[1], n_L, 'v') : n_L0;
 	n_L0 = n_L;
-	n_L = ls;
+	n_L = MAX(1, ls);
 }
 
 static void tr_pl(char **args)
 {
-	if (args[1])
-		n_p = eval(args[1], n_p, 'v');
+	int n = eval(args[1] ? args[1] : "11i", n_p, 'v');
+	n_p = MAX(0, n);
 }
 
 static void tr_nr(char **args)
@@ -94,7 +94,7 @@ static void tr_po(char **args)
 {
 	int po = args[1] ? eval(args[1], n_o, 'm') : n_o0;
 	n_o0 = n_o;
-	n_o = po;
+	n_o = MAX(0, po);
 }
 
 static char *arg_regname(char *s, int len);

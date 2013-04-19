@@ -342,7 +342,7 @@ static void ren_ps(char *s)
 {
 	int ps = !s || !*s || !strcmp("0", s) ? n_s0 : eval(s, n_s, 0);
 	n_s0 = n_s;
-	n_s = ps;
+	n_s = MAX(1, ps);
 }
 
 void tr_ps(char **args)
@@ -354,8 +354,8 @@ void tr_ll(char **args)
 {
 	int ll = args[1] ? eval(args[1], n_l, 'm') : n_l0;
 	n_l0 = n_l;
-	n_l = ll;
-	adj_ll(cadj, ll);
+	n_l = MAX(0, ll);
+	adj_ll(cadj, n_l);
 }
 
 void tr_in(char **args)
@@ -364,8 +364,8 @@ void tr_in(char **args)
 	if (args[0][0] == '.')
 		ren_br(1);
 	n_i0 = n_i;
-	n_i = in;
-	adj_in(cadj, in);
+	n_i = MAX(0, in);
+	adj_in(cadj, n_i);
 }
 
 void tr_ti(char **args)

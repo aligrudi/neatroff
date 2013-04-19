@@ -22,6 +22,7 @@
 #define ESC_Q	"bCDhHlLNoSvwxX"	/* quoted escape sequences */
 #define ESC_P	"*fgkns"		/* 1 or 2-char escape sequences */
 
+#define MAX(a, b)	((a) > (b) ? (a) : (b))
 #define LEN(a)		(sizeof(a) / sizeof((a)[0]))
 
 /* number registers */
