@@ -517,32 +517,31 @@ static void ren_cmd(struct adj *adj, int c, char *arg)
 /* read one character and place it inside adj buffer */
 static int ren_char(struct adj *adj, int (*next)(void), void (*back)(int))
 {
-	char c[GNLEN * 2];
+	char c[GNLEN * 4];
 	char arg[ILNLEN];
 	char widbuf[16];
 	struct glyph *g;
-	int esc = 0, n;
+	int n;
 	nextchar(c, next);
 	if (c[0] == ' ' || c[0] == '\n') {
 		adj_put(adj, charwid(dev_spacewid(), n_s), c);
 		return 0;
 	}
 	if (c[0] == '\\') {
-		esc = 1;
-		nextchar(c, next);
-		if (c[0] == '(') {
-			int l = nextchar(c, next);
-			l += nextchar(c + l, next);
-			c[l] = '\0';
-		} else if (strchr(" DdfhkrsuvwXx0^|{}", c[0])) {
-			if (c[0] == 'w') {
+		nextchar(c + 1, next);
+		if (c[1] == '(') {
+			int l = nextchar(c + 2, next);
+			l += nextchar(c + 2 + l, next);
+			c[2 + l] = '\0';
+		} else if (strchr(" DdfhkLlrsuvwXx0^|{}", c[1])) {
+			if (c[1] == 'w') {
 				n = ren_wid(next, back);
 				sprintf(widbuf, "%d", n);
 				in_push(widbuf, NULL);
 				return 0;
 			}
-			escarg_ren(arg, c[0]);
-			ren_cmd(adj, c[0], arg);
+			escarg_ren(arg, c[1]);
+			ren_cmd(adj, c[1], arg);
 			return 0;
 		}
 	}
@@ -555,12 +554,8 @@ static int ren_char(struct adj *adj, int (*next)(void), void (*back)(int))
 		adj_put(adj, 0, "\\f(%02d", n_f);
 		ren_f = n_f;
 	}
-	if (utf8len(c[0]) == strlen(c))
-		sprintf(arg, "%s%s", esc ? "\\" : "", c);
-	else
-		sprintf(arg, "\\(%s", c);
 	g = dev_glyph(c, n_f);
-	adj_put(adj, charwid(g ? g->wid : dev_spacewid(), n_s), arg);
+	adj_put(adj, charwid(g ? g->wid : dev_spacewid(), n_s), c);
 	return g ? g->type : 0;
 }
 

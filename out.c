@@ -193,38 +193,40 @@ int out_draw(char *s, char *cc)
 void out_line(char *s)
 {
 	struct glyph *g;
-	char c[GNLEN * 2];
+	char c[GNLEN * 4];
 	char arg[ILNLEN];
 	while (*s) {
 		s = utf8get(c, s);
 		if (c[0] == '\\') {
-			s = utf8get(c, s);
-			if (c[0] == '(') {
-				s = utf8get(c, s);
+			s = utf8get(c + 1, s);
+			if (c[1] == '(') {
+				s = utf8get(c + 2, s);
 				s = utf8get(c + strlen(c), s);
-			} else if (strchr("DfhsvX", c[0])) {
-				s = escarg(s, arg, c[0]);
-				if (c[0] == 'D') {
+			} else if (c[1] == '\\') {
+				c[1] = '\0';
+			} else if (strchr("DfhsvX", c[1])) {
+				s = escarg(s, arg, c[1]);
+				if (c[1] == 'D') {
 					out_draw(arg, NULL);
 					continue;
 				}
-				if (c[0] == 'f') {
+				if (c[1] == 'f') {
 					out_ft(dev_font(arg));
 					continue;
 				}
-				if (c[0] == 'h') {
+				if (c[1] == 'h') {
 					outnn("h%d", eval(arg, 0, 'm'));
 					continue;
 				}
-				if (c[0] == 's') {
+				if (c[1] == 's') {
 					out_ps(eval(arg, o_s, '\0'));
 					continue;
 				}
-				if (c[0] == 'v') {
+				if (c[1] == 'v') {
 					outnn("v%d", eval(arg, 0, 'v'));
 					continue;
 				}
-				if (c[0] == 'X') {
+				if (c[1] == 'X') {
 					out("x X %s\n", arg);
 					continue;
 				}
@@ -232,11 +234,10 @@ void out_line(char *s)
 		}
 		g = dev_glyph(c, o_f);
 		if (g) {
-			if (utf8len(c[0]) == strlen(c)) {
+			if (utf8len(c[0]) == strlen(c))
 				outnn("c%s%s", c, c[1] ? "\n" : "");
-			} else {
-				out("C%s\n", c);
-			}
+			else
+				out("C%s\n", c[0] == '\\' && c[1] == '(' ? c + 2 : c);
 		}
 		outnn("h%d", charwid(g ? g->wid : dev_spacewid(), o_s));
 	}
