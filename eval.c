@@ -95,7 +95,8 @@ static int evalatom(char **s)
 		evaljmp(s, ')');
 		return ret;
 	}
-	if (!evaljmp(s, '\\') && !evaljmp(s, 'w')) {
+	if ((*s)[0] == '\\' && (*s)[1] == 'w') {
+		*s += 2;
 		wid_s = s;
 		ret = ren_wid(wid_next, wid_back);
 		readunit(**s && strchr(SCHAR, **s) ? *(*s)++ : defunit, ret);
@@ -134,21 +135,28 @@ static int evalexpr(char **s)
 	return ret;
 }
 
-int eval(char *s, int orig, int unit)
+/* evaluate *s and update s to point to the last character read */
+int eval_up(char **s, int orig, int unit)
 {
 	int n;
 	int rel = 0;		/* n should be added to orig */
-	if (*s == '+' || *s == '-') {
-		rel = *s == '+' ? 1 : -1;
-		s++;
+	if (**s == '+' || **s == '-') {
+		rel = **s == '+' ? 1 : -1;
+		(*s)++;
 	}
 	defunit = unit;
 	if (unit == 'v')
 		abspos = -n_d;
 	if (unit == 'm')
 		abspos = n_lb - f_hpos();
-	n = evalexpr(&s);
+	n = evalexpr(s);
 	if (rel)
 		return rel > 0 ? orig + n : orig - n;
 	return n;
+}
+
+/* evaluate s */
+int eval(char *s, int orig, int unit)
+{
+	return eval_up(&s, orig, unit);
 }

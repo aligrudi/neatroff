@@ -33,6 +33,7 @@ void num_del(int id);
 char *num_str(int id);
 int *nreg(int id);
 int eval(char *s, int orig, int unit);
+int eval_up(char **s, int orig, int unit);
 
 /* string registers */
 void str_set(int id, char *s);
