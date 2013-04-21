@@ -53,7 +53,7 @@ int utf8len(int c)
 
 static char *utf8get(char *d, char *s)
 {
-	int l = utf8len(*s);
+	int l = utf8len((unsigned char) *s);
 	int i;
 	for (i = 0; i < l; i++)
 		d[i] = s[i];
