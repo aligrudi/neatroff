@@ -20,8 +20,8 @@ struct div {
 };
 static struct div divs[NPREV];	/* diversion stack */
 static struct div *cdiv;	/* current diversion */
-static int ren_f;		/* last rendered n_f */
-static int ren_s;		/* last rendered n_s */
+static int ren_f = -1;		/* last rendered n_f */
+static int ren_s = -1;		/* last rendered n_s */
 static int ren_div;		/* rendering a diversion */
 
 static int ren_backed = -1;	/* pushed back character */
@@ -53,8 +53,8 @@ void tr_di(char **args)
 		if (args[0][2] == 'a' && str_get(cdiv->reg))	/* .da */
 			sbuf_append(&cdiv->sbuf, str_get(cdiv->reg));
 		sbuf_append(&cdiv->sbuf, DIV_BEG "\n");
-		ren_f = 0;
-		ren_s = 0;
+		ren_f = -1;
+		ren_s = -1;
 		cdiv->prev_d = n_d;
 		cdiv->prev_h = n_h;
 		cdiv->prev_mk = n_mk;
@@ -75,8 +75,8 @@ void tr_di(char **args)
 		n_mk = cdiv->prev_mk;
 		n_ns = cdiv->prev_ns;
 		cdiv = cdiv > divs ? cdiv - 1 : NULL;
-		ren_f = 0;
-		ren_s = 0;
+		ren_f = -1;
+		ren_s = -1;
 	}
 }
 
@@ -575,8 +575,8 @@ int ren_wid(int (*next)(void), void (*back)(int))
 		c = next();
 	}
 	odiv_end();
-	ren_f = 0;
-	ren_s = 0;
+	ren_f = -1;
+	ren_s = -1;
 	n = adj_wid(adj);
 	n_ct = type;
 	adj_free(adj);
