@@ -482,6 +482,12 @@ static void ren_cmd(struct adj *adj, int c, char *arg)
 	case 'k':
 		num_set(REG(arg[0], arg[1]), f_hpos() - n_lb);
 		break;
+	case 'L':
+		ren_vline(adj, arg);
+		break;
+	case 'l':
+		ren_hline(adj, arg);
+		break;
 	case 'r':
 		adj_put(adj, 0, "\\v'%du'", eval("-1m", 0, 0));
 		break;

@@ -115,6 +115,9 @@ int ren_wid(int (*next)(void), void (*back)(int));
 void out_line(char *s);	/* output the given rendered line */
 int out_draw(char *s, char *cc);
 void out(char *s, ...);	/* output troff cmd */
+/* drawing lines */
+void ren_hline(struct adj *adj, char *arg);
+void ren_vline(struct adj *adj, char *arg);
 
 /* troff commands */
 void tr_bp(char **args);
