@@ -215,7 +215,8 @@ static void ren_line(char *s, int w, int ll, int li, int lt)
 	}
 }
 
-static void ren_br(int force)
+/* return 1 if triggered a trap */
+static int ren_br(int force)
 {
 	char buf[LNLEN];
 	int ll, li, lt, els_neg, els_pos;
@@ -241,8 +242,11 @@ static void ren_br(int force)
 				down(n_L - n_v);
 			else
 				ren_pagelimit(0);
+			return 0;
 		}
+		return 1;
 	}
+	return 0;
 }
 
 void tr_br(char **args)
@@ -253,9 +257,10 @@ void tr_br(char **args)
 
 void tr_sp(char **args)
 {
+	int traps = 0;
 	if (args[0][0] == '.')
-		ren_br(1);
-	if (!n_ns)
+		traps = ren_br(1);
+	if (!n_ns && !traps)
 		down(args[1] ? eval(args[1], 0, 'v') : n_v);
 }
 
