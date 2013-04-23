@@ -109,6 +109,7 @@ void in_back(int c);		/* push back input character */
 char *in_filename(void);	/* current filename */
 void cp_back(int c);		/* push back copy-mode character */
 void cp_blk(int skip);		/* skip or read the next line or block */
+void cp_wid(int enable);	/* control inlining \w requests */
 
 /* rendering */
 void render(void);	/* read from in.c and print the output */

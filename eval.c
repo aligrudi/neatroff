@@ -64,18 +64,6 @@ static int evalisnum(char **s)
 	return **s == '.' || isdigit(**s);
 }
 
-static char **wid_s;
-
-static int wid_next(void)
-{
-	return (unsigned char) *(*wid_s)++;
-}
-
-static void wid_back(int c)
-{
-	(*wid_s)--;
-}
-
 static int evalexpr(char **s);
 static int evalatom(char **s);
 
@@ -93,13 +81,6 @@ static int evalatom(char **s)
 	if (!evaljmp(s, '(')) {
 		ret = evalexpr(s);
 		evaljmp(s, ')');
-		return ret;
-	}
-	if ((*s)[0] == '\\' && (*s)[1] == 'w') {
-		*s += 2;
-		wid_s = s;
-		ret = ren_wid(wid_next, wid_back);
-		readunit(**s && strchr(SCHAR, **s) ? *(*s)++ : defunit, ret);
 		return ret;
 	}
 	return 0;

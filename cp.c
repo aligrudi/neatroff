@@ -8,6 +8,7 @@ static int cp_buf[CPBUF];	/* pushed character stack */
 static int cp_backed;		/* number of pushed characters */
 static int cp_nblk;		/* input block depth (text in \{ and \}) */
 static int cp_sblk[NIES];	/* skip \} escape at this depth, if set */
+static int cp_widreq = 1;	/* inline \w requests */
 
 static int regid(void)
 {
@@ -52,6 +53,13 @@ static void cp_arg(void)
 		in_push(arg, NULL);
 }
 
+static void cp_width(void)
+{
+	char wid[16];
+	sprintf(wid, "%d", ren_wid(cp_next, cp_back));
+	in_push(wid, NULL);
+}
+
 static int cp_raw(void)
 {
 	int c;
@@ -86,15 +94,18 @@ int cp_next(void)
 		if (c == '"') {
 			while (c >= 0 && c != '\n')
 				c = cp_raw();
+		} else if (c == 'w' && cp_widreq) {
+			cp_width();
+			c = cp_next();
 		} else if (c == 'n') {
 			cp_num();
-			c = cp_raw();
+			c = cp_next();
 		} else if (c == '*') {
 			cp_str();
-			c = cp_raw();
+			c = cp_next();
 		} else if (c == '$') {
 			cp_arg();
-			c = cp_raw();
+			c = cp_next();
 		} else {
 			cp_back(c);
 			c = '\\';
@@ -135,4 +146,9 @@ void cp_blk(int skip)
 	}
 	while (skip && c != '\n')	/* skip until the end of the line */
 		c = cp_raw();
+}
+
+void cp_wid(int enable)
+{
+	cp_widreq = enable;
 }
