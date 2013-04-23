@@ -142,17 +142,17 @@ static void ren_sp(int n)
 static int trap_reg(int pos);
 static int trap_pos(int pos);
 
-static void push_ne(int dobr)
+static void push_ne(void)
 {
 	char buf[32];
-	sprintf(buf, "%s.ne %du\n", dobr ? ".br\n" : "", n_p);
+	sprintf(buf, ".ne %du\n", n_p);
 	in_pushnl(buf, NULL);
 }
 
 static void trap_exec(int reg)
 {
 	if (bp_force)
-		push_ne(0);
+		push_ne();
 	if (str_get(reg))
 		in_pushnl(str_get(reg), NULL);
 }
@@ -316,10 +316,13 @@ void tr_ne(char **args)
 void tr_bp(char **args)
 {
 	if (!cdiv && (args[1] || !n_ns)) {
+		if (!bp_force)
+			push_ne();
+		if (args[0][0] == '.')
+			in_pushnl(".br\n", NULL);
 		bp_force = 1;
 		if (args[1])
 			bp_next = eval(args[1], n_pg, 0);
-		push_ne(args[0][0] == '.');
 	}
 }
 
