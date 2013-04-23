@@ -633,7 +633,7 @@ static int trap_first(int pos)
 	int i;
 	for (i = 0; i < ntraps; i++)
 		if (treg[i] >= 0 && tpos[i] > pos)
-			if (best < 0 || tpos[i] <= tpos[best])
+			if (best < 0 || tpos[i] < tpos[best])
 				best = i;
 	return best;
 }
