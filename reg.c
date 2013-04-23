@@ -72,6 +72,9 @@ char *num_str(int id)
 	case REG('.', 'F'):
 		sprintf(numbuf, "%s", in_filename());
 		break;
+	case REG('.', '$'):
+		sprintf(numbuf, "%d", in_nargs());
+		break;
 	default:
 		sprintf(numbuf, "%d", *nreg(id));
 	}

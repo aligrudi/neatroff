@@ -104,6 +104,7 @@ void in_pushnl(char *s, char **args);
 void in_source(char *path);	/* .so request */
 void in_queue(char *path);	/* next input file */
 char *in_arg(int i);		/* look up argument */
+int in_nargs(void);		/* number of arguments */
 void in_back(int c);		/* push back input character */
 char *in_filename(void);	/* current filename */
 void cp_back(int c);		/* push back copy-mode character */

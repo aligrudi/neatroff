@@ -133,6 +133,17 @@ char *in_arg(int i)
 	return cur && cur->args && cur->args[i - 1] ? cur->args[i - 1] : "";
 }
 
+int in_nargs(void)
+{
+	struct inbuf *cur = buf;
+	int n = 0;
+	while (cur && !cur->args)
+		cur = cur->prev;
+	while (cur && cur->args && cur->args[n])
+		n++;
+	return n;
+}
+
 char *in_filename(void)
 {
 	struct inbuf *cur = buf;
