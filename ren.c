@@ -102,6 +102,10 @@ void tr_divend(char **args)
 	ren_div--;
 }
 
+static int trap_reg(int pos);
+static int trap_pos(int pos);
+static void trap_exec(int reg);
+
 static void ren_page(int pg)
 {
 	n_nl = 0;
@@ -111,13 +115,15 @@ static void ren_page(int pg)
 	bp_next = n_pg + 1;
 	out("p%d\n", pg);
 	out("V%d\n", 0);
+	if (trap_pos(-1) == 0)
+		trap_exec(trap_reg(-1));
 }
 
 static void ren_first(void)
 {
 	if (bp_first) {
-		ren_page(bp_next);
 		bp_first = 0;
+		ren_page(bp_next);
 	}
 }
 
@@ -138,9 +144,6 @@ static void ren_sp(int n)
 		n_nl = n_d;
 	}
 }
-
-static int trap_reg(int pos);
-static int trap_pos(int pos);
 
 static void push_ne(void)
 {
@@ -174,10 +177,8 @@ static int ren_traps(int beg, int end, int dosp)
 static int ren_pagelimit(int ne)
 {
 	if (n_nl + ne >= n_p && !cdiv) {
-		ren_page(bp_next);
 		bp_force = 0;
-		if (trap_pos(-1) == 0)
-			trap_exec(trap_reg(-1));
+		ren_page(bp_next);
 		return 1;
 	}
 	return 0;
@@ -238,10 +239,12 @@ static int ren_br(int force)
 			ren_sp(els_pos);
 		n_a = els_pos;
 		if (!ren_traps(prev_d, n_d, 0)) {
-			if (n_L > n_v && (cdiv || n_d < n_p))
+			if (n_L > n_v && (cdiv || n_d < n_p)) {
 				down(n_L - n_v);
-			else
-				ren_pagelimit(0);
+			} else {
+				if (ren_pagelimit(0))
+					return 1;
+			}
 			return 0;
 		}
 		return 1;
