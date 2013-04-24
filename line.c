@@ -9,7 +9,7 @@ static char *vs[] = {"\\(bv", "\\(br", "|", NULL};
 static int cwid(char *c)
 {
 	struct glyph *g = dev_glyph(c, n_f);
-	return charwid(g ? g->wid : dev_spacewid(), n_s);
+	return charwid(g ? g->wid : SC_DW, n_s);
 }
 
 static int lchar(char *c, char **cs)

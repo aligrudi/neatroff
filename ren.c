@@ -514,7 +514,7 @@ static void ren_cmd(struct adj *adj, int c, char *arg)
 		break;
 	case '0':
 		g = dev_glyph("0", n_f);
-		w = charwid(g ? g->wid : dev_spacewid(), n_s);
+		w = charwid(g ? g->wid : SC_DW, n_s);
 		adj_put(adj, w, "\\h'%du'", w);
 		break;
 	case '|':
@@ -572,7 +572,7 @@ static int ren_char(struct adj *adj, int (*next)(void), void (*back)(int))
 		ren_f = n_f;
 	}
 	g = dev_glyph(c, n_f);
-	adj_put(adj, charwid(g ? g->wid : dev_spacewid(), n_s), c);
+	adj_put(adj, charwid(g ? g->wid : SC_DW, n_s), c);
 	return g ? g->type : 0;
 }
 

@@ -1,6 +1,7 @@
 /* converting scales */
 #define SC_IN		(dev_res)	/* inch in units */
 #define SC_PT		(SC_IN / 72)	/* point in units */
+#define SC_DW		(n_s * SC_IN / 72 / 3)	/* default width */
 
 /* predefined array limits */
 #define PATHLEN		1024	/* path length */

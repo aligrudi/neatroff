@@ -233,12 +233,10 @@ void out_line(char *s)
 			}
 		}
 		g = dev_glyph(c, o_f);
-		if (g) {
-			if (utf8len(c[0]) == strlen(c))
-				outnn("c%s%s", c, c[1] ? "\n" : "");
-			else
-				out("C%s\n", c[0] == '\\' && c[1] == '(' ? c + 2 : c);
-		}
-		outnn("h%d", charwid(g ? g->wid : dev_spacewid(), o_s));
+		if (utf8len(c[0]) == strlen(c))
+			outnn("c%s%s", c, c[1] ? "\n" : "");
+		else
+			out("C%s\n", c[0] == '\\' && c[1] == '(' ? c + 2 : c);
+		outnn("h%d", charwid(g ? g->wid : SC_DW, o_s));
 	}
 }
