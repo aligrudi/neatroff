@@ -407,40 +407,40 @@ void tr_fi(char **args)
 	n_u = 1;
 }
 
-static void escarg_ren(char *d, int cmd)
+static void escarg_ren(char *d, int cmd, int (*next)(void), void (*back)(int))
 {
 	int c, q;
 	if (strchr(ESC_P, cmd)) {
-		c = ren_next();
+		c = next();
 		if (cmd == 's' && (c == '-' || c == '+')) {
 			*d++ = c;
-			c = ren_next();
+			c = next();
 		}
 		if (c == '(') {
-			*d++ = ren_next();
-			*d++ = ren_next();
+			*d++ = next();
+			*d++ = next();
 		} else {
 			*d++ = c;
 			if (cmd == 's' && c >= '1' && c <= '3') {
-				c = ren_next();
+				c = next();
 				if (isdigit(c))
 					*d++ = c;
 				else
-					ren_back(c);
+					back(c);
 			}
 		}
 	}
 	if (strchr(ESC_Q, cmd)) {
-		q = ren_next();
+		q = next();
 		while (1) {
-			c = ren_next();
+			c = next();
 			if (c == q || c < 0)
 				break;
 			*d++ = c;
 		}
 	}
 	if (cmd == 'z')
-		*d++ = ren_next();
+		*d++ = next();
 	*d = '\0';
 }
 
@@ -554,7 +554,7 @@ static int ren_char(struct adj *adj, int (*next)(void), void (*back)(int))
 				in_push(widbuf, NULL);
 				return 0;
 			}
-			escarg_ren(arg, c[1]);
+			escarg_ren(arg, c[1], next, back);
 			ren_cmd(adj, c[1], arg);
 			return 0;
 		}
