@@ -83,7 +83,7 @@ void ren_vline(struct adj *adj, char *arg)
 		arg += 2;
 	if (*arg)
 		lc = arg;
-	w = n_s * SC_PT;	/* character height */
+	w = SC_HT;	/* character height */
 	hw = cwid(lc);		/* character width */
 	/* negative length; moving backwards */
 	if (l < 0) {
@@ -120,4 +120,74 @@ void ren_vline(struct adj *adj, char *arg)
 	if (neg)
 		vmov(adj, -l);
 	hmov(adj, hw);
+}
+
+static char *cutchar(char *d, char *s)
+{
+	s = utf8get(d, s);
+	if (d[0] == '\\') {
+		s = utf8get(d + 1, s);
+		if (d[1] == '(') {
+			s = utf8get(d + 2, s);
+			s = utf8get(d + strlen(d), s);
+		}
+	}
+	return s;
+}
+
+static int maxwid(char *s)
+{
+	char c[GNLEN * 4];
+	int w = 0;
+	while (*s) {
+		s = cutchar(c, s);
+		if (cwid(c) > w)
+			w = cwid(c);
+	}
+	return w;
+}
+
+static int nchars(char *s)
+{
+	char c[GNLEN * 4];
+	int n = 0;
+	while (*s) {
+		s = cutchar(c, s);
+		n++;
+	}
+	return n;
+}
+
+void ren_bracket(struct adj *adj, char *arg)
+{
+	char c[GNLEN * 4];
+	int ht, hc;
+	int w = maxwid(arg);
+	int n = nchars(arg);
+	ht = n * SC_HT;
+	hc = -(ht + SC_EM) / 2;
+	vmov(adj, hc + SC_HT);
+	while (*arg) {
+		arg = cutchar(c, arg);
+		adj_put(adj, cwid(arg), c);
+		hmov(adj, -cwid(c));
+		vmov(adj, SC_HT);
+	}
+	hmov(adj, w);
+	vmov(adj, hc);
+}
+
+void ren_over(struct adj *adj, char *arg)
+{
+	char c[GNLEN * 4];
+	int a;
+	int w = maxwid(arg);
+	while (*arg) {
+		arg = cutchar(c, arg);
+		a = (w - cwid(c)) / 2;
+		hmov(adj, a);
+		adj_put(adj, cwid(arg), c);
+		hmov(adj, -cwid(c) - a);
+	}
+	hmov(adj, w);
 }

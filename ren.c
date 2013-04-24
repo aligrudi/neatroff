@@ -471,6 +471,9 @@ static void ren_cmd(struct adj *adj, int c, char *arg)
 		w = dev_spacewid();
 		adj_put(adj, w, "\\h'%du'", w);
 		break;
+	case 'b':
+		ren_bracket(adj, arg);
+		break;
 	case 'D':
 		w = out_draw(arg, draw_arg);
 		adj_put(adj, w, "\\D'%s'", draw_arg);
@@ -493,6 +496,9 @@ static void ren_cmd(struct adj *adj, int c, char *arg)
 		break;
 	case 'l':
 		ren_hline(adj, arg);
+		break;
+	case 'o':
+		ren_over(adj, arg);
 		break;
 	case 'r':
 		adj_put(adj, 0, "\\v'%du'", eval("-1m", 0, 0));
@@ -538,7 +544,8 @@ static int ren_char(struct adj *adj, int (*next)(void), void (*back)(int))
 	char arg[ILNLEN];
 	char widbuf[16];
 	struct glyph *g;
-	int n;
+	int zerowid = 0;
+	int n, w;
 	nextchar(c, next);
 	if (c[0] == ' ' || c[0] == '\n') {
 		adj_put(adj, charwid(dev_spacewid(), n_s), c);
@@ -550,13 +557,22 @@ static int ren_char(struct adj *adj, int (*next)(void), void (*back)(int))
 			int l = nextchar(c + 2, next);
 			l += nextchar(c + 2 + l, next);
 			c[2 + l] = '\0';
-		} else if (strchr(" DdfhkLlrsuvwXx0^|{}", c[1])) {
-			if (c[1] == 'w') {
-				n = ren_wid(next, back);
-				sprintf(widbuf, "%d", n);
-				in_push(widbuf, NULL);
-				return 0;
+		} else if (c[1] == 'z') {
+			zerowid = 1;
+			nextchar(c, next);
+			if (c[0] == '\\') {
+				nextchar(c + 1, next);
+				if (c[1] == '(') {
+					nextchar(c + 2, next);
+					nextchar(c + strlen(c), next);
+				}
 			}
+		} else if (c[1] == 'w') {
+			n = ren_wid(next, back);
+			sprintf(widbuf, "%d", n);
+			in_push(widbuf, NULL);
+			return 0;
+		} else if (strchr(" bDdfhkLlorsuvXxz0^|{}", c[1])) {
 			escarg_ren(arg, c[1], next, back);
 			ren_cmd(adj, c[1], arg);
 			return 0;
@@ -572,7 +588,10 @@ static int ren_char(struct adj *adj, int (*next)(void), void (*back)(int))
 		ren_f = n_f;
 	}
 	g = dev_glyph(c, n_f);
-	adj_put(adj, charwid(g ? g->wid : SC_DW, n_s), c);
+	w = charwid(g ? g->wid : SC_DW, n_s);
+	adj_put(adj, w, c);
+	if (zerowid)
+		adj_put(adj, -w, "\\h'%du'", -w);
 	return g ? g->type : 0;
 }
 

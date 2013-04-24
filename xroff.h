@@ -1,7 +1,9 @@
 /* converting scales */
 #define SC_IN		(dev_res)	/* inch in units */
 #define SC_PT		(SC_IN / 72)	/* point in units */
-#define SC_DW		(n_s * SC_IN / 72 / 3)	/* default width */
+#define SC_EM		(n_s * SC_IN / 72)
+#define SC_DW		(SC_EM / 3)	/* default width */
+#define SC_HT		(n_s * SC_PT)	/* character height */
 
 /* predefined array limits */
 #define PATHLEN		1024	/* path length */
@@ -122,6 +124,8 @@ int out_draw(char *s, char *cc);
 void out(char *s, ...);				/* output troff cmd */
 void ren_hline(struct adj *adj, char *arg);	/* horizontal line */
 void ren_vline(struct adj *adj, char *arg);	/* vertical line */
+void ren_bracket(struct adj *adj, char *arg);	/* \b */
+void ren_over(struct adj *adj, char *arg);	/* \o */
 
 /* troff commands */
 void tr_bp(char **args);
@@ -156,6 +160,7 @@ void tr_init(void);
 /* helpers */
 void errmsg(char *msg, ...);
 int utf8len(int c);
+char *utf8get(char *d, char *s);
 
 /* variable length string buffer */
 struct sbuf {

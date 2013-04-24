@@ -51,7 +51,7 @@ int utf8len(int c)
 	return 1;
 }
 
-static char *utf8get(char *d, char *s)
+char *utf8get(char *d, char *s)
 {
 	int l = utf8len((unsigned char) *s);
 	int i;
