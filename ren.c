@@ -605,6 +605,8 @@ void render(void)
 {
 	int c;
 	n_nl = -1;
+	tr_first();
+	ren_first();			/* transition to the first page */
 	c = ren_next();
 	while (c >= 0) {
 		if (c == ' ' || c == '\n') {

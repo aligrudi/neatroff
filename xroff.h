@@ -106,20 +106,21 @@ void in_queue(char *path);	/* next input file */
 char *in_arg(int i);		/* look up argument */
 int in_nargs(void);		/* number of arguments */
 void in_back(int c);		/* push back input character */
+int in_top(void);		/* the first pushed-back character */
 char *in_filename(void);	/* current filename */
-void cp_back(int c);		/* push back copy-mode character */
 void cp_blk(int skip);		/* skip or read the next line or block */
 void cp_wid(int enable);	/* control inlining \w requests */
+void tr_first(void);		/* read until the first non-command line */
+#define cp_back		in_back	/* cp.c is stateless */
 
 /* rendering */
-void render(void);	/* read from in.c and print the output */
+void render(void);		/* read from in.c and print the output */
 int ren_wid(int (*next)(void), void (*back)(int));
-void out_line(char *s);	/* output the given rendered line */
+void out_line(char *s);		/* output the given rendered line */
 int out_draw(char *s, char *cc);
-void out(char *s, ...);	/* output troff cmd */
-/* drawing lines */
-void ren_hline(struct adj *adj, char *arg);
-void ren_vline(struct adj *adj, char *arg);
+void out(char *s, ...);				/* output troff cmd */
+void ren_hline(struct adj *adj, char *arg);	/* horizontal line */
+void ren_vline(struct adj *adj, char *arg);	/* vertical line */
 
 /* troff commands */
 void tr_bp(char **args);

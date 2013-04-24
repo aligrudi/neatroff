@@ -534,3 +534,8 @@ void tr_init(void)
 	for (i = 0; i < LEN(cmds); i++)
 		str_dset(REG(cmds[i].id[0], cmds[i].id[1]), &cmds[i]);
 }
+
+void tr_first(void)
+{
+	cp_back(tr_next());
+}

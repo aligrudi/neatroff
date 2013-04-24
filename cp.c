@@ -4,8 +4,6 @@
 
 #define CPBUF		4
 
-static int cp_buf[CPBUF];	/* pushed character stack */
-static int cp_backed;		/* number of pushed characters */
 static int cp_nblk;		/* input block depth (text in \{ and \}) */
 static int cp_sblk[NIES];	/* skip \} escape at this depth, if set */
 static int cp_widreq = 1;	/* inline \w requests */
@@ -63,8 +61,8 @@ static void cp_width(void)
 static int cp_raw(void)
 {
 	int c;
-	if (cp_backed)
-		return cp_buf[--cp_backed];
+	if (in_top() >= 0)
+		return in_next();
 	c = in_next();
 	if (c == '\\') {
 		c = in_next();
@@ -86,8 +84,8 @@ static int cp_raw(void)
 int cp_next(void)
 {
 	int c;
-	if (cp_backed)
-		return cp_buf[--cp_backed];
+	if (in_top() >= 0)
+		return in_next();
 	c = cp_raw();
 	if (c == '\\') {
 		c = cp_raw();
@@ -114,17 +112,6 @@ int cp_next(void)
 	return c;
 }
 
-void cp_back(int c)
-{
-	if (cp_backed < CPBUF)
-		cp_buf[cp_backed++] = c;
-}
-
-static int cp_top(void)
-{
-	return cp_backed ? cp_buf[cp_backed - 1] : -1;
-}
-
 void cp_blk(int skip)
 {
 	int c;
@@ -132,7 +119,7 @@ void cp_blk(int skip)
 	do {
 		c = cp_raw();
 	} while (c == ' ' || c == '\t');
-	if (c == '\\' && cp_top() == '{') {	/* a troff \{ \} block */
+	if (c == '\\' && in_top() == '{') {	/* a troff \{ \} block */
 		if (skip) {
 			while (skip && cp_nblk > nblk && c >= 0)
 				c = cp_raw();

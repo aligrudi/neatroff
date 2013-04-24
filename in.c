@@ -8,9 +8,10 @@ struct inbuf {
 	FILE *fin;
 	char *buf;		/* for string buffers */
 	char **args;
+	int unbuf[8];		/* unread characters */
+	int un;			/* number of unread characters */
 	int pos;
 	int len;
-	int backed;
 	int nl;			/* read \n, if the previous char was not */
 	struct inbuf *prev;
 };
@@ -19,7 +20,7 @@ static struct inbuf *buf;
 static char files[NFILES][PATHLEN];
 static int nfiles;
 static int cfile;
-static int in_last;
+static int in_last[2];		/* the last chars returned from in_next() */
 
 static char **args_init(char **args);
 static void args_free(char **args);
@@ -28,7 +29,6 @@ static void in_new(void)
 {
 	struct inbuf *next = malloc(sizeof(*next));
 	memset(next, 0, sizeof(*next));
-	next->backed = -1;
 	next->prev = buf;
 	buf = next;
 }
@@ -89,7 +89,9 @@ static int in_read(void)
 {
 	int c;
 	while (buf || !in_nextfile()) {
-		if (buf->nl-- > 0 && in_last != '\n')
+		if (buf->un)
+			return buf->unbuf[--buf->un];
+		if (buf->nl-- > 0 && in_last[0] != '\n')
 			return '\n';
 		if (buf->buf && buf->pos < buf->len)
 			break;
@@ -107,22 +109,21 @@ static int in_read(void)
 
 int in_next(void)
 {
-	int c;
-	if (!buf && in_nextfile())
-		return -1;
-	c = buf->backed;
-	if (c >= 0)
-		buf->backed = -1;
-	else
-		c = in_read();
-	in_last = c;
-	return c;
+	in_last[1] = in_last[0];
+	in_last[0] = in_read();
+	return in_last[0];
 }
 
 void in_back(int c)
 {
+	in_last[0] = in_last[1];
 	if (buf)
-		buf->backed = c;
+		buf->unbuf[buf->un++] = c;
+}
+
+int in_top(void)
+{
+	return buf && buf->un ? buf->unbuf[buf->un - 1] : -1;
 }
 
 char *in_arg(int i)
