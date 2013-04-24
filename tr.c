@@ -103,10 +103,13 @@ static void macrobody(struct sbuf *sbuf, char *end)
 {
 	char buf[4];
 	int i, c;
+	int first = 1;
+	cp_back('\n');
 	cp_wid(0);		/* copy-mode; disable \w handling */
 	while ((c = cp_next()) >= 0) {
-		if (sbuf)
+		if (sbuf && !first)
 			sbuf_add(sbuf, c);
+		first = 0;
 		if (c == '\n') {
 			c = cp_next();
 			if (c == '.') {
