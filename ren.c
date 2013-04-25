@@ -204,8 +204,8 @@ static void ren_line(char *s, int w, int ll, int li, int lt)
 	if (cdiv) {
 		if (cdiv->dl < w)
 			cdiv->dl = w;
-		if (ljust) {
-			sprintf(cmd, "\\h'%du'", ljust);
+		if (ljust + lt) {
+			sprintf(cmd, "\\h'%du'", lt + ljust);
 			sbuf_append(&cdiv->sbuf, cmd);
 		}
 		sbuf_append(&cdiv->sbuf, s);
