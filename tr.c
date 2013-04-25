@@ -184,25 +184,30 @@ static int if_strcmp(void)
 	return ret;
 }
 
-/* evaluate .if condition */
+/* evaluate .if condition letters */
 static int if_cond(void)
 {
+	switch (cp_next()) {
+	case 'o':
+		return n_pg % 2;
+	case 'e':
+		return !(n_pg % 2);
+	case 't':
+		return 1;
+	case 'n':
+		return 0;
+	}
+	return 0;
+}
+
+/* evaluate .if condition */
+static int if_eval(void)
+{
 	struct sbuf sbuf;
-	char *s;
 	int ret;
 	sbuf_init(&sbuf);
 	read_until(&sbuf, ' ');
-	s = sbuf_buf(&sbuf);
-	if (s[0] == 'o' && s[1] == '\0')
-		ret = n_pg % 2;
-	else if (s[0] == 'e' && s[1] == '\0')
-		ret = !(n_pg % 2);
-	else if (s[0] == 't' && s[1] == '\0')
-		ret = 1;
-	else if (s[0] == 'n' && s[1] == '\0')
-		ret = 0;
-	else
-		ret = eval(s, '\0') > 0;
+	ret = eval(sbuf_buf(&sbuf), '\0') > 0;
 	sbuf_done(&sbuf);
 	return ret;
 }
@@ -222,12 +227,13 @@ static void tr_if(char **args)
 		neg = 1;
 		c = cp_next();
 	}
-	if (!isdigit(c) && !strchr("-+*/%<=>&:.|()", c)) {
-		cp_back(c);
+	cp_back(c);
+	if (strchr("oetn", c)) {
+		ret = if_cond();
+	} else if (!isdigit(c) && !strchr("-+*/%<=>&:.|()", c)) {
 		ret = if_strcmp();
 	} else {
-		cp_back(c);
-		ret = if_cond();
+		ret = if_eval();
 	}
 	if (args[0][1] == 'i' && args[0][2] == 'e')	/* .ie command */
 		if (ie_depth < NIES)
