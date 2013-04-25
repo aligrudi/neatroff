@@ -117,7 +117,7 @@ void cp_blk(int skip)
 	int c;
 	int nblk = cp_nblk;
 	do {
-		c = cp_raw();
+		c = skip ? cp_raw() : cp_next();
 	} while (c == ' ' || c == '\t');
 	if (c == '\\' && in_top() == '{') {	/* a troff \{ \} block */
 		if (skip) {

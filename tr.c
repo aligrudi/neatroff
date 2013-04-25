@@ -532,6 +532,7 @@ int tr_next(void)
 				in_push(str_get(REG(cmd[1], cmd[2])), args + 1);
 		}
 		c = cp_next();
+		nl = c == '\n';
 	}
 	tr_nl = nl;
 	return c;
