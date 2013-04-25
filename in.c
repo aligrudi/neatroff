@@ -104,7 +104,7 @@ static int in_read(void)
 	/* replacing \\ with \ only for buffers inserted via in_push() */
 	if (buf->buf[buf->pos] == '\\' && buf->buf[buf->pos + 1] == '\\')
 		buf->pos++;
-	return buf->buf[buf->pos++];
+	return (unsigned char) buf->buf[buf->pos++];
 }
 
 int in_next(void)
