@@ -117,27 +117,33 @@ static int evalexpr(char **s)
 }
 
 /* evaluate *s and update s to point to the last character read */
-int eval_up(char **s, int orig, int unit)
+int eval_up(char **s, int unit)
 {
-	int n;
-	int rel = 0;		/* n should be added to orig */
-	if (**s == '+' || **s == '-') {
-		rel = **s == '+' ? 1 : -1;
-		(*s)++;
-	}
 	defunit = unit;
 	if (unit == 'v')
 		abspos = -n_d;
 	if (unit == 'm')
 		abspos = n_lb - f_hpos();
-	n = evalexpr(s);
+	return evalexpr(s);
+}
+
+/* evaluate s relative to its previous value */
+int eval_re(char *s, int orig, int unit)
+{
+	int n;
+	int rel = 0;		/* n should be added to orig */
+	if (*s == '+' || *s == '-') {
+		rel = *s == '+' ? 1 : -1;
+		s++;
+	}
+	n = eval_up(&s, unit);
 	if (rel)
 		return rel > 0 ? orig + n : orig - n;
 	return n;
 }
 
 /* evaluate s */
-int eval(char *s, int orig, int unit)
+int eval(char *s, int unit)
 {
-	return eval_up(&s, orig, unit);
+	return eval_up(&s, unit);
 }

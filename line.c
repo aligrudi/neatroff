@@ -34,7 +34,7 @@ void ren_hline(struct adj *adj, char *arg)
 {
 	char *lc = "\\(ru";
 	int w, l, n, i, rem;
-	l = eval_up(&arg, 0, 'm');
+	l = eval_up(&arg, 'm');
 	if (!l)
 		return;
 	if (arg[0] == '\\' && arg[1] == '&')	/* \& can be used as a separator */
@@ -75,7 +75,7 @@ void ren_vline(struct adj *adj, char *arg)
 {
 	char *lc = "\\(br";
 	int w, l, n, i, rem, hw, neg;
-	l = eval_up(&arg, 0, 'm');
+	l = eval_up(&arg, 'm');
 	if (!l)
 		return;
 	neg = l < 0;
@@ -184,7 +184,7 @@ void ren_over(struct adj *adj, char *arg)
 	int w = maxwid(arg);
 	while (*arg) {
 		arg = cutchar(c, arg);
-		a = (w - cwid(c)) / 2;
+		a = (w - cwid(c) + 1) / 2;
 		hmov(adj, a);
 		adj_put(adj, cwid(arg), c);
 		hmov(adj, -cwid(c) - a);

@@ -264,12 +264,12 @@ void tr_sp(char **args)
 	if (args[0][0] == '.')
 		traps = ren_br(1);
 	if (!n_ns && !traps)
-		down(args[1] ? eval(args[1], 0, 'v') : n_v);
+		down(args[1] ? eval(args[1], 'v') : n_v);
 }
 
 void tr_sv(char **args)
 {
-	int n = eval(args[1], 0, 'v');
+	int n = eval(args[1], 'v');
 	n_sv = 0;
 	if (n_d + n < f_nexttrap())
 		down(n);
@@ -304,14 +304,14 @@ void tr_mk(char **args)
 
 void tr_rt(char **args)
 {
-	int n = args[1] ? eval(args[1], n_d, 'v') : n_mk;
+	int n = args[1] ? eval_re(args[1], n_d, 'v') : n_mk;
 	if (n >= 0 && n < n_d)
 		ren_sp(n - n_d);
 }
 
 void tr_ne(char **args)
 {
-	int n = args[1] ? eval(args[1], 0, 'v') : n_v;
+	int n = args[1] ? eval(args[1], 'v') : n_v;
 	if (!ren_traps(n_d, n_d + n - 1, 1))
 		ren_pagelimit(n);
 }
@@ -325,19 +325,19 @@ void tr_bp(char **args)
 			in_pushnl(".br\n", NULL);
 		bp_force = 1;
 		if (args[1])
-			bp_next = eval(args[1], n_pg, 0);
+			bp_next = eval_re(args[1], n_pg, 0);
 	}
 }
 
 void tr_pn(char **args)
 {
 	if (args[1])
-		bp_next = eval(args[1], n_pg, 0);
+		bp_next = eval_re(args[1], n_pg, 0);
 }
 
 static void ren_ps(char *s)
 {
-	int ps = !s || !*s || !strcmp("0", s) ? n_s0 : eval(s, n_s, 0);
+	int ps = !s || !*s || !strcmp("0", s) ? n_s0 : eval_re(s, n_s, 0);
 	n_s0 = n_s;
 	n_s = MAX(1, ps);
 }
@@ -349,7 +349,7 @@ void tr_ps(char **args)
 
 void tr_ll(char **args)
 {
-	int ll = args[1] ? eval(args[1], n_l, 'm') : n_l0;
+	int ll = args[1] ? eval_re(args[1], n_l, 'm') : n_l0;
 	n_l0 = n_l;
 	n_l = MAX(0, ll);
 	adj_ll(cadj, n_l);
@@ -357,7 +357,7 @@ void tr_ll(char **args)
 
 void tr_in(char **args)
 {
-	int in = args[1] ? eval(args[1], n_i, 'm') : n_i0;
+	int in = args[1] ? eval_re(args[1], n_i, 'm') : n_i0;
 	if (args[0][0] == '.')
 		ren_br(1);
 	n_i0 = n_i;
@@ -370,7 +370,7 @@ void tr_ti(char **args)
 	if (args[0][0] == '.')
 		ren_br(1);
 	if (args[1])
-		adj_ti(cadj, eval(args[1], 0, 'm'));
+		adj_ti(cadj, eval(args[1], 'm'));
 }
 
 static void ren_ft(char *s)
@@ -479,13 +479,13 @@ static void ren_cmd(struct adj *adj, int c, char *arg)
 		adj_put(adj, w, "\\D'%s'", draw_arg);
 		break;
 	case 'd':
-		adj_put(adj, 0, "\\v'%du'", eval(".5m", 0, 0));
+		adj_put(adj, 0, "\\v'%du'", eval(".5m", 0));
 		break;
 	case 'f':
 		ren_ft(arg);
 		break;
 	case 'h':
-		n = eval(arg, 0, 'm');
+		n = eval(arg, 'm');
 		adj_put(adj, n, "\\h'%du'", n);
 		break;
 	case 'k':
@@ -501,22 +501,22 @@ static void ren_cmd(struct adj *adj, int c, char *arg)
 		ren_over(adj, arg);
 		break;
 	case 'r':
-		adj_put(adj, 0, "\\v'%du'", eval("-1m", 0, 0));
+		adj_put(adj, 0, "\\v'%du'", eval("-1m", 0));
 		break;
 	case 's':
 		ren_ps(arg);
 		break;
 	case 'u':
-		adj_put(adj, 0, "\\v'%du'", eval("-.5m", 0, 0));
+		adj_put(adj, 0, "\\v'%du'", eval("-.5m", 0));
 		break;
 	case 'v':
-		adj_put(adj, 0, "\\v'%du'", eval(arg, 0, 'v'));
+		adj_put(adj, 0, "\\v'%du'", eval(arg, 'v'));
 		break;
 	case 'X':
 		adj_put(adj, 0, "\\X'%s'", arg);
 		break;
 	case 'x':
-		adj_els(adj, eval(arg, 0, 'v'));
+		adj_els(adj, eval(arg, 'v'));
 		break;
 	case '0':
 		g = dev_glyph("0", n_f);
@@ -524,11 +524,11 @@ static void ren_cmd(struct adj *adj, int c, char *arg)
 		adj_put(adj, w, "\\h'%du'", w);
 		break;
 	case '|':
-		w = eval("1m/6", 0, 0);
+		w = eval("1m/6", 0);
 		adj_put(adj, w, "\\h'%du'", w);
 		break;
 	case '^':
-		w = eval("1m/12", 0, 0);
+		w = eval("1m/12", 0);
 		adj_put(adj, w, "\\h'%du'", w);
 		break;
 	case '{':
@@ -683,7 +683,7 @@ static int trap_bypos(int reg, int pos)
 
 static int tpos_parse(char *s)
 {
-	int pos = eval(s, 0, 'v');
+	int pos = eval(s, 'v');
 	return pos >= 0 ? pos : n_p + pos;
 }
 
@@ -725,7 +725,7 @@ void tr_dt(char **args)
 	if (!cdiv)
 		return;
 	if (args[2]) {
-		cdiv->tpos = eval(args[1], 0, 'v');
+		cdiv->tpos = eval(args[1], 'v');
 		cdiv->treg = REG(args[2][0], args[2][1]);
 	} else {
 		cdiv->treg = -1;

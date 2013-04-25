@@ -16,21 +16,21 @@ static void jmp_eol(void)
 
 static void tr_vs(char **args)
 {
-	int vs = args[1] ? eval(args[1], n_v, 'p') : n_v0;
+	int vs = args[1] ? eval_re(args[1], n_v, 'p') : n_v0;
 	n_v0 = n_v;
 	n_v = MAX(0, vs);
 }
 
 static void tr_ls(char **args)
 {
-	int ls = args[1] ? eval(args[1], n_L, 'v') : n_L0;
+	int ls = args[1] ? eval_re(args[1], n_L, 'v') : n_L0;
 	n_L0 = n_L;
 	n_L = MAX(1, ls);
 }
 
 static void tr_pl(char **args)
 {
-	int n = eval(args[1] ? args[1] : "11i", n_p, 'v');
+	int n = eval_re(args[1] ? args[1] : "11i", n_p, 'v');
 	n_p = MAX(0, n);
 }
 
@@ -40,8 +40,8 @@ static void tr_nr(char **args)
 	if (!args[2])
 		return;
 	id = REG(args[1][0], args[1][1]);
-	num_set(id, eval(args[2], num_get(id, 0), 'u'));
-	num_inc(id, args[3] ? eval(args[3], 0, 'u') : 0);
+	num_set(id, eval_re(args[2], num_get(id, 0), 'u'));
+	num_inc(id, args[3] ? eval(args[3], 'u') : 0);
 }
 
 static void tr_rr(char **args)
@@ -92,7 +92,7 @@ static void tr_rn(char **args)
 
 static void tr_po(char **args)
 {
-	int po = args[1] ? eval(args[1], n_o, 'm') : n_o0;
+	int po = args[1] ? eval_re(args[1], n_o, 'm') : n_o0;
 	n_o0 = n_o;
 	n_o = MAX(0, po);
 }
@@ -200,7 +200,7 @@ static int if_cond(void)
 	else if (s[0] == 'n' && s[1] == '\0')
 		ret = 0;
 	else
-		ret = eval(s, 0, '\0') > 0;
+		ret = eval(s, '\0') > 0;
 	sbuf_done(&sbuf);
 	return ret;
 }

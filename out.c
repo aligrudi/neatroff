@@ -124,7 +124,7 @@ static char *tok_num(int *d, char *s, char **cc, int scale)
 {
 	char tok[ILNLEN];
 	s = tok_str(tok, s);
-	*d = eval(tok, 0, scale);
+	*d = eval(tok, scale);
 	if (*cc)
 		*cc += sprintf(*cc, " %du", *d);
 	else
@@ -215,15 +215,15 @@ void out_line(char *s)
 					continue;
 				}
 				if (c[1] == 'h') {
-					outnn("h%d", eval(arg, 0, 'm'));
+					outnn("h%d", eval(arg, 'm'));
 					continue;
 				}
 				if (c[1] == 's') {
-					out_ps(eval(arg, o_s, '\0'));
+					out_ps(eval_re(arg, o_s, '\0'));
 					continue;
 				}
 				if (c[1] == 'v') {
-					outnn("v%d", eval(arg, 0, 'v'));
+					outnn("v%d", eval(arg, 'v'));
 					continue;
 				}
 				if (c[1] == 'X') {
