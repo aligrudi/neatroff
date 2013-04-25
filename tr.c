@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -171,11 +172,12 @@ static void read_until(struct sbuf *sbuf, int stop)
 static int if_strcmp(void)
 {
 	struct sbuf s1, s2;
-	int ret;
+	int ret, delim;
+	delim = cp_next();
 	sbuf_init(&s1);
 	sbuf_init(&s2);
-	read_until(&s1, '\'');
-	read_until(&s2, '\'');
+	read_until(&s1, delim);
+	read_until(&s2, delim);
 	ret = !strcmp(sbuf_buf(&s1), sbuf_buf(&s2));
 	sbuf_done(&s1);
 	sbuf_done(&s2);
@@ -220,7 +222,8 @@ static void tr_if(char **args)
 		neg = 1;
 		c = cp_next();
 	}
-	if (c == '\'') {
+	if (!isdigit(c) && !strchr("-+*/%<=>&:.|()", c)) {
+		cp_back(c);
 		ret = if_strcmp();
 	} else {
 		cp_back(c);
