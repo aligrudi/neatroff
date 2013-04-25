@@ -572,7 +572,7 @@ static int ren_char(struct adj *adj, int (*next)(void), void (*back)(int))
 			sprintf(widbuf, "%d", n);
 			in_push(widbuf, NULL);
 			return 0;
-		} else if (strchr(" bDdfhkLlorsuvXxz0^|{}", c[1])) {
+		} else if (strchr(" bDdfhkLlorsuvXxz0^|{}&", c[1])) {
 			escarg_ren(arg, c[1], next, back);
 			ren_cmd(adj, c[1], arg);
 			return 0;
