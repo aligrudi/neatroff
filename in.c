@@ -49,7 +49,7 @@ void in_pushnl(char *s, char **args)
 	buf->nl = 1;
 }
 
-void in_source(char *path)
+void in_so(char *path)
 {
 	FILE *fin = path && path[0] ? fopen(path, "r") : stdin;
 	if (fin) {
@@ -78,10 +78,25 @@ static void in_pop(void)
 	free(old);
 }
 
+void in_nx(char *path)
+{
+	while (buf)
+		in_pop();
+	if (path)
+		in_so(path);
+}
+
+void in_ex(void)
+{
+	while (buf)
+		in_pop();
+	cfile = nfiles;
+}
+
 static int in_nextfile(void)
 {
 	while (!buf && cfile < nfiles)
-		in_source(files[cfile++]);
+		in_so(files[cfile++]);
 	return !buf;
 }
 

@@ -285,7 +285,18 @@ static void tr_tm(char **args)
 static void tr_so(char **args)
 {
 	if (args[1])
-		in_source(args[1]);
+		in_so(args[1]);
+}
+
+static void tr_nx(char **args)
+{
+	if (args[1])
+		in_nx(args[1]);
+}
+
+static void tr_ex(char **args)
+{
+	in_ex();
 }
 
 static char *arg_regname(char *s, int len)
@@ -469,6 +480,7 @@ static struct cmd {
 	{"dt", tr_dt},
 	{"el", tr_el, mkargs_null},
 	{"ev", tr_ev},
+	{"ex", tr_ex},
 	{"fi", tr_fi},
 	{"fp", tr_fp},
 	{"ft", tr_ft},
@@ -484,6 +496,7 @@ static struct cmd {
 	{"nf", tr_nf},
 	{"nr", tr_nr, mkargs_reg1},
 	{"ns", tr_ns},
+	{"nx", tr_nx},
 	{"os", tr_os},
 	{"pl", tr_pl},
 	{"pn", tr_pn},
