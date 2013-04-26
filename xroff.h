@@ -131,6 +131,7 @@ void ren_over(struct adj *adj, char *arg);	/* \o */
 /* troff commands */
 void tr_bp(char **args);
 void tr_br(char **args);
+void tr_ce(char **args);
 void tr_ch(char **args);
 void tr_di(char **args);
 void tr_divbeg(char **args);
@@ -225,6 +226,7 @@ void adj_conf(struct adj *adj, int *ll, int *in, int *ti);
 #define n_nl		(*nreg(REG('n', 'l')))
 #define n_pg		(*nreg(REG('%', '\0')))	/* % */
 #define n_lb		(*nreg(REG(0, 'b')))	/* input line beg */
+#define n_ce		(*nreg(REG(0, 'c')))	/* .ce remaining */
 #define n_f0		(*nreg(REG(0, 'f')))	/* last .f */
 #define n_i0		(*nreg(REG(0, 'i')))	/* last .i */
 #define n_l0		(*nreg(REG(0, 'l')))	/* last .l */

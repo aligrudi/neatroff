@@ -201,6 +201,8 @@ static void ren_line(char *s, int w, int ll, int li, int lt)
 	n_n = w;
 	if (n_u && !n_na && (n_j == AD_C || n_j == AD_R))
 		ljust = n_j == AD_C ? (llen - w) / 2 : llen - w;
+	if (n_ce)
+		ljust = llen > w ? (llen - w) / 2 : 0;
 	if (cdiv) {
 		if (cdiv->dl < w)
 			cdiv->dl = w;
@@ -221,11 +223,12 @@ static int ren_br(int force)
 {
 	char buf[LNLEN];
 	int ll, li, lt, els_neg, els_pos;
-	int adj_b, w, prev_d;
+	int adj_b, fill, w, prev_d;
 	ren_first();
-	if (!adj_empty(cadj, n_u)) {
-		adj_b = n_u && !n_na && n_j == AD_B;
-		w = adj_fill(cadj, !force && adj_b, !force && n_u, buf,
+	if (!adj_empty(cadj, !n_ce && n_u)) {
+		adj_b = !n_ce && n_u && !n_na && n_j == AD_B;
+		fill = !n_ce && n_u;
+		w = adj_fill(cadj, !force && adj_b, !force && fill, buf,
 				&ll, &li, &lt, &els_neg, &els_pos);
 		prev_d = n_d;
 		if (els_neg)
@@ -408,6 +411,13 @@ void tr_fi(char **args)
 	if (args[0][0] == '.')
 		ren_br(1);
 	n_u = 1;
+}
+
+void tr_ce(char **args)
+{
+	if (args[0][0] == '.')
+		ren_br(1);
+	n_ce = args[1] ? atoi(args[1]) : 1;
 }
 
 static void escarg_ren(char *d, int cmd, int (*next)(void), void (*back)(int))
@@ -632,10 +642,12 @@ void render(void)
 			ren_back(c);
 			ren_char(cadj, ren_next, ren_back);
 		}
-		while (adj_full(cadj, n_u))
+		while (adj_full(cadj, !n_ce && n_u))
 			ren_br(0);
-		if (c == '\n')
+		if (c == '\n') {	/* end of input line */
 			n_lb = adj_wid(cadj);
+			n_ce = MAX(0, n_ce - 1);
+		}
 		if (c != ' ' && c != '\n') {
 			ren_back(c);
 			ren_char(cadj, ren_next, ren_back);

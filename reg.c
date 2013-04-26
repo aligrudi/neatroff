@@ -29,6 +29,7 @@ static int eregs[] = {		/* environment-specific number registers */
 	REG('.', 's'),
 	REG('.', 'u'),
 	REG('.', 'v'),
+	REG(0, 'c'),
 	REG(0, 'f'),
 	REG(0, 'i'),
 	REG(0, 'l'),
