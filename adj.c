@@ -4,7 +4,7 @@
 #include <string.h>
 #include "xroff.h"
 
-#define ADJ_LLEN(a)	((a)->ll > (a)->li + (a)->lt ? (a)->ll - (a)->li - (a)->lt : 0)
+#define ADJ_LLEN(a)	MAX(0, (a)->ll - ((a)->lt >= 0 ? (a)->lt : (a)->li))
 
 struct word {
 	int beg;	/* word beginning offset */
@@ -50,7 +50,7 @@ static void adj_confupdate(struct adj *adj)
 	adj->ll = adj->l;
 	adj->li = adj->i;
 	adj->lt = adj->t;
-	adj->t = 0;
+	adj->t = -1;
 }
 
 /* does the adjustment buffer need to be flushed without filling? */

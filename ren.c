@@ -197,7 +197,7 @@ static void ren_line(char *s, int w, int ll, int li, int lt)
 {
 	int ljust = 0;
 	char cmd[32];
-	int llen = ll - li - lt;
+	int llen = ll - (lt >= 0 ? lt : li);
 	n_n = w;
 	if (n_u && !n_na && (n_j == AD_C || n_j == AD_R))
 		ljust = n_j == AD_C ? (llen - w) / 2 : llen - w;
@@ -206,13 +206,14 @@ static void ren_line(char *s, int w, int ll, int li, int lt)
 	if (cdiv) {
 		if (cdiv->dl < w)
 			cdiv->dl = w;
-		if (ljust + lt) {
-			sprintf(cmd, "\\h'%du'", lt + ljust);
+		ljust += lt >= 0 ? lt : li;
+		if (ljust) {
+			sprintf(cmd, "\\h'%du'", ljust);
 			sbuf_append(&cdiv->sbuf, cmd);
 		}
 		sbuf_append(&cdiv->sbuf, s);
 	} else {
-		out("H%d\n", n_o + li + lt + ljust);
+		out("H%d\n", n_o + (lt >= 0 ? lt : li) + ljust);
 		out("V%d\n", n_d);
 		out_line(s);
 	}
@@ -366,6 +367,7 @@ void tr_in(char **args)
 	n_i0 = n_i;
 	n_i = MAX(0, in);
 	adj_in(cadj, n_i);
+	adj_ti(cadj, -1);
 }
 
 void tr_ti(char **args)
