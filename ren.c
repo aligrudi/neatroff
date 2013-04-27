@@ -23,6 +23,7 @@ static struct div *cdiv;	/* current diversion */
 static int ren_f = -1;		/* last rendered n_f */
 static int ren_s = -1;		/* last rendered n_s */
 static int ren_div;		/* rendering a diversion */
+static int ren_part;		/* partial line (\c) */
 
 static int ren_backed = -1;	/* pushed back character */
 
@@ -554,10 +555,9 @@ static int ren_char(struct adj *adj, int (*next)(void), void (*back)(int))
 {
 	char c[GNLEN * 4];
 	char arg[ILNLEN];
-	char widbuf[16];
 	struct glyph *g;
 	int zerowid = 0;
-	int n, w;
+	int w;
 	nextchar(c, next);
 	if (c[0] == ' ' || c[0] == '\n') {
 		adj_put(adj, charwid(dev_spacewid(), n_s), c);
@@ -579,10 +579,9 @@ static int ren_char(struct adj *adj, int (*next)(void), void (*back)(int))
 					nextchar(c + strlen(c), next);
 				}
 			}
-		} else if (c[1] == 'w') {
-			n = ren_wid(next, back);
-			sprintf(widbuf, "%d", n);
-			in_push(widbuf, NULL);
+		} else if (c[1] == 'c') {
+			if (adj == cadj)
+				ren_part = 1;
 			return 0;
 		} else if (strchr(" bDdfhkLlorsuvXxz0^|{}&", c[1])) {
 			escarg_ren(arg, c[1], next, back);
@@ -640,20 +639,22 @@ void render(void)
 	ren_first();			/* transition to the first page */
 	c = ren_next();
 	while (c >= 0) {
-		if (c == ' ' || c == '\n') {
+		if (!ren_part && (c == ' ' || c == '\n')) {
 			ren_back(c);
 			ren_char(cadj, ren_next, ren_back);
 		}
 		while (adj_full(cadj, !n_ce && n_u))
 			ren_br(0);
-		if (c == '\n') {	/* end of input line */
+		if (c == '\n')		/* end of input line */
 			n_lb = adj_wid(cadj);
+		if (c == '\n' && !ren_part)
 			n_ce = MAX(0, n_ce - 1);
-		}
-		if (c != ' ' && c != '\n') {
+		if (!ren_part && (c != ' ' && c != '\n')) {
 			ren_back(c);
 			ren_char(cadj, ren_next, ren_back);
 		}
+		if (ren_part && c == '\n')
+			ren_part = 0;
 		c = ren_next();
 	}
 	ren_br(1);
