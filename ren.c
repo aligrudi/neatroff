@@ -375,7 +375,7 @@ void tr_ti(char **args)
 	if (args[0][0] == '.')
 		ren_br(1);
 	if (args[1])
-		adj_ti(cadj, eval(args[1], 'm'));
+		adj_ti(cadj, eval_re(args[1], n_i, 'm'));
 }
 
 static void ren_ft(char *s)
