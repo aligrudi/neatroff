@@ -430,7 +430,8 @@ void tr_ce(char **args)
 
 static void escarg_ren(char *d, int cmd, int (*next)(void), void (*back)(int))
 {
-	int c, q;
+	char delim[GNLEN];
+	int c;
 	if (strchr(ESC_P, cmd)) {
 		c = next();
 		if (cmd == 's' && (c == '-' || c == '+')) {
@@ -452,16 +453,13 @@ static void escarg_ren(char *d, int cmd, int (*next)(void), void (*back)(int))
 		}
 	}
 	if (strchr(ESC_Q, cmd)) {
-		q = next();
-		while (1) {
-			c = next();
-			if (c == q || c < 0)
+		schar_read(delim, next);
+		while (schar_jump(delim, next, back)) {
+			if ((c = next()) < 0)
 				break;
 			*d++ = c;
 		}
 	}
-	if (cmd == 'z')
-		*d++ = next();
 	*d = '\0';
 }
 
