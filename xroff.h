@@ -124,6 +124,7 @@ void tr_first(void);		/* read until the first non-command line */
 /* rendering */
 void render(void);		/* read from in.c and print the output */
 int ren_wid(int (*next)(void), void (*back)(int));
+void ren_tl(int (*next)(void), void (*back)(int));
 void out_line(char *s);		/* output the given rendered line */
 int out_draw(char *s, char *cc);
 void out(char *s, ...);				/* output troff cmd */
@@ -167,6 +168,8 @@ void tr_init(void);
 void errmsg(char *msg, ...);
 int utf8len(int c);
 char *utf8get(char *d, char *s);
+void schar_read(char *d, int (*next)(void));
+int schar_jump(char *d, int (*next)(void), void (*back)(int));
 
 /* variable length string buffer */
 struct sbuf {
@@ -241,6 +244,8 @@ void adj_conf(struct adj *adj, int *ll, int *in, int *ti);
 #define n_o0		(*nreg(REG(0, 'o')))	/* last .o */
 #define n_s0		(*nreg(REG(0, 's')))	/* last .s */
 #define n_sv		(*nreg(REG(0, 'S')))	/* .sv value */
+#define n_lt		(*nreg(REG(0, 't')))	/* .lt value */
+#define n_t0		(*nreg(REG(0, 'T')))	/* previous .lt value */
 #define n_v0		(*nreg(REG(0, 'v')))	/* last .v */
 
 /* functions for implementing read-only registers */

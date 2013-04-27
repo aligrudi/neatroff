@@ -194,16 +194,16 @@ static void down(int n)
 }
 
 /* flush the given line and send it to out.c */
-static void ren_line(char *s, int w, int ll, int li, int lt)
+static void ren_line(char *s, int w, int ad, int ll, int li, int lt)
 {
 	int ljust = 0;
 	char cmd[32];
 	int llen = ll - (lt >= 0 ? lt : li);
 	n_n = w;
-	if (n_u && !n_na && (n_j == AD_C || n_j == AD_R))
-		ljust = n_j == AD_C ? (llen - w) / 2 : llen - w;
-	if (n_ce)
+	if (ad == AD_C)
 		ljust = llen > w ? (llen - w) / 2 : 0;
+	if (ad == AD_R)
+		ljust = llen - w;
 	if (cdiv) {
 		if (cdiv->dl < w)
 			cdiv->dl = w;
@@ -221,23 +221,21 @@ static void ren_line(char *s, int w, int ll, int li, int lt)
 }
 
 /* return 1 if triggered a trap */
-static int ren_br(int force)
+static int ren_bradj(struct adj *adj, int fill, int ad)
 {
 	char buf[LNLEN];
 	int ll, li, lt, els_neg, els_pos;
-	int adj_b, fill, w, prev_d;
+	int w, prev_d;
 	ren_first();
-	if (!adj_empty(cadj, !n_ce && n_u)) {
-		adj_b = !n_ce && n_u && !n_na && n_j == AD_B;
-		fill = !n_ce && n_u;
-		w = adj_fill(cadj, !force && adj_b, !force && fill, buf,
+	if (!adj_empty(adj, fill)) {
+		w = adj_fill(adj, ad == AD_B, fill, buf,
 				&ll, &li, &lt, &els_neg, &els_pos);
 		prev_d = n_d;
 		if (els_neg)
 			ren_sp(-els_neg);
 		if (!n_ns || w || els_neg || els_pos) {
 			ren_sp(0);
-			ren_line(buf, w, ll, li, lt);
+			ren_line(buf, w, ad, ll, li, lt);
 			n_ns = 0;
 		}
 		if (els_pos)
@@ -255,6 +253,13 @@ static int ren_br(int force)
 		return 1;
 	}
 	return 0;
+}
+
+/* return 1 if triggered a trap */
+static int ren_br(int force)
+{
+	return ren_bradj(cadj, !force && !n_ce && n_u,
+			n_ce ? AD_C : (n_u && !n_na && (n_j != AD_B || !force) ? n_j : AD_L));
 }
 
 void tr_br(char **args)
@@ -481,7 +486,7 @@ static void ren_cmd(struct adj *adj, int c, char *arg)
 	int n, w;
 	switch (c) {
 	case ' ':
-		w = dev_spacewid();
+		w = charwid(dev_spacewid(), n_s);
 		adj_put(adj, w, "\\h'%du'", w);
 		break;
 	case 'b':
@@ -600,7 +605,7 @@ static int ren_char(struct adj *adj, int (*next)(void), void (*back)(int))
 	}
 	g = dev_glyph(c, n_f);
 	w = charwid(g ? g->wid : SC_DW, n_s);
-	adj_put(adj, w, c);
+	adj_put(adj, w, "%s", c);
 	if (zerowid)
 		adj_put(adj, -w, "\\h'%du'", -w);
 	return g ? g->type : 0;
@@ -609,15 +614,18 @@ static int ren_char(struct adj *adj, int (*next)(void), void (*back)(int))
 /* read the argument of \w and push its width */
 int ren_wid(int (*next)(void), void (*back)(int))
 {
+	char delim[GNLEN];
 	struct adj *adj = adj_alloc();
-	int c, wid_c, n;
+	int c, n;
 	int type = 0;
-	wid_c = next();
-	c = next();
+	schar_read(delim, next);
 	adj_ll(adj, n_l);
 	odiv_beg();
-	while (c >= 0 && c != wid_c) {
+	c = next();
+	while (c >= 0 && c != '\n') {
 		back(c);
+		if (!schar_jump(delim, next, back))
+			break;
 		type |= ren_char(adj, next, back);
 		c = next();
 	}
@@ -628,6 +636,57 @@ int ren_wid(int (*next)(void), void (*back)(int))
 	n_ct = type;
 	adj_free(adj);
 	return n;
+}
+
+static void ren_until(struct adj *adj, char *delim, int (*next)(void), void (*back)(int))
+{
+	int c;
+	c = next();
+	while (c >= 0 && c != '\n') {
+		back(c);
+		if (!schar_jump(delim, next, back))
+			break;
+		ren_char(adj, next, back);
+		c = next();
+	}
+	if (c == '\n')
+		back(c);
+}
+
+static void adj_cpy(struct adj *dst, struct adj *src, int left)
+{
+	char buf[LNLEN];
+	int ll, li, lt, els_neg, els_pos;
+	int w;
+	adj_put(src, 0, "\n");
+	w = adj_fill(src, 0, 0, buf, &ll, &li, &lt, &els_neg, &els_pos);
+	adj_put(dst, left - adj_wid(dst), "\\h'%du'", left - adj_wid(dst));
+	adj_put(dst, w, "%s", buf);
+	adj_els(dst, els_neg);
+	adj_els(dst, els_pos);
+}
+
+void ren_tl(int (*next)(void), void (*back)(int))
+{
+	struct adj *adj = adj_alloc();
+	struct adj *tmp = adj_alloc();
+	char delim[GNLEN];
+	adj_ll(tmp, n_lt);
+	adj_ll(adj, n_lt);
+	schar_read(delim, next);
+	/* the left-adjusted string */
+	ren_until(adj, delim, next, back);
+	/* the centered string */
+	ren_until(tmp, delim, next, back);
+	adj_cpy(adj, tmp, (n_lt - adj_wid(tmp)) / 2);
+	/* the right-adjusted string */
+	ren_until(tmp, delim, next, back);
+	adj_cpy(adj, tmp, n_lt - adj_wid(tmp));
+	/* flushing the line */
+	adj_put(adj, 0, "\n");
+	ren_bradj(adj, 0, AD_L);
+	adj_free(tmp);
+	adj_free(adj);
 }
 
 /* read characters from in.c and pass rendered lines to out.c */

@@ -5,6 +5,7 @@
 #include "xroff.h"
 
 static int tr_nl = 1;
+static int c_pc = '%';		/* page number character */
 
 /* skip everything until the end of line */
 static void jmp_eol(void)
@@ -153,27 +154,58 @@ static void tr_ig(char **args)
 	macrobody(NULL, args[1] ? args[1] : ".");
 }
 
+void schar_read(char *d, int (*next)(void))
+{
+	d[0] = next();
+	d[1] = '\0';
+	if (d[0] == '\\') {
+		d[1] = next();
+		d[2] = '\0';
+		if (d[1] == '(') {
+			d[2] = next();
+			d[3] = next();
+			d[4] = '\0';
+		}
+	}
+}
+
+int schar_jump(char *d, int (*next)(void), void (*back)(int))
+{
+	int c, i;
+	for (i = 0; d[i]; i++)
+		if ((c = next()) != d[i])
+			break;
+	if (d[i]) {
+		back(c);
+		while (i > 0)
+			back(d[--i]);
+		return 1;
+	}
+	return 0;
+}
+
 /* read into sbuf until stop */
-static void read_until(struct sbuf *sbuf, int stop)
+static int read_until(struct sbuf *sbuf, char *stop)
 {
 	int c;
 	while ((c = cp_next()) >= 0) {
-		if (c == stop)
-			return;
-		if (c == '\n') {
-			cp_back(c);
-			return;
-		}
-		sbuf_add(sbuf, c);
+		cp_back(c);
+		if (c == '\n')
+			return 1;
+		if (!schar_jump(stop, cp_next, cp_back))
+			return 0;
+		sbuf_add(sbuf, cp_next());
 	}
+	return 1;
 }
 
 /* evaluate .if strcmp (i.e. 'str'str') */
 static int if_strcmp(void)
 {
+	char delim[GNLEN];
 	struct sbuf s1, s2;
-	int ret, delim;
-	delim = cp_next();
+	int ret;
+	schar_read(delim, cp_next);
 	sbuf_init(&s1);
 	sbuf_init(&s2);
 	read_until(&s1, delim);
@@ -206,7 +238,8 @@ static int if_eval(void)
 	struct sbuf sbuf;
 	int ret;
 	sbuf_init(&sbuf);
-	read_until(&sbuf, ' ');
+	if (!read_until(&sbuf, " "))
+		cp_back(' ');
 	ret = eval(sbuf_buf(&sbuf), '\0') > 0;
 	sbuf_done(&sbuf);
 	return ret;
@@ -297,6 +330,41 @@ static void tr_nx(char **args)
 static void tr_ex(char **args)
 {
 	in_ex();
+}
+
+static void tr_lt(char **args)
+{
+	int lt = args[1] ? eval_re(args[1], n_lt, 'm') : n_t0;
+	n_t0 = n_t0;
+	n_lt = MAX(0, lt);
+}
+
+static void tr_pc(char **args)
+{
+	c_pc = args[1] ? args[1][0] : -1;
+}
+
+static int tl_next(void)
+{
+	int c = cp_next();
+	if (c >= 0 && c == c_pc) {
+		in_push(num_str(REG('%', '\0')), NULL);
+		c = cp_next();
+	}
+	return c;
+}
+
+static void tr_tl(char **args)
+{
+	int c;
+	do {
+		c = cp_next();
+	} while (c >= 0 && (c == ' ' || c == '\t'));
+	cp_back(c);
+	ren_tl(tl_next, cp_back);
+	do {
+		c = cp_next();
+	} while (c >= 0 && c != '\n');
 }
 
 static char *arg_regname(char *s, int len)
@@ -418,7 +486,9 @@ static int mkargs_ds(char **args, char *buf, int len)
 	args[0] = s;
 	s = arg_regname(s, e - s);
 	args[1] = s;
+	cp_wid(0);
 	s = arg_string(s, e - s);
+	cp_wid(1);
 	c = cp_next();
 	if (c >= 0 && c != '\n')
 		jmp_eol();
@@ -490,6 +560,7 @@ static struct cmd {
 	{"in", tr_in},
 	{"ll", tr_ll},
 	{"ls", tr_ls},
+	{"lt", tr_lt},
 	{"mk", tr_mk},
 	{"na", tr_na},
 	{"ne", tr_ne},
@@ -498,6 +569,7 @@ static struct cmd {
 	{"ns", tr_ns},
 	{"nx", tr_nx},
 	{"os", tr_os},
+	{"pc", tr_pc},
 	{"pl", tr_pl},
 	{"pn", tr_pn},
 	{"po", tr_po},
@@ -511,6 +583,7 @@ static struct cmd {
 	{"sp", tr_sp},
 	{"sv", tr_sv},
 	{"ti", tr_ti},
+	{"tl", tr_tl, mkargs_null},
 	{"tm", tr_tm, mkargs_eol},
 	{"vs", tr_vs},
 	{"wh", tr_wh},
