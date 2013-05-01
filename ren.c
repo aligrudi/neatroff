@@ -20,12 +20,10 @@ struct div {
 };
 static struct div divs[NPREV];	/* diversion stack */
 static struct div *cdiv;	/* current diversion */
-static int ren_f = -1;		/* last rendered n_f */
-static int ren_s = -1;		/* last rendered n_s */
 static int ren_div;		/* rendering a diversion */
-static int ren_part;		/* partial line (\c) */
 
 static int ren_backed = -1;	/* pushed back character */
+static struct wb ren_wb;	/* the main ren.c word buffer */
 
 static int bp_first = 1;	/* prior to the first page */
 static int bp_next = 1;		/* next page number */
@@ -54,8 +52,6 @@ void tr_di(char **args)
 		if (args[0][2] == 'a' && str_get(cdiv->reg))	/* .da */
 			sbuf_append(&cdiv->sbuf, str_get(cdiv->reg));
 		sbuf_append(&cdiv->sbuf, DIV_BEG "\n");
-		ren_f = -1;
-		ren_s = -1;
 		cdiv->prev_d = n_d;
 		cdiv->prev_h = n_h;
 		cdiv->prev_mk = n_mk;
@@ -76,8 +72,6 @@ void tr_di(char **args)
 		n_mk = cdiv->prev_mk;
 		n_ns = cdiv->prev_ns;
 		cdiv = cdiv > divs ? cdiv - 1 : NULL;
-		ren_f = -1;
-		ren_s = -1;
 	}
 }
 
@@ -88,7 +82,7 @@ int f_divreg(void)
 
 int f_hpos(void)
 {
-	return adj_wid(cadj);
+	return adj_wid(cadj) + wb_wid(&ren_wb);
 }
 
 void tr_divbeg(char **args)
@@ -223,21 +217,23 @@ static void ren_line(char *s, int w, int ad, int ll, int li, int lt)
 /* return 1 if triggered a trap */
 static int ren_bradj(struct adj *adj, int fill, int ad)
 {
-	char buf[LNLEN];
+	struct sbuf sbuf;
 	int ll, li, lt, els_neg, els_pos;
 	int w, prev_d;
 	ren_first();
 	if (!adj_empty(adj, fill)) {
-		w = adj_fill(adj, ad == AD_B, fill, buf,
+		sbuf_init(&sbuf);
+		w = adj_fill(adj, ad == AD_B, fill, &sbuf,
 				&ll, &li, &lt, &els_neg, &els_pos);
 		prev_d = n_d;
 		if (els_neg)
 			ren_sp(-els_neg);
 		if (!n_ns || w || els_neg || els_pos) {
 			ren_sp(0);
-			ren_line(buf, w, ad, ll, li, lt);
+			ren_line(sbuf_buf(&sbuf), w, ad, ll, li, lt);
 			n_ns = 0;
 		}
+		sbuf_done(&sbuf);
 		if (els_pos)
 			ren_sp(els_pos);
 		n_a = els_pos;
@@ -477,75 +473,70 @@ static int nextchar(char *s, int (*next)(void))
 	return l;
 }
 
-static void ren_cmd(struct adj *adj, int c, char *arg)
+static void ren_cmd(struct wb *wb, int c, char *arg)
 {
-	char draw_arg[ILNLEN];
 	struct glyph *g;
-	int n, w;
 	switch (c) {
 	case ' ':
-		w = charwid(dev_spacewid(), n_s);
-		adj_put(adj, w, "\\h'%du'", w);
+		wb_hmov(wb, charwid(dev_spacewid(), n_s));
 		break;
 	case 'b':
-		ren_bracket(adj, arg);
+		ren_bracket(wb, arg);
+		break;
+	case 'c':
+		wb_setpart(wb);
 		break;
 	case 'D':
-		w = out_draw(arg, draw_arg);
-		adj_put(adj, w, "\\D'%s'", draw_arg);
+		ren_draw(wb, arg);
 		break;
 	case 'd':
-		adj_put(adj, 0, "\\v'%du'", eval(".5m", 0));
+		wb_vmov(wb, SC_EM / 2);
 		break;
 	case 'f':
 		ren_ft(arg);
 		break;
 	case 'h':
-		n = eval(arg, 'm');
-		adj_put(adj, n, "\\h'%du'", n);
+		wb_hmov(wb, eval(arg, 'm'));
 		break;
 	case 'k':
 		num_set(REG(arg[0], arg[1]), f_hpos() - n_lb);
 		break;
 	case 'L':
-		ren_vline(adj, arg);
+		ren_vline(wb, arg);
 		break;
 	case 'l':
-		ren_hline(adj, arg);
+		ren_hline(wb, arg);
 		break;
 	case 'o':
-		ren_over(adj, arg);
+		ren_over(wb, arg);
 		break;
 	case 'r':
-		adj_put(adj, 0, "\\v'%du'", eval("-1m", 0));
+		wb_vmov(wb, -SC_EM);
 		break;
 	case 's':
 		ren_ps(arg);
 		break;
 	case 'u':
-		adj_put(adj, 0, "\\v'%du'", eval("-.5m", 0));
+		wb_vmov(wb, -SC_EM / 2);
 		break;
 	case 'v':
-		adj_put(adj, 0, "\\v'%du'", eval(arg, 'v'));
+		wb_vmov(wb, eval(arg, 'v'));
 		break;
 	case 'X':
-		adj_put(adj, 0, "\\X'%s'", arg);
+		wb_etc(wb, arg);
 		break;
 	case 'x':
-		adj_els(adj, eval(arg, 'v'));
+		wb_els(wb, eval(arg, 'v'));
 		break;
 	case '0':
 		g = dev_glyph("0", n_f);
-		w = charwid(g ? g->wid : SC_DW, n_s);
-		adj_put(adj, w, "\\h'%du'", w);
+		wb_hmov(wb, charwid(g ? g->wid : SC_DW, n_s));
 		break;
 	case '|':
-		w = eval("1m/6", 0);
-		adj_put(adj, w, "\\h'%du'", w);
+		wb_hmov(wb, SC_EM / 6);
 		break;
 	case '^':
-		w = eval("1m/12", 0);
-		adj_put(adj, w, "\\h'%du'", w);
+		wb_hmov(wb, SC_EM / 12);
 		break;
 	case '{':
 	case '}':
@@ -553,18 +544,16 @@ static void ren_cmd(struct adj *adj, int c, char *arg)
 	}
 }
 
-/* read one character and place it inside adj buffer */
-static int ren_char(struct adj *adj, int (*next)(void), void (*back)(int))
+/* read one character and place it inside wb buffer */
+void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 {
 	char c[GNLEN * 4];
 	char arg[ILNLEN];
-	struct glyph *g;
-	int zerowid = 0;
 	int w;
 	nextchar(c, next);
 	if (c[0] == ' ' || c[0] == '\n') {
-		adj_put(adj, charwid(dev_spacewid(), n_s), c);
-		return 0;
+		wb_put(wb, c);
+		return;
 	}
 	if (c[0] == '\\') {
 		nextchar(c + 1, next);
@@ -573,70 +562,44 @@ static int ren_char(struct adj *adj, int (*next)(void), void (*back)(int))
 			l += nextchar(c + 2 + l, next);
 			c[2 + l] = '\0';
 		} else if (c[1] == 'z') {
-			zerowid = 1;
-			nextchar(c, next);
-			if (c[0] == '\\') {
-				nextchar(c + 1, next);
-				if (c[1] == '(') {
-					nextchar(c + 2, next);
-					nextchar(c + strlen(c), next);
-				}
-			}
-		} else if (c[1] == 'c') {
-			if (adj == cadj)
-				ren_part = 1;
-			return 0;
-		} else if (strchr(" bDdfhkLlorsuvXxz0^|{}&", c[1])) {
+			w = wb_wid(wb);
+			ren_char(wb, next, back);
+			wb_hmov(wb, w - wb_wid(wb));
+			return;
+		} else if (strchr(" bcDdfhkLlorsuvXxz0^|{}&", c[1])) {
 			escarg_ren(arg, c[1], next, back);
-			ren_cmd(adj, c[1], arg);
-			return 0;
+			ren_cmd(wb, c[1], arg);
+			return;
 		}
 	}
-	if (ren_s != n_s) {
-		adj_swid(adj, charwid(dev_spacewid(), n_s));
-		adj_put(adj, 0, "\\s(%02d", n_s);
-		ren_s = n_s;
-	}
-	if (ren_f != n_f) {
-		adj_put(adj, 0, "\\f(%02d", n_f);
-		ren_f = n_f;
-	}
-	g = dev_glyph(c, n_f);
-	w = charwid(g ? g->wid : SC_DW, n_s);
-	adj_put(adj, w, "%s", c);
-	if (zerowid)
-		adj_put(adj, -w, "\\h'%du'", -w);
-	return g ? g->type : 0;
+	wb_put(wb, c);
 }
 
 /* read the argument of \w and push its width */
 int ren_wid(int (*next)(void), void (*back)(int))
 {
 	char delim[GNLEN];
-	struct adj *adj = adj_alloc();
 	int c, n;
-	int type = 0;
+	struct wb wb;
+	wb_init(&wb);
 	schar_read(delim, next);
-	adj_ll(adj, n_l);
 	odiv_beg();
 	c = next();
 	while (c >= 0 && c != '\n') {
 		back(c);
 		if (!schar_jump(delim, next, back))
 			break;
-		type |= ren_char(adj, next, back);
+		ren_char(&wb, next, back);
 		c = next();
 	}
 	odiv_end();
-	ren_f = -1;
-	ren_s = -1;
-	n = adj_wid(adj);
-	n_ct = type;
-	adj_free(adj);
+	n = wb_wid(&wb);
+	wb_wconf(&wb, &n_ct, &n_st, &n_sb);
+	wb_done(&wb);
 	return n;
 }
 
-static void ren_until(struct adj *adj, char *delim, int (*next)(void), void (*back)(int))
+static void ren_until(struct wb *wb, char *delim, int (*next)(void), void (*back)(int))
 {
 	int c;
 	c = next();
@@ -644,74 +607,78 @@ static void ren_until(struct adj *adj, char *delim, int (*next)(void), void (*ba
 		back(c);
 		if (!schar_jump(delim, next, back))
 			break;
-		ren_char(adj, next, back);
+		ren_char(wb, next, back);
 		c = next();
 	}
 	if (c == '\n')
 		back(c);
 }
 
-static void adj_cpy(struct adj *dst, struct adj *src, int left)
+static void wb_cpy(struct wb *dst, struct wb *src, int left)
 {
-	char buf[LNLEN];
-	int ll, li, lt, els_neg, els_pos;
-	int w;
-	adj_put(src, 0, "\n");
-	w = adj_fill(src, 0, 0, buf, &ll, &li, &lt, &els_neg, &els_pos);
-	adj_put(dst, left - adj_wid(dst), "\\h'%du'", left - adj_wid(dst));
-	adj_put(dst, w, "%s", buf);
-	adj_els(dst, els_neg);
-	adj_els(dst, els_pos);
+	wb_hmov(dst, left - wb_wid(dst));
+	wb_cat(dst, src);
 }
 
 void ren_tl(int (*next)(void), void (*back)(int))
 {
-	struct adj *adj = adj_alloc();
-	struct adj *tmp = adj_alloc();
+	struct adj *adj;
+	struct wb wb, wb2;
 	char delim[GNLEN];
-	adj_ll(tmp, n_lt);
-	adj_ll(adj, n_lt);
+	adj = adj_alloc();
+	wb_init(&wb);
+	wb_init(&wb2);
 	schar_read(delim, next);
 	/* the left-adjusted string */
-	ren_until(adj, delim, next, back);
+	ren_until(&wb2, delim, next, back);
+	wb_cpy(&wb, &wb2, 0);
 	/* the centered string */
-	ren_until(tmp, delim, next, back);
-	adj_cpy(adj, tmp, (n_lt - adj_wid(tmp)) / 2);
+	ren_until(&wb2, delim, next, back);
+	wb_cpy(&wb, &wb2, (n_lt - wb_wid(&wb2)) / 2);
 	/* the right-adjusted string */
-	ren_until(tmp, delim, next, back);
-	adj_cpy(adj, tmp, n_lt - adj_wid(tmp));
+	ren_until(&wb2, delim, next, back);
+	wb_cpy(&wb, &wb2, n_lt - wb_wid(&wb2));
 	/* flushing the line */
-	adj_put(adj, 0, "\n");
+	adj_ll(adj, n_lt);
+	adj_wb(adj, &wb);
+	adj_nl(adj);
 	ren_bradj(adj, 0, AD_L);
-	adj_free(tmp);
 	adj_free(adj);
+	wb_done(&wb2);
+	wb_done(&wb);
 }
 
 /* read characters from in.c and pass rendered lines to out.c */
 void render(void)
 {
+	struct wb *wb = &ren_wb;
 	int c;
 	n_nl = -1;
 	tr_first();
 	ren_first();			/* transition to the first page */
 	c = ren_next();
+	wb_init(wb);
 	while (c >= 0) {
-		if (!ren_part && (c == ' ' || c == '\n')) {
-			ren_back(c);
-			ren_char(cadj, ren_next, ren_back);
+		if (c == ' ' || c == '\n') {
+			adj_swid(cadj, charwid(dev_spacewid(), n_s));
+			adj_wb(cadj, wb);
+			if (!wb_part(wb)) {
+				if (c == '\n')
+					adj_nl(cadj);
+				else
+					adj_sp(cadj);
+			}
 		}
 		while (adj_full(cadj, !n_ce && n_u))
 			ren_br(0);
 		if (c == '\n')		/* end of input line */
 			n_lb = adj_wid(cadj);
-		if (c == '\n' && !ren_part)
+		if (c == '\n' && !wb_part(wb))
 			n_ce = MAX(0, n_ce - 1);
-		if (!ren_part && (c != ' ' && c != '\n')) {
+		if (c != ' ') {
 			ren_back(c);
-			ren_char(cadj, ren_next, ren_back);
+			ren_char(wb, ren_next, ren_back);
 		}
-		if (ren_part && c == '\n')
-			ren_part = 0;
 		c = ren_next();
 	}
 	ren_br(1);

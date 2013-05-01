@@ -14,7 +14,7 @@
 #define GNLEN		32	/* glyph name length */
 #define ILNLEN		256	/* line limit of input files */
 #define LNLEN		4000	/* line buffer length (ren.c/out.c) */
-#define NWORDS		1000	/* number of words in line buffer */
+#define NWORDS		256	/* number of words in line buffer */
 #define NARGS		9	/* number of macro arguments */
 #define RLEN		4	/* register/macro name */
 #define NPREV		16	/* environment stack depth */
@@ -25,7 +25,8 @@
 #define ESC_Q	"bCDhHlLNoSvwxX"	/* quoted escape sequences */
 #define ESC_P	"*fgkns"		/* 1 or 2-char escape sequences */
 
-#define MAX(a, b)	((a) > (b) ? (a) : (b))
+#define MIN(a, b)	((a) < (b) ? (a) : (b))
+#define MAX(a, b)	((a) < (b) ? (b) : (a))
 #define LEN(a)		(sizeof(a) / sizeof((a)[0]))
 
 /* number registers */
@@ -121,17 +122,88 @@ void cp_wid(int enable);	/* control inlining \w requests */
 #define cp_back		in_back	/* cp.c is stateless */
 void tr_first(void);		/* read until the first non-command line */
 
+/* variable length string buffer */
+struct sbuf {
+	char *s;
+	int sz;
+	int n;
+};
+
+void sbuf_init(struct sbuf *sbuf);
+void sbuf_done(struct sbuf *sbuf);
+char *sbuf_buf(struct sbuf *sbuf);
+void sbuf_add(struct sbuf *sbuf, int c);
+void sbuf_append(struct sbuf *sbuf, char *s);
+void sbuf_printf(struct sbuf *sbuf, char *s, ...);
+void sbuf_putnl(struct sbuf *sbuf);
+int sbuf_empty(struct sbuf *sbuf);
+
+/* word buffer */
+struct wb {
+	struct sbuf sbuf;
+	int f, s;		/* the last output font and size */
+	int part;		/* partial input (\c) */
+	int els_neg, els_pos;	/* extra line spacing */
+	int h, v;		/* current buffer vertical and horizontal positions */
+	int ct, sb, st;		/* \w registers */
+};
+
+void wb_init(struct wb *wb);
+void wb_done(struct wb *wb);
+void wb_reset(struct wb *wb);
+void wb_hmov(struct wb *wb, int n);
+void wb_vmov(struct wb *wb, int n);
+void wb_els(struct wb *wb, int els);
+void wb_etc(struct wb *wb, char *x);
+void wb_put(struct wb *wb, char *c);
+int wb_part(struct wb *wb);
+void wb_setpart(struct wb *wb);
+void wb_drawl(struct wb *wb, int h, int v);
+void wb_drawc(struct wb *wb, int r);
+void wb_drawe(struct wb *wb, int h, int v);
+void wb_drawa(struct wb *wb, int h1, int v1, int h2, int v2);
+void wb_drawxbeg(struct wb *wb, int c);
+void wb_drawxdot(struct wb *wb, int h, int v);
+void wb_drawxend(struct wb *wb);
+void wb_cat(struct wb *wb, struct wb *src);
+int wb_wid(struct wb *wb);
+int wb_empty(struct wb *wb);
+void wb_getels(struct wb *wb, int *els_neg, int *els_pos);
+void wb_wconf(struct wb *wb, int *ct, int *st, int *sb);
+
+/* adjustment */
+#define AD_L		0
+#define AD_B		1
+#define AD_C		3
+#define AD_R		5
+
+struct adj *adj_alloc(void);
+void adj_free(struct adj *adj);
+int adj_fill(struct adj *adj, int ad_b, int fill, struct sbuf *dst,
+		int *ll, int *in, int *ti, int *els_neg, int *els_pos);
+int adj_full(struct adj *adj, int fill);
+int adj_empty(struct adj *adj, int fill);
+int adj_wid(struct adj *adj);
+void adj_swid(struct adj *adj, int swid);
+void adj_ll(struct adj *adj, int ll);
+void adj_in(struct adj *adj, int in);
+void adj_ti(struct adj *adj, int ti);
+void adj_wb(struct adj *adj, struct wb *wb);
+void adj_nl(struct adj *adj);
+void adj_sp(struct adj *adj);
+
 /* rendering */
 void render(void);		/* read from in.c and print the output */
+void ren_char(struct wb *wb, int (*next)(void), void (*back)(int));
 int ren_wid(int (*next)(void), void (*back)(int));
 void ren_tl(int (*next)(void), void (*back)(int));
 void out_line(char *s);		/* output the given rendered line */
-int out_draw(char *s, char *cc);
 void out(char *s, ...);				/* output troff cmd */
-void ren_hline(struct adj *adj, char *arg);	/* horizontal line */
-void ren_vline(struct adj *adj, char *arg);	/* vertical line */
-void ren_bracket(struct adj *adj, char *arg);	/* \b */
-void ren_over(struct adj *adj, char *arg);	/* \o */
+void ren_hline(struct wb *wb, char *arg);	/* horizontal line */
+void ren_vline(struct wb *wb, char *arg);	/* vertical line */
+void ren_bracket(struct wb *wb, char *arg);	/* \b */
+void ren_over(struct wb *wb, char *arg);	/* \o */
+void ren_draw(struct wb *wb, char *arg);	/* \D */
 
 /* troff commands */
 void tr_bp(char **args);
@@ -171,45 +243,9 @@ char *utf8get(char *d, char *s);
 void schar_read(char *d, int (*next)(void));
 int schar_jump(char *d, int (*next)(void), void (*back)(int));
 
-/* variable length string buffer */
-struct sbuf {
-	char *s;
-	int sz;
-	int n;
-};
-
-void sbuf_init(struct sbuf *sbuf);
-void sbuf_done(struct sbuf *sbuf);
-char *sbuf_buf(struct sbuf *sbuf);
-void sbuf_add(struct sbuf *sbuf, int c);
-void sbuf_append(struct sbuf *sbuf, char *s);
-void sbuf_putnl(struct sbuf *sbuf);
-int sbuf_empty(struct sbuf *sbuf);
-
 /* diversions */
 #define DIV_BEG		".&<"
 #define DIV_END		".&>"
-
-/* adjustment */
-#define AD_L		0
-#define AD_B		1
-#define AD_C		3
-#define AD_R		5
-
-struct adj *adj_alloc(void);
-void adj_free(struct adj *adj);
-int adj_fill(struct adj *adj, int ad_b, int fill, char *dst,
-		int *ll, int *in, int *ti, int *els_neg, int *els_pos);
-void adj_put(struct adj *adj, int wid, char *s, ...);
-void adj_swid(struct adj *adj, int swid);
-int adj_full(struct adj *adj, int fill);
-int adj_empty(struct adj *adj, int fill);
-int adj_wid(struct adj *adj);
-void adj_ll(struct adj *adj, int ll);
-void adj_in(struct adj *adj, int in);
-void adj_ti(struct adj *adj, int ti);
-void adj_els(struct adj *adj, int els);
-void adj_conf(struct adj *adj, int *ll, int *in, int *ti);
 
 /* builtin number registers; n_X for .X register */
 #define REG(c1, c2)	((c1) * 256 + (c2))
@@ -231,6 +267,8 @@ void adj_conf(struct adj *adj, int *ll, int *in, int *ti);
 #define n_dl		(*nreg(REG('d', 'l')))
 #define n_dn		(*nreg(REG('d', 'n')))
 #define n_nl		(*nreg(REG('n', 'l')))
+#define n_sb		(*nreg(REG('s', 'b')))
+#define n_st		(*nreg(REG('s', 't')))
 #define n_pg		(*nreg(REG('%', '\0')))	/* % */
 #define n_lb		(*nreg(REG(0, 'b')))	/* input line beg */
 #define n_ce		(*nreg(REG(0, 'c')))	/* .ce remaining */

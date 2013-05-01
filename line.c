@@ -1,16 +1,41 @@
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include "xroff.h"
 
-/* horizontal and vertical line characters */
-static char *hs[] = {"_", "\\_", "\\-", "\\(ru", "\\(ul", "\\(rn", NULL};
-static char *vs[] = {"\\(bv", "\\(br", "|", NULL};
+static char *ln_s;
+
+static int ln_next(void)
+{
+	return *ln_s ? (unsigned char) *ln_s++ : -1;
+}
+
+static void ln_back(int c)
+{
+	ln_s--;
+}
+
+static char *ln_push(char *s)
+{
+	char *old_s = ln_s;
+	ln_s = s;
+	return old_s;
+}
+
+static void ln_pop(char *s)
+{
+	ln_s = s;
+}
 
 static int cwid(char *c)
 {
 	struct glyph *g = dev_glyph(c, n_f);
 	return charwid(g ? g->wid : SC_DW, n_s);
 }
+
+/* horizontal and vertical line characters */
+static char *hs[] = {"_", "\\_", "\\-", "\\(ru", "\\(ul", "\\(rn", NULL};
+static char *vs[] = {"\\(bv", "\\(br", "|", NULL};
 
 static int lchar(char *c, char **cs)
 {
@@ -20,17 +45,7 @@ static int lchar(char *c, char **cs)
 	return 0;
 }
 
-static void vmov(struct adj *adj, int w)
-{
-	adj_put(adj, w, "\\v'%du'", w);
-}
-
-static void hmov(struct adj *adj, int w)
-{
-	adj_put(adj, w, "\\h'%du'", w);
-}
-
-void ren_hline(struct adj *adj, char *arg)
+void ren_hline(struct wb *wb, char *arg)
 {
 	char *lc = "\\(ru";
 	int w, l, n, i, rem;
@@ -44,7 +59,7 @@ void ren_hline(struct adj *adj, char *arg)
 	w = cwid(lc);
 	/* negative length; moving backwards */
 	if (l < 0) {
-		hmov(adj, l);
+		wb_hmov(wb, l);
 		l = -l;
 	}
 	n = l / w;
@@ -53,25 +68,25 @@ void ren_hline(struct adj *adj, char *arg)
 	if (l < w) {
 		n = 1;
 		rem = 0;
-		hmov(adj, -(w - l) / 2);
+		wb_hmov(wb, -(w - l) / 2);
 	}
 	/* the initial gap */
 	if (rem) {
 		if (lchar(lc, hs)) {
-			adj_put(adj, w, "%s", lc);
-			hmov(adj, rem - w);
+			wb_put(wb, lc);
+			wb_hmov(wb, rem - w);
 		} else {
-			hmov(adj, rem);
+			wb_hmov(wb, rem);
 		}
 	}
 	for (i = 0; i < n; i++)
-		adj_put(adj, w, lc);
+		wb_put(wb, lc);
 	/* moving back */
 	if (l < w)
-		hmov(adj, -(w - l + 1) / 2);
+		wb_hmov(wb, -(w - l + 1) / 2);
 }
 
-void ren_vline(struct adj *adj, char *arg)
+void ren_vline(struct wb *wb, char *arg)
 {
 	char *lc = "\\(br";
 	int w, l, n, i, rem, hw, neg;
@@ -87,7 +102,7 @@ void ren_vline(struct adj *adj, char *arg)
 	hw = cwid(lc);		/* character width */
 	/* negative length; moving backwards */
 	if (l < 0) {
-		vmov(adj, l);
+		wb_vmov(wb, l);
 		l = -l;
 	}
 	n = l / w;
@@ -96,98 +111,132 @@ void ren_vline(struct adj *adj, char *arg)
 	if (l < w) {
 		n = 1;
 		rem = 0;
-		vmov(adj, -w + l / 2);
+		wb_vmov(wb, -w + l / 2);
 	}
 	/* the initial gap */
 	if (rem) {
 		if (lchar(lc, vs)) {
-			vmov(adj, w);
-			adj_put(adj, hw, "%s", lc);
-			hmov(adj, -hw);
-			vmov(adj, rem - w);
+			wb_vmov(wb, w);
+			wb_put(wb, lc);
+			wb_hmov(wb, -hw);
+			wb_vmov(wb, rem - w);
 		} else {
-			vmov(adj, rem);
+			wb_vmov(wb, rem);
 		}
 	}
 	for (i = 0; i < n; i++) {
-		vmov(adj, w);
-		adj_put(adj, hw, lc);
-		hmov(adj, -hw);
+		wb_vmov(wb, w);
+		wb_put(wb, lc);
+		wb_hmov(wb, -hw);
 	}
 	/* moving back */
 	if (l < w)
-		vmov(adj, l / 2);
+		wb_vmov(wb, l / 2);
 	if (neg)
-		vmov(adj, -l);
-	hmov(adj, hw);
+		wb_vmov(wb, -l);
+	wb_hmov(wb, hw);
 }
 
-static char *cutchar(char *d, char *s)
+void ren_bracket(struct wb *wb, char *arg)
 {
-	s = utf8get(d, s);
-	if (d[0] == '\\') {
-		s = utf8get(d + 1, s);
-		if (d[1] == '(') {
-			s = utf8get(d + 2, s);
-			s = utf8get(d + strlen(d), s);
-		}
-	}
-	return s;
-}
-
-static int maxwid(char *s)
-{
-	char c[GNLEN * 4];
-	int w = 0;
-	while (*s) {
-		s = cutchar(c, s);
-		if (cwid(c) > w)
-			w = cwid(c);
-	}
-	return w;
-}
-
-static int nchars(char *s)
-{
-	char c[GNLEN * 4];
-	int n = 0;
-	while (*s) {
-		s = cutchar(c, s);
+	struct wb wb2;
+	int n = 0, w = 0;
+	int c, center;
+	char *ln_prev = ln_push(arg);
+	wb_init(&wb2);
+	c = ln_next();
+	while (c >= 0) {
+		ln_back(c);
+		ren_char(&wb2, ln_next, ln_back);
+		if (wb_wid(&wb2) > w)
+			w = wb_wid(&wb2);
+		wb_hmov(&wb2, -wb_wid(&wb2));
+		wb_vmov(&wb2, SC_HT);
 		n++;
+		c = ln_next();
 	}
-	return n;
+	ln_pop(ln_prev);
+	center = -(n * SC_HT + SC_EM) / 2;
+	wb_vmov(wb, center + SC_HT);
+	wb_cat(wb, &wb2);
+	wb_done(&wb2);
+	wb_vmov(wb, center);
+	wb_hmov(wb, w);
 }
 
-void ren_bracket(struct adj *adj, char *arg)
+void ren_over(struct wb *wb, char *arg)
 {
-	char c[GNLEN * 4];
-	int ht, hc;
-	int w = maxwid(arg);
-	int n = nchars(arg);
-	ht = n * SC_HT;
-	hc = -(ht + SC_EM) / 2;
-	vmov(adj, hc + SC_HT);
-	while (*arg) {
-		arg = cutchar(c, arg);
-		adj_put(adj, cwid(arg), c);
-		hmov(adj, -cwid(c));
-		vmov(adj, SC_HT);
+	struct wb wb2, wb3;
+	int w = 0, wc;
+	int c;
+	char *ln_prev = ln_push(arg);
+	wb_init(&wb2);
+	wb_init(&wb3);
+	c = ln_next();
+	while (c >= 0) {
+		ln_back(c);
+		ren_char(&wb3, ln_next, ln_back);
+		wc = wb_wid(&wb3);
+		if (wc > w)
+			w = wc;
+		wb_hmov(&wb2, -wc / 2);
+		wb_cat(&wb2, &wb3);
+		wb_hmov(&wb2, -wc / 2);
+		c = ln_next();
 	}
-	hmov(adj, w);
-	vmov(adj, hc);
+	ln_pop(ln_prev);
+	wb_hmov(wb, w / 2);
+	wb_cat(wb, &wb2);
+	wb_hmov(wb, w / 2);
+	wb_done(&wb3);
+	wb_done(&wb2);
 }
 
-void ren_over(struct adj *adj, char *arg)
+static int tok_num(char **s, int scale)
 {
-	char c[GNLEN * 4];
-	int a;
-	int w = maxwid(arg);
-	while (*arg) {
-		arg = cutchar(c, arg);
-		a = (w - cwid(c) + 1) / 2;
-		hmov(adj, a);
-		adj_put(adj, cwid(arg), c);
-		hmov(adj, -cwid(c) - a);
+	char tok[ILNLEN];
+	char *d = tok;
+	while (isspace(**s))
+		(*s)++;
+	while (**s && !isspace(**s))
+		*d++ = *(*s)++;
+	*d = '\0';
+	return eval(tok, scale);
+}
+
+void ren_draw(struct wb *wb, char *s)
+{
+	int h1, h2, v1, v2;
+	int c = *s++;
+	switch (c) {
+	case 'l':
+		h1 = tok_num(&s, 'm');
+		v1 = tok_num(&s, 'v');
+		wb_drawl(wb, h1, v1);
+		break;
+	case 'c':
+		h1 = tok_num(&s, 'm');
+		wb_drawc(wb, h1);
+		break;
+	case 'e':
+		h1 = tok_num(&s, 'm');
+		v1 = tok_num(&s, 'v');
+		wb_drawe(wb, h1, v1);
+		break;
+	case 'a':
+		h1 = tok_num(&s, 'm');
+		v1 = tok_num(&s, 'v');
+		h2 = tok_num(&s, 'm');
+		v2 = tok_num(&s, 'v');
+		wb_drawa(wb, h1, v1, h2, v2);
+		break;
+	default:
+		wb_drawxbeg(wb, c);
+		while (*s) {
+			h1 = tok_num(&s, 'm');
+			v1 = tok_num(&s, 'v');
+			wb_drawxdot(wb, h1, v1);
+		}
+		wb_drawxend(wb);
 	}
-	hmov(adj, w);
 }

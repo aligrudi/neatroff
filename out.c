@@ -110,84 +110,51 @@ static char *escarg(char *s, char *d, int cmd)
 	return s;
 }
 
-static char *tok_str(char *d, char *s)
-{
-	while (isspace(*s))
-		s++;
-	while (*s && !isspace(*s))
-		*d++ = *s++;
-	*d = '\0';
-	return s;
-}
-
-static char *tok_num(int *d, char *s, char **cc, int scale)
+static int tok_num(char **s, int scale)
 {
 	char tok[ILNLEN];
-	s = tok_str(tok, s);
-	*d = eval(tok, scale);
-	if (*cc)
-		*cc += sprintf(*cc, " %du", *d);
-	else
-		outnn(" %d", *d);
-	return s;
+	char *d = tok;
+	while (isspace(**s))
+		(*s)++;
+	while (**s && !isspace(**s))
+		*d++ = *(*s)++;
+	*d = '\0';
+	return eval(tok, scale);
 }
 
-/* parse \D arguments and copy them into cc; return the width */
-int out_draw(char *s, char *cc)
+static void out_draw(char *s)
 {
-	int h1, h2, v1, v2;
-	int hd = 0, vd = 0;
 	int c = *s++;
-	if (cc)
-		*cc++ = c;
-	else
-		out("D%c", c);
+	out("D%c", c);
 	switch (c) {
 	case 'l':
-		s = tok_num(&h1, s, &cc, 'm');
-		s = tok_num(&v1, s, &cc, 'v');
-		if (!cc)			/* dpost requires this */
-			outnn(" .");
-		hd = h1;
-		vd = v1;
+		outnn(" %d", tok_num(&s, 'm'));
+		outnn(" %d", tok_num(&s, 'v'));
+		outnn(" .");			/* dpost requires this */
 		break;
 	case 'c':
-		s = tok_num(&h1, s, &cc, 'm');
-		hd = h1;
-		vd = 0;
+		outnn(" %d", tok_num(&s, 'm'));
 		break;
 	case 'e':
-		s = tok_num(&h1, s, &cc, 'm');
-		s = tok_num(&v1, s, &cc, 'v');
-		hd = h1;
-		vd = 0;
+		outnn(" %d", tok_num(&s, 'm'));
+		outnn(" %d", tok_num(&s, 'v'));
 		break;
 	case 'a':
-		s = tok_num(&h1, s, &cc, 'm');
-		s = tok_num(&v1, s, &cc, 'v');
-		s = tok_num(&h2, s, &cc, 'm');
-		s = tok_num(&v2, s, &cc, 'v');
-		hd = h1 + h2;
-		vd = v1 + v2;
+		outnn(" %d", tok_num(&s, 'm'));
+		outnn(" %d", tok_num(&s, 'v'));
+		outnn(" %d", tok_num(&s, 'm'));
+		outnn(" %d", tok_num(&s, 'v'));
 		break;
 	default:
-		s = tok_num(&h1, s, &cc, 'm');
-		s = tok_num(&v1, s, &cc, 'v');
-		hd = h1;
-		vd = v1;
+		outnn(" %d", tok_num(&s, 'm'));
+		outnn(" %d", tok_num(&s, 'v'));
 		while (*s) {
-			s = tok_num(&h2, s, &cc, 'm');
-			s = tok_num(&v2, s, &cc, 'v');
-			hd += h2;
-			vd += v2;
+			outnn(" %d", tok_num(&s, 'm'));
+			outnn(" %d", tok_num(&s, 'v'));
 		}
 		break;
 	}
-	if (cc)
-		*cc = '\0';
-	else
-		outnn("\n");
-	return hd;
+	outnn("\n");
 }
 
 void out_line(char *s)
@@ -207,7 +174,7 @@ void out_line(char *s)
 			} else if (strchr("DfhsvX", c[1])) {
 				s = escarg(s, arg, c[1]);
 				if (c[1] == 'D') {
-					out_draw(arg, NULL);
+					out_draw(arg);
 					continue;
 				}
 				if (c[1] == 'f') {

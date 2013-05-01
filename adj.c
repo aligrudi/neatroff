@@ -1,4 +1,3 @@
-#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,8 +6,7 @@
 #define ADJ_LLEN(a)	MAX(0, (a)->ll - ((a)->lt >= 0 ? (a)->lt : (a)->li))
 
 struct word {
-	int beg;	/* word beginning offset */
-	int end;	/* word ending offset */
+	struct sbuf s;
 	int wid;	/* word width */
 	int gap;	/* the space before this word */
 	int els_neg;	/* pre-extra line space */
@@ -16,12 +14,9 @@ struct word {
 };
 
 struct adj {
-	char buf[LNLEN];		/* line buffer */
-	int len;
 	struct word words[NWORDS];	/* words in buf */
 	int nwords;
 	int wid;			/* total width of buf */
-	struct word *word;		/* current word */
 	int swid;			/* current space width */
 	int gap;			/* space before the next word */
 	int nls;			/* newlines before the next word */
@@ -67,7 +62,7 @@ int adj_full(struct adj *a, int fill)
 		return a->nls;
 	if (adj_fullnf(a))
 		return 1;
-	return !a->word && a->wid > ADJ_LLEN(a);
+	return a->wid > ADJ_LLEN(a);
 }
 
 /* is the adjustment buffer empty? */
@@ -83,45 +78,36 @@ void adj_swid(struct adj *adj, int swid)
 }
 
 /* move n words from the adjustment buffer to s */
-static int adj_move(struct adj *a, int n, char *s, int *els_neg, int *els_pos)
+static int adj_move(struct adj *a, int n, struct sbuf *s, int *els_neg, int *els_pos)
 {
 	struct word *cur;
-	int lendiff;
 	int w = 0;
 	int i;
 	*els_neg = 0;
 	*els_pos = 0;
 	for (i = 0; i < n; i++) {
 		cur = &a->words[i];
-		s += sprintf(s, "\\h'%du'", cur->gap);
-		memcpy(s, a->buf + cur->beg, cur->end - cur->beg);
-		s += cur->end - cur->beg;
+		sbuf_printf(s, "\\h'%du'", cur->gap);
+		sbuf_append(s, sbuf_buf(&cur->s));
+		sbuf_done(&cur->s);
 		w += cur->wid + cur->gap;
 		if (cur->els_neg < *els_neg)
 			*els_neg = cur->els_neg;
 		if (cur->els_pos > *els_pos)
 			*els_pos = cur->els_pos;
 	}
-	*s = '\0';
 	if (!n)
 		return 0;
-	lendiff = n < a->nwords ? a->words[n].beg : a->len;
-	memmove(a->buf, a->buf + lendiff, a->len - lendiff + 1);
-	a->len -= lendiff;
 	a->nwords -= n;
 	memmove(a->words, a->words + n, a->nwords * sizeof(a->words[0]));
 	a->wid -= w;
-	for (i = 0; i < a->nwords; i++) {
-		a->words[i].beg -= lendiff;
-		a->words[i].end -= lendiff;
-	}
 	if (a->nwords)		/* apply the new .l and .i */
 		adj_confupdate(a);
 	return w;
 }
 
 /* fill and copy a line into s */
-int adj_fill(struct adj *a, int ad_b, int fill, char *s,
+int adj_fill(struct adj *a, int ad_b, int fill, struct sbuf *s,
 		int *ll, int *in, int *ti, int *els_neg, int *els_pos)
 {
 	int adj_div, adj_rem;
@@ -154,66 +140,41 @@ int adj_fill(struct adj *a, int ad_b, int fill, char *s,
 	return w;
 }
 
-static void adj_wordbeg(struct adj *adj, int gap)
+void adj_sp(struct adj *adj)
 {
-	adj->word = &adj->words[adj->nwords++];
-	adj->word->beg = adj->len;
-	adj->word->wid = 0;
-	adj->word->gap = gap;
-	adj->wid += gap;
-	adj->word->els_neg = 0;
-	adj->word->els_pos = 0;
+	adj->gap += adj->swid;
 }
 
-static void adj_wordend(struct adj *adj)
+void adj_nl(struct adj *adj)
 {
-	if (adj->word)
-		adj->word->end = adj->len;
-	adj->word = NULL;
+	adj->nls++;
+	adj->gap = 0;
 }
 
-/* insert s into the adjustment buffer */
-void adj_put(struct adj *adj, int wid, char *s, ...)
+static void adj_word(struct adj *adj, struct wb *wb)
 {
-	va_list ap;
-	if (!strcmp(s, " ")) {
-		adj_wordend(adj);
-		adj->gap += wid;
-		adj->swid = wid;
+	struct word *cur = &adj->words[adj->nwords++];
+	cur->wid = wb_wid(wb);
+	cur->gap = adj->gap;
+	adj->wid += cur->wid + adj->gap;
+	wb_getels(wb, &cur->els_neg, &cur->els_pos);
+	sbuf_init(&cur->s);
+	sbuf_append(&cur->s, sbuf_buf(&wb->sbuf));
+	wb_reset(wb);
+}
+
+/* insert wb into the adjustment buffer */
+void adj_wb(struct adj *adj, struct wb *wb)
+{
+	if (wb_empty(wb) || adj->nwords == NWORDS)
 		return;
-	}
-	if (!strcmp(s, "\n")) {
-		adj_wordend(adj);
-		adj->nls++;
-		adj->gap = 0;
-		adj->swid = wid;
-		return;
-	}
 	if (!adj->nwords)	/* apply the new .l and .i */
 		adj_confupdate(adj);
-	if (!adj->word) {
-		if (adj->nls && !adj->gap && adj->nwords >= 1)
-			adj->gap = adj->swid;
-		adj_wordbeg(adj, adj->gap);
-		adj->nls = 0;
-		adj->gap = 0;
-	}
-	va_start(ap, s);
-	adj->len += vsprintf(adj->buf + adj->len, s, ap);
-	va_end(ap);
-	adj->word->wid += wid;
-	adj->wid += wid;
-}
-
-/* extra line-space requests */
-void adj_els(struct adj *adj, int els)
-{
-	if (!adj->word)
-		adj_put(adj, 0, "");
-	if (els < adj->word->els_neg)
-		adj->word->els_neg = els;
-	if (els > adj->word->els_pos)
-		adj->word->els_pos = els;
+	if (adj->nls && !adj->gap && adj->nwords >= 1)
+		adj->gap = adj->swid;
+	adj_word(adj, wb);
+	adj->nls = 0;
+	adj->gap = 0;
 }
 
 struct adj *adj_alloc(void)
