@@ -33,16 +33,21 @@ static int cwid(char *c)
 	return charwid(g ? g->wid : SC_DW, n_s);
 }
 
-/* horizontal and vertical line characters */
-static char *hs[] = {"_", "\\_", "\\-", "\\(ru", "\\(ul", "\\(rn", NULL};
-static char *vs[] = {"\\(bv", "\\(br", "|", NULL};
-
-static int lchar(char *c, char **cs)
+static int hchar(char *c)
 {
-	while (*cs)
-		if (!strcmp(*cs++, c))
-			return 1;
-	return 0;
+	if (c[0] != '\\')
+		return c[0] == '_';
+	if (c[1] != '(')
+		return c[1] == '_' || c[1] == '-';
+	return (c[2] == 'r' && c[3] == 'u') || (c[2] == 'u' && c[3] == 'l') ||
+		(c[2] == 'r' && c[3] == 'n');
+}
+
+static int vchar(char *c)
+{
+	if (c[0] != '\\' || c[1] != '(')
+		return c[0] == '_';
+	return (c[2] == 'b' && c[3] == 'v') || (c[2] == 'b' && c[3] == 'r');
 }
 
 void ren_hline(struct wb *wb, char *arg)
@@ -72,7 +77,7 @@ void ren_hline(struct wb *wb, char *arg)
 	}
 	/* the initial gap */
 	if (rem) {
-		if (lchar(lc, hs)) {
+		if (hchar(lc)) {
 			wb_put(wb, lc);
 			wb_hmov(wb, rem - w);
 		} else {
@@ -115,7 +120,7 @@ void ren_vline(struct wb *wb, char *arg)
 	}
 	/* the initial gap */
 	if (rem) {
-		if (lchar(lc, vs)) {
+		if (vchar(lc)) {
 			wb_vmov(wb, w);
 			wb_put(wb, lc);
 			wb_hmov(wb, -hw);
