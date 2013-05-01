@@ -125,9 +125,9 @@ struct glyph *dev_glyph(char *c, int fn)
 {
 	struct glyph *g;
 	int i;
-	if (c[0] == '\\' && c[1] == '\\')
+	if (c[0] == c_ec && c[1] == c_ec)
 		c++;
-	if (c[0] == '\\' && c[1] == '(')
+	if (c[0] == c_ec && c[1] == '(')
 		c += 2;
 	g = font_find(fn_font[fn], c);
 	if (g)

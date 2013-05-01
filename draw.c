@@ -35,7 +35,7 @@ static int cwid(char *c)
 
 static int hchar(char *c)
 {
-	if (c[0] != '\\')
+	if (c[0] != c_ec)
 		return c[0] == '_';
 	if (c[1] != '(')
 		return c[1] == '_' || c[1] == '-';
@@ -45,22 +45,22 @@ static int hchar(char *c)
 
 static int vchar(char *c)
 {
-	if (c[0] != '\\' || c[1] != '(')
+	if (c[0] != c_ec || c[1] != '(')
 		return c[0] == '_';
 	return (c[2] == 'b' && c[3] == 'v') || (c[2] == 'b' && c[3] == 'r');
 }
 
 void ren_hline(struct wb *wb, char *arg)
 {
-	char *lc = "\\(ru";
+	char lc[GNLEN] = {c_ec, '(', 'r', 'u'};
 	int w, l, n, i, rem;
 	l = eval_up(&arg, 'm');
 	if (!l)
 		return;
-	if (arg[0] == '\\' && arg[1] == '&')	/* \& can be used as a separator */
+	if (arg[0] == c_ec && arg[1] == '&')	/* \& can be used as a separator */
 		arg += 2;
 	if (*arg)
-		lc = arg;
+		strcpy(lc, arg);
 	w = cwid(lc);
 	/* negative length; moving backwards */
 	if (l < 0) {
@@ -93,16 +93,16 @@ void ren_hline(struct wb *wb, char *arg)
 
 void ren_vline(struct wb *wb, char *arg)
 {
-	char *lc = "\\(br";
+	char lc[GNLEN] = {c_ec, '(', 'b', 'r'};
 	int w, l, n, i, rem, hw, neg;
 	l = eval_up(&arg, 'm');
 	if (!l)
 		return;
 	neg = l < 0;
-	if (arg[0] == '\\' && arg[1] == '&')	/* \& can be used as a separator */
+	if (arg[0] == c_ec && arg[1] == '&')	/* \& can be used as a separator */
 		arg += 2;
 	if (*arg)
-		lc = arg;
+		strcpy(lc, arg);
 	w = SC_HT;	/* character height */
 	hw = cwid(lc);		/* character width */
 	/* negative length; moving backwards */

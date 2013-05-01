@@ -6,6 +6,9 @@
 
 static int tr_nl = 1;
 static int c_pc = '%';		/* page number character */
+int c_ec = '\\';
+int c_cc = '.';
+int c_c2 = '\'';
 
 /* skip everything until the end of line */
 static void jmp_eol(void)
@@ -158,7 +161,7 @@ void schar_read(char *d, int (*next)(void))
 {
 	d[0] = next();
 	d[1] = '\0';
-	if (d[0] == '\\') {
+	if (d[0] == c_ec) {
 		d[1] = next();
 		d[2] = '\0';
 		if (d[1] == '(') {
@@ -367,6 +370,26 @@ static void tr_tl(char **args)
 	} while (c >= 0 && c != '\n');
 }
 
+static void tr_ec(char **args)
+{
+	c_ec = args[1] ? args[1][0] : '\\';
+}
+
+static void tr_cc(char **args)
+{
+	c_ec = args[1] ? args[1][0] : '.';
+}
+
+static void tr_c2(char **args)
+{
+	c_ec = args[1] ? args[1][0] : '\'';
+}
+
+static void tr_eo(char **args)
+{
+	c_ec = -1;
+}
+
 static char *arg_regname(char *s, int len)
 {
 	char *e = s + 2;
@@ -534,13 +557,15 @@ static struct cmd {
 	void (*f)(char **args);
 	int (*args)(char **args, char *buf, int len);
 } cmds[] = {
-	{DIV_BEG + 1, tr_divbeg},
-	{DIV_END + 1, tr_divend},
+	{DIV_BEG, tr_divbeg},
+	{DIV_END, tr_divend},
 	{"ad", tr_ad},
 	{"am", tr_de, mkargs_reg1},
 	{"as", tr_as, mkargs_ds},
 	{"bp", tr_bp},
 	{"br", tr_br},
+	{"c2", tr_c2},
+	{"cc", tr_cc},
 	{"ce", tr_ce},
 	{"ch", tr_ch},
 	{"da", tr_di},
@@ -548,7 +573,9 @@ static struct cmd {
 	{"di", tr_di},
 	{"ds", tr_ds, mkargs_ds},
 	{"dt", tr_dt},
+	{"ec", tr_ec},
 	{"el", tr_el, mkargs_null},
+	{"eo", tr_eo},
 	{"ev", tr_ev},
 	{"ex", tr_ex},
 	{"fi", tr_fi},
@@ -597,7 +624,7 @@ int tr_next(void)
 	char cmd[RLEN];
 	char buf[LNLEN];
 	struct cmd *req;
-	while (tr_nl && (c == '.' || c == '\'')) {
+	while (tr_nl && (c == c_cc || c == c_c2)) {
 		nl = 1;
 		memset(args, 0, sizeof(args));
 		args[0] = cmd;

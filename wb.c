@@ -27,11 +27,11 @@ static void wb_stsb(struct wb *wb)
 static void wb_font(struct wb *wb)
 {
 	if (wb->f != n_f) {
-		sbuf_printf(&wb->sbuf, "\\f(%02d", n_f);
+		sbuf_printf(&wb->sbuf, "%cf(%02d", c_ec, n_f);
 		wb->f = n_f;
 	}
 	if (wb->s != n_s) {
-		sbuf_printf(&wb->sbuf, "\\s(%02d", n_s);
+		sbuf_printf(&wb->sbuf, "%cs(%02d", c_ec, n_s);
 		wb->s = n_s;
 	}
 	wb_stsb(wb);
@@ -40,13 +40,13 @@ static void wb_font(struct wb *wb)
 void wb_hmov(struct wb *wb, int n)
 {
 	wb->h += n;
-	sbuf_printf(&wb->sbuf, "\\h'%du'", n);
+	sbuf_printf(&wb->sbuf, "%ch'%du'", c_ec, n);
 }
 
 void wb_vmov(struct wb *wb, int n)
 {
 	wb->v += n;
-	sbuf_printf(&wb->sbuf, "\\v'%du'", n);
+	sbuf_printf(&wb->sbuf, "%cv'%du'", c_ec, n);
 }
 
 void wb_els(struct wb *wb, int els)
@@ -60,7 +60,7 @@ void wb_els(struct wb *wb, int els)
 void wb_etc(struct wb *wb, char *x)
 {
 	wb_font(wb);
-	sbuf_printf(&wb->sbuf, "\\X%s", x);
+	sbuf_printf(&wb->sbuf, "%cX%s", c_ec, x);
 }
 
 void wb_put(struct wb *wb, char *c)
@@ -95,7 +95,7 @@ void wb_setpart(struct wb *wb)
 void wb_drawl(struct wb *wb, int h, int v)
 {
 	wb_font(wb);
-	sbuf_printf(&wb->sbuf, "\\D'l %du %du'", h, v);
+	sbuf_printf(&wb->sbuf, "%cD'l %du %du'", c_ec, h, v);
 	wb->h += h;
 	wb->v += v;
 	wb_stsb(wb);
@@ -104,21 +104,21 @@ void wb_drawl(struct wb *wb, int h, int v)
 void wb_drawc(struct wb *wb, int r)
 {
 	wb_font(wb);
-	sbuf_printf(&wb->sbuf, "\\D'c %du'", r);
+	sbuf_printf(&wb->sbuf, "%cD'c %du'", c_ec, r);
 	wb->h += r;
 }
 
 void wb_drawe(struct wb *wb, int h, int v)
 {
 	wb_font(wb);
-	sbuf_printf(&wb->sbuf, "\\D'e %du %du'", h, v);
+	sbuf_printf(&wb->sbuf, "%cD'e %du %du'", c_ec, h, v);
 	wb->h += h;
 }
 
 void wb_drawa(struct wb *wb, int h1, int v1, int h2, int v2)
 {
 	wb_font(wb);
-	sbuf_printf(&wb->sbuf, "\\D'a %du %du %du %du'", h1, v1, h2, v2);
+	sbuf_printf(&wb->sbuf, "%cD'a %du %du %du %du'", c_ec, h1, v1, h2, v2);
 	wb->h += h1 + h2;
 	wb->v += v1 + v2;
 	wb_stsb(wb);
@@ -127,7 +127,7 @@ void wb_drawa(struct wb *wb, int h1, int v1, int h2, int v2)
 void wb_drawxbeg(struct wb *wb, int c)
 {
 	wb_font(wb);
-	sbuf_printf(&wb->sbuf, "\\D'%c", c);
+	sbuf_printf(&wb->sbuf, "%cD'%c", c_ec, c);
 }
 
 void wb_drawxdot(struct wb *wb, int h, int v)

@@ -51,7 +51,7 @@ void tr_di(char **args)
 		cdiv->treg = -1;
 		if (args[0][2] == 'a' && str_get(cdiv->reg))	/* .da */
 			sbuf_append(&cdiv->sbuf, str_get(cdiv->reg));
-		sbuf_append(&cdiv->sbuf, DIV_BEG "\n");
+		sbuf_printf(&cdiv->sbuf, "%c%s\n", c_cc, DIV_BEG);
 		cdiv->prev_d = n_d;
 		cdiv->prev_h = n_h;
 		cdiv->prev_mk = n_mk;
@@ -62,7 +62,7 @@ void tr_di(char **args)
 		n_ns = 0;
 	} else if (cdiv) {
 		sbuf_putnl(&cdiv->sbuf);
-		sbuf_append(&cdiv->sbuf, DIV_END "\n");
+		sbuf_printf(&cdiv->sbuf, "%c%s\n", c_cc, DIV_END);
 		str_set(cdiv->reg, sbuf_buf(&cdiv->sbuf));
 		sbuf_done(&cdiv->sbuf);
 		n_dl = cdiv->dl;
@@ -143,7 +143,7 @@ static void ren_sp(int n)
 static void push_ne(void)
 {
 	char buf[32];
-	sprintf(buf, ".ne %du\n", n_p);
+	sprintf(buf, "%cne %du\n", c_cc, n_p);
 	in_pushnl(buf, NULL);
 }
 
@@ -203,7 +203,7 @@ static void ren_line(char *s, int w, int ad, int ll, int li, int lt)
 			cdiv->dl = w;
 		ljust += lt >= 0 ? lt : li;
 		if (ljust) {
-			sprintf(cmd, "\\h'%du'", ljust);
+			sprintf(cmd, "%ch'%du'", c_ec, ljust);
 			sbuf_append(&cdiv->sbuf, cmd);
 		}
 		sbuf_append(&cdiv->sbuf, s);
@@ -260,14 +260,14 @@ static int ren_br(int force)
 
 void tr_br(char **args)
 {
-	if (args[0][0] == '.')
+	if (args[0][0] == c_cc)
 		ren_br(1);
 }
 
 void tr_sp(char **args)
 {
 	int traps = 0;
-	if (args[0][0] == '.')
+	if (args[0][0] == c_cc)
 		traps = ren_br(1);
 	if (!n_ns && !traps)
 		down(args[1] ? eval(args[1], 'v') : n_v);
@@ -324,11 +324,12 @@ void tr_ne(char **args)
 
 void tr_bp(char **args)
 {
+	char br[] = {c_cc, 'b', 'r', '\n'};
 	if (!cdiv && (args[1] || !n_ns)) {
 		if (!bp_force)
 			push_ne();
-		if (args[0][0] == '.')
-			in_pushnl(".br\n", NULL);
+		if (args[0][0] == c_cc)
+			in_pushnl(br, NULL);
 		bp_force = 1;
 		if (args[1])
 			bp_next = eval_re(args[1], n_pg, 0);
@@ -364,7 +365,7 @@ void tr_ll(char **args)
 void tr_in(char **args)
 {
 	int in = args[1] ? eval_re(args[1], n_i, 'm') : n_i0;
-	if (args[0][0] == '.')
+	if (args[0][0] == c_cc)
 		ren_br(1);
 	n_i0 = n_i;
 	n_i = MAX(0, in);
@@ -374,7 +375,7 @@ void tr_in(char **args)
 
 void tr_ti(char **args)
 {
-	if (args[0][0] == '.')
+	if (args[0][0] == c_cc)
 		ren_br(1);
 	if (args[1])
 		adj_ti(cadj, eval_re(args[1], n_i, 'm'));
@@ -405,21 +406,21 @@ void tr_fp(char **args)
 
 void tr_nf(char **args)
 {
-	if (args[0][0] == '.')
+	if (args[0][0] == c_cc)
 		ren_br(1);
 	n_u = 0;
 }
 
 void tr_fi(char **args)
 {
-	if (args[0][0] == '.')
+	if (args[0][0] == c_cc)
 		ren_br(1);
 	n_u = 1;
 }
 
 void tr_ce(char **args)
 {
-	if (args[0][0] == '.')
+	if (args[0][0] == c_cc)
 		ren_br(1);
 	n_ce = args[1] ? atoi(args[1]) : 1;
 }
@@ -555,7 +556,7 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 		wb_put(wb, c);
 		return;
 	}
-	if (c[0] == '\\') {
+	if (c[0] == c_ec) {
 		nextchar(c + 1, next);
 		if (c[1] == '(') {
 			int l = nextchar(c + 2, next);

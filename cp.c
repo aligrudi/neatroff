@@ -64,7 +64,7 @@ static int cp_raw(void)
 	if (in_top() >= 0)
 		return in_next();
 	c = in_next();
-	if (c == '\\') {
+	if (c == c_ec) {
 		c = in_next();
 		if (c == '\n')
 			return in_next();
@@ -76,7 +76,7 @@ static int cp_raw(void)
 			if (cp_sblk[--cp_nblk])
 				return cp_raw();
 		cp_back(c);
-		return '\\';
+		return c_ec;
 	}
 	return c;
 }
@@ -87,7 +87,7 @@ int cp_next(void)
 	if (in_top() >= 0)
 		return in_next();
 	c = cp_raw();
-	if (c == '\\') {
+	if (c == c_ec) {
 		c = cp_raw();
 		if (c == '"') {
 			while (c >= 0 && c != '\n')
@@ -106,7 +106,7 @@ int cp_next(void)
 			c = cp_next();
 		} else {
 			cp_back(c);
-			c = '\\';
+			c = c_ec;
 		}
 	}
 	return c;
@@ -119,7 +119,7 @@ void cp_blk(int skip)
 	do {
 		c = skip ? cp_raw() : cp_next();
 	} while (c == ' ' || c == '\t');
-	if (c == '\\' && in_top() == '{') {	/* a troff \{ \} block */
+	if (c == c_ec && in_top() == '{') {	/* a troff \{ \} block */
 		if (skip) {
 			while (skip && cp_nblk > nblk && c >= 0)
 				c = cp_raw();

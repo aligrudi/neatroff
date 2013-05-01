@@ -87,7 +87,7 @@ static int adj_move(struct adj *a, int n, struct sbuf *s, int *els_neg, int *els
 	*els_pos = 0;
 	for (i = 0; i < n; i++) {
 		cur = &a->words[i];
-		sbuf_printf(s, "\\h'%du'", cur->gap);
+		sbuf_printf(s, "%ch'%du'", c_ec, cur->gap);
 		sbuf_append(s, sbuf_buf(&cur->s));
 		sbuf_done(&cur->s);
 		w += cur->wid + cur->gap;

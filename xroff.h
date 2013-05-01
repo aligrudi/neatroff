@@ -29,6 +29,11 @@
 #define MAX(a, b)	((a) < (b) ? (b) : (a))
 #define LEN(a)		(sizeof(a) / sizeof((a)[0]))
 
+/* special characters */
+extern int c_ec;	/* escape character (\) */
+extern int c_cc;	/* basic control character (.) */
+extern int c_c2;	/* no-break control character (') */
+
 /* number registers */
 int num_get(int id, int inc);
 void num_set(int id, int val);
@@ -244,8 +249,8 @@ void schar_read(char *d, int (*next)(void));
 int schar_jump(char *d, int (*next)(void), void (*back)(int));
 
 /* diversions */
-#define DIV_BEG		".&<"
-#define DIV_END		".&>"
+#define DIV_BEG		"&<"
+#define DIV_END		"&>"
 
 /* builtin number registers; n_X for .X register */
 #define REG(c1, c2)	((c1) * 256 + (c2))

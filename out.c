@@ -164,12 +164,12 @@ void out_line(char *s)
 	char arg[ILNLEN];
 	while (*s) {
 		s = utf8get(c, s);
-		if (c[0] == '\\') {
+		if (c[0] == c_ec) {
 			s = utf8get(c + 1, s);
 			if (c[1] == '(') {
 				s = utf8get(c + 2, s);
 				s = utf8get(c + strlen(c), s);
-			} else if (c[1] == '\\') {
+			} else if (c[1] == c_ec) {
 				c[1] = '\0';
 			} else if (strchr("DfhsvX", c[1])) {
 				s = escarg(s, arg, c[1]);
@@ -203,7 +203,7 @@ void out_line(char *s)
 		if (utf8len(c[0]) == strlen(c))
 			outnn("c%s%s", c, c[1] ? "\n" : "");
 		else
-			out("C%s\n", c[0] == '\\' && c[1] == '(' ? c + 2 : c);
+			out("C%s\n", c[0] == c_ec && c[1] == '(' ? c + 2 : c);
 		outnn("h%d", charwid(g ? g->wid : SC_DW, o_s));
 	}
 }
