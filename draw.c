@@ -95,7 +95,7 @@ void ren_vline(struct wb *wb, char *arg)
 {
 	char lc[GNLEN] = {c_ec, '(', 'b', 'r'};
 	int w, l, n, i, rem, hw, neg;
-	l = eval_up(&arg, 'm');
+	l = eval_up(&arg, 'v');
 	if (!l)
 		return;
 	neg = l < 0;
