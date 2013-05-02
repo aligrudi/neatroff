@@ -161,6 +161,10 @@ void schar_read(char *d, int (*next)(void))
 {
 	d[0] = next();
 	d[1] = '\0';
+	if (d[0] == c_ni) {
+		d[1] = next();
+		d[2] = '\0';
+	}
 	if (d[0] == c_ec) {
 		d[1] = next();
 		d[2] = '\0';

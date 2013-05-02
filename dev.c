@@ -125,7 +125,7 @@ struct glyph *dev_glyph(char *c, int fn)
 {
 	struct glyph *g;
 	int i;
-	if (c[0] == c_ec && c[1] == c_ec)
+	if ((c[0] == c_ec || c[0] == c_ni) && c[1] == c_ec)
 		c++;
 	if (c[0] == c_ec && c[1] == '(')
 		c += 2;

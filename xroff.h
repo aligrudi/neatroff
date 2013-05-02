@@ -33,6 +33,7 @@
 extern int c_ec;	/* escape character (\) */
 extern int c_cc;	/* basic control character (.) */
 extern int c_c2;	/* no-break control character (') */
+#define c_ni	3	/* non-interpreted copy mode escape */
 
 /* number registers */
 int num_get(int id, int inc);

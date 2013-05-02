@@ -114,12 +114,7 @@ static int in_read(void)
 			return c;
 		in_pop();
 	}
-	if (!buf)
-		return -1;
-	/* replacing \\ with \ only for buffers inserted via in_push() */
-	if (buf->buf[buf->pos] == c_ec && buf->buf[buf->pos + 1] == c_ec)
-		buf->pos++;
-	return (unsigned char) buf->buf[buf->pos++];
+	return buf ? (unsigned char) buf->buf[buf->pos++] : -1;
 }
 
 int in_next(void)

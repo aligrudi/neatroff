@@ -199,6 +199,10 @@ void out_line(char *s)
 				}
 			}
 		}
+		if (c[0] == c_ni)
+			s = utf8get(c, s);
+		if (c[0] == '\t' || c[0] == '')
+			continue;
 		g = dev_glyph(c, o_f);
 		if (utf8len(c[0]) == strlen(c))
 			outnn("c%s%s", c, c[1] ? "\n" : "");

@@ -573,6 +573,8 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 			return;
 		}
 	}
+	if (c[0] == c_ni)
+		nextchar(c + 1, next);
 	wb_put(wb, c);
 }
 

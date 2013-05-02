@@ -74,6 +74,11 @@ void wb_put(struct wb *wb, char *c)
 		wb_hmov(wb, charwid(dev_spacewid(), n_s));
 		return;
 	}
+	if (c[0] == '\t' || c[0] == '' ||
+			(c[0] == c_ni && (c[1] == '\t' || c[1] == ''))) {
+		sbuf_append(&wb->sbuf, c);
+		return;
+	}
 	g = dev_glyph(c, n_f);
 	wb_font(wb);
 	sbuf_append(&wb->sbuf, c);

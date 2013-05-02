@@ -63,19 +63,35 @@ static int cp_raw(void)
 	int c;
 	if (in_top() >= 0)
 		return in_next();
-	c = in_next();
-	if (c == c_ec) {
+	do {
 		c = in_next();
+	} while (c == c_ni);
+	if (c == c_ec) {
+		do {
+			c = in_next();
+		} while (c == c_ni);
 		if (c == '\n')
-			return in_next();
+			return cp_raw();
 		if (c == '.')
 			return '.';
+		if (c == '\\') {
+			in_back('\\');
+			return c_ni;
+		}
+		if (c == 't') {
+			in_back('\t');
+			return c_ni;
+		}
+		if (c == 'a') {
+			in_back('');
+			return c_ni;
+		}
 		if (c == '{' && cp_nblk < LEN(cp_sblk))
 			cp_sblk[cp_nblk++] = 0;
 		if (c == '}' && cp_nblk > 0)
 			if (cp_sblk[--cp_nblk])
 				return cp_raw();
-		cp_back(c);
+		in_back(c);
 		return c_ec;
 	}
 	return c;
