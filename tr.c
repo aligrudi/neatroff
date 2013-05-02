@@ -28,7 +28,7 @@ static void tr_vs(char **args)
 
 static void tr_ls(char **args)
 {
-	int ls = args[1] ? eval_re(args[1], n_L, 'v') : n_L0;
+	int ls = args[1] ? eval_re(args[1], n_L, 0) : n_L0;
 	n_L0 = n_L;
 	n_L = MAX(1, ls);
 }

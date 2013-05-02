@@ -238,8 +238,8 @@ static int ren_bradj(struct adj *adj, int fill, int ad)
 			ren_sp(els_pos);
 		n_a = els_pos;
 		if (!ren_traps(prev_d, n_d, 0)) {
-			if (n_L > n_v && (cdiv || n_d < n_p)) {
-				down(n_L - n_v);
+			if (n_L > 1 && (cdiv || n_d < n_p)) {
+				down(n_L * n_v - n_v);
 			} else {
 				if (ren_pagelimit(0))
 					return 1;
