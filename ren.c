@@ -655,10 +655,10 @@ void render(void)
 	struct wb *wb = &ren_wb;
 	int c;
 	n_nl = -1;
+	wb_init(wb);
 	tr_first();
 	ren_first();			/* transition to the first page */
 	c = ren_next();
-	wb_init(wb);
 	while (c >= 0) {
 		if (c == ' ' || c == '\n') {
 			adj_swid(cadj, charwid(dev_spacewid(), n_s));
@@ -683,6 +683,7 @@ void render(void)
 		c = ren_next();
 	}
 	ren_br(1);
+	wb_done(wb);
 }
 
 /* trap handling */
@@ -793,5 +794,5 @@ int f_nexttrap(void)
 	int pos = trap_pos(n_d);
 	if (cdiv)
 		return pos >= 0 ? pos : 0x7fffffff;
-	return pos >= 0 && pos < n_p ? pos : n_p - n_d;
+	return (pos >= 0 && pos < n_p ? pos : n_p) - n_d;
 }
