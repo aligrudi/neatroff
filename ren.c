@@ -116,7 +116,7 @@ static void ren_page(int pg)
 
 static void ren_first(void)
 {
-	if (bp_first) {
+	if (bp_first && !cdiv) {
 		bp_first = 0;
 		ren_page(bp_next);
 	}
