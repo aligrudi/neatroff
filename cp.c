@@ -135,20 +135,17 @@ void cp_blk(int skip)
 	do {
 		c = skip ? cp_raw() : cp_next();
 	} while (c == ' ' || c == '\t');
-	if (c == c_ec && in_top() == '{') {	/* a troff \{ \} block */
-		if (skip) {
-			while (skip && cp_nblk > nblk && c >= 0)
-				c = cp_raw();
-		} else {
+	if (skip) {
+		while (c >= 0 && (c != '\n' || cp_nblk > nblk))
+			c = cp_raw();
+	} else {
+		if (c == c_ec && in_top() == '{') {	/* a troff \{ \} block */
 			cp_sblk[nblk] = 1;
 			cp_raw();
-		}
-	} else {
-		if (!skip)
+		} else {
 			cp_back(c);
+		}
 	}
-	while (skip && c != '\n')	/* skip until the end of the line */
-		c = cp_raw();
 }
 
 void cp_wid(int enable)
