@@ -23,8 +23,9 @@ static struct div *cdiv;	/* current diversion */
 static int ren_div;		/* rendering a diversion */
 
 static struct wb ren_wb;	/* the main ren.c word buffer */
-static int ren_backed = -1;	/* pushed back character */
 static int ren_nl;		/* just after newline */
+static int ren_unbuf[8];	/* ren_back() buffer */
+static int ren_un;
 
 static int bp_first = 1;	/* prior to the first page */
 static int bp_next = 1;		/* next page number */
@@ -32,14 +33,12 @@ static int bp_force;		/* execute the traps until the next page */
 
 static int ren_next(void)
 {
-	int c = ren_backed >= 0 ? ren_backed : tr_next();
-	ren_backed = -1;
-	return c;
+	return ren_un > 0 ? ren_unbuf[--ren_un] : tr_next();
 }
 
 static void ren_back(int c)
 {
-	ren_backed = c;
+	ren_unbuf[ren_un++] = c;
 }
 
 void tr_di(char **args)
