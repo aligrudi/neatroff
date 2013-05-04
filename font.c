@@ -29,16 +29,6 @@ struct glyph *font_glyph(struct font *fn, char *id)
 	return NULL;
 }
 
-static struct glyph *font_glyphmk(struct font *fn, char *id)
-{
-	struct glyph *g = font_glyph(fn, id);
-	if (g)
-		return g;
-	g = &fn->glyphs[fn->nglyphs++];
-	strcpy(g->id, id);
-	return g;
-}
-
 static void font_charset(struct font *fn, FILE *fin)
 {
 	char tok[ILNLEN];
@@ -56,7 +46,8 @@ static void font_charset(struct font *fn, FILE *fin)
 			wid = atoi(tok);
 			fscanf(fin, "%d %s", &type, id);
 			skipline(fin);
-			glyph = font_glyphmk(fn, id);
+			glyph = &fn->glyphs[fn->nglyphs++];
+			strcpy(glyph->id, id);
 			strcpy(glyph->name, name);
 			glyph->wid = wid;
 			glyph->type = type;
