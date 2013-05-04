@@ -22,8 +22,9 @@ static struct div divs[NPREV];	/* diversion stack */
 static struct div *cdiv;	/* current diversion */
 static int ren_div;		/* rendering a diversion */
 
-static int ren_backed = -1;	/* pushed back character */
 static struct wb ren_wb;	/* the main ren.c word buffer */
+static int ren_backed = -1;	/* pushed back character */
+static int ren_nl;		/* just after newline */
 
 static int bp_first = 1;	/* prior to the first page */
 static int bp_next = 1;		/* next page number */
@@ -212,6 +213,14 @@ static void ren_line(char *s, int w, int ad, int ll, int li, int lt)
 		out("V%d\n", n_d);
 		out_line(s);
 	}
+}
+
+static void ren_transparent(char *s)
+{
+	if (cdiv)
+		sbuf_printf(&cdiv->sbuf, "%s\n", s);
+	else
+		out("%s\n", s);
 }
 
 /* return 1 if triggered a trap */
@@ -550,7 +559,8 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 {
 	char c[GNLEN * 4];
 	char arg[ILNLEN];
-	int w;
+	char *s;
+	int w, n;
 	nextchar(c, next);
 	if (c[0] == ' ' || c[0] == '\n') {
 		wb_put(wb, c);
@@ -566,6 +576,18 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 			w = wb_wid(wb);
 			ren_char(wb, next, back);
 			wb_hmov(wb, w - wb_wid(wb));
+			return;
+		} else if (c[1] == '!') {
+			if (ren_nl && next == ren_next) {
+				s = arg;
+				n = next();
+				while (n >= 0 && n != '\n') {
+					*s++ = n;
+					n = next();
+				}
+				*s = '\0';
+				ren_transparent(arg);
+			}
 			return;
 		} else if (strchr(" bcDdfhkLlorsuvXxz0^|{}&", c[1])) {
 			escarg_ren(arg, c[1], next, back);
@@ -674,14 +696,15 @@ void render(void)
 		}
 		while (adj_full(cadj, !n_ce && n_u))
 			ren_br(0);
-		if (c == '\n')		/* end of input line */
-			n_lb = adj_wid(cadj);
+		if (c == '\n' || ren_nl)	/* end or start of input line */
+			n_lb = f_hpos();
 		if (c == '\n' && !wb_part(wb))
 			n_ce = MAX(0, n_ce - 1);
 		if (c != ' ') {
 			ren_back(c);
 			ren_char(wb, ren_next, ren_back);
 		}
+		ren_nl = c == '\n';
 		c = ren_next();
 	}
 	ren_br(1);
