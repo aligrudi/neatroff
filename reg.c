@@ -158,6 +158,7 @@ static void env_set(int id)
 		n_i = 0;
 		n_j = AD_B;
 		n_l = SC_IN * 65 / 10;
+		n_L = 1;
 		n_s = 10;
 		n_u = 1;
 		n_v = 12 * SC_PT;
