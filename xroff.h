@@ -20,6 +20,7 @@
 #define NPREV		16	/* environment stack depth */
 #define NTRAPS		1024	/* number of traps per page */
 #define NIES		128	/* number of nested .ie commands */
+#define NTABS		16	/* the number of tab stops */
 
 /* escape sequences */
 #define ESC_Q	"bCDhHlLNoSvwxX"	/* quoted escape sequences */
@@ -62,6 +63,7 @@ void odiv_end(void);
 void env_init(void);
 void env_free(void);
 struct adj *env_adj(void);
+int tab_next(int pos);
 
 /* device related variables */
 extern int dev_res;
@@ -237,6 +239,7 @@ void tr_rs(char **args);
 void tr_rt(char **args);
 void tr_sp(char **args);
 void tr_sv(char **args);
+void tr_ta(char **args);
 void tr_ti(char **args);
 void tr_wh(char **args);
 

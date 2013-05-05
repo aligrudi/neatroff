@@ -509,7 +509,8 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 		wb_hmov(wb, eval(arg, 'm'));
 		break;
 	case 'k':
-		num_set(REG(arg[0], arg[1]), f_hpos() - n_lb);
+		num_set(REG(arg[0], arg[1]),
+			wb == &ren_wb ? f_hpos() - n_lb : wb_wid(wb));
 		break;
 	case 'L':
 		ren_vline(wb, arg);
@@ -564,6 +565,11 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 	nextchar(c, next);
 	if (c[0] == ' ' || c[0] == '\n') {
 		wb_put(wb, c);
+		return;
+	}
+	if (c[0] == '\t' || c[0] == '') {
+		n = wb == &ren_wb ? f_hpos() : wb_wid(wb);
+		wb_hmov(wb, tab_next(n) - n);
 		return;
 	}
 	if (c[0] == c_ec) {

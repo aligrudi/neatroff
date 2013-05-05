@@ -9,6 +9,7 @@
 
 struct env {
 	int eregs[NENVS];	/* environment-specific number registers */
+	int tabs[NTABS];	/* tab stops */
 	struct adj *adj;	/* per environment line buffer */
 };
 
@@ -151,6 +152,7 @@ void str_rn(int src, int dst)
 
 static void env_set(int id)
 {
+	int i;
 	env = &envs[id];
 	if (!env->adj) {
 		env->adj = adj_alloc();
@@ -168,6 +170,8 @@ static void env_set(int id)
 		n_lt = SC_IN * 65 / 10;
 		adj_ll(env->adj, n_l);
 		adj_in(env->adj, n_i);
+		for (i = 0; i < NTABS; i++)
+			env->tabs[i] = i * SC_IN / 2;
 	}
 }
 
@@ -233,4 +237,20 @@ void odiv_end(void)
 	n_s = o->s;
 	n_f0 = o->f0;
 	n_s0 = o->s0;
+}
+
+void tr_ta(char **args)
+{
+	int i;
+	for (i = 0; i < NARGS && args[i]; i++)
+		env->tabs[i] = eval_re(args[i], i > 0 ? env->tabs[i - 1] : 0, 'm');
+}
+
+int tab_next(int pos)
+{
+	int i;
+	for (i = 0; i < LEN(env->tabs); i++)
+		if (env->tabs[i] > pos)
+			return env->tabs[i];
+	return pos;
 }

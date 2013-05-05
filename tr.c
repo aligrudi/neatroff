@@ -613,6 +613,7 @@ static struct cmd {
 	{"so", tr_so},
 	{"sp", tr_sp},
 	{"sv", tr_sv},
+	{"ta", tr_ta},
 	{"ti", tr_ti},
 	{"tl", tr_tl, mkargs_null},
 	{"tm", tr_tm, mkargs_eol},
