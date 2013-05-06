@@ -151,6 +151,14 @@ void adj_nl(struct adj *adj)
 	adj->gap = 0;
 }
 
+/* ignore the previous newline */
+void adj_nonl(struct adj *adj)
+{
+	if (adj->nls)
+		adj->gap += adj->swid;
+	adj->nls = 0;
+}
+
 static void adj_word(struct adj *adj, struct wb *wb)
 {
 	struct word *cur = &adj->words[adj->nwords++];

@@ -201,6 +201,7 @@ void adj_ti(struct adj *adj, int ti);
 void adj_wb(struct adj *adj, struct wb *wb);
 void adj_nl(struct adj *adj);
 void adj_sp(struct adj *adj);
+void adj_nonl(struct adj *adj);
 
 /* rendering */
 void render(void);		/* read from in.c and print the output */

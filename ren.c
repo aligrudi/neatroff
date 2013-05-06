@@ -24,6 +24,7 @@ static int ren_div;		/* rendering a diversion */
 
 static struct wb ren_wb;	/* the main ren.c word buffer */
 static int ren_nl;		/* just after newline */
+static int ren_cnl;		/* current char is a newline */
 static int ren_unbuf[8];	/* ren_back() buffer */
 static int ren_un;
 
@@ -158,11 +159,17 @@ static void trap_exec(int reg)
 		in_pushnl(str_get(reg), NULL);
 }
 
+static int detect_traps(int beg, int end)
+{
+	int pos = trap_pos(beg);
+	return pos >= 0 && (cdiv || pos < n_p) && pos <= end;
+}
+
 /* return 1 if executed a trap */
 static int ren_traps(int beg, int end, int dosp)
 {
 	int pos = trap_pos(beg);
-	if (pos >= 0 && (cdiv || pos < n_p) && pos <= end) {
+	if (detect_traps(beg, end)) {
 		if (dosp && pos > beg)
 			ren_sp(pos - beg);
 		trap_exec(trap_reg(beg));
@@ -171,10 +178,15 @@ static int ren_traps(int beg, int end, int dosp)
 	return 0;
 }
 
+static int detect_pagelimit(int ne)
+{
+	return !cdiv && n_nl + ne >= n_p;
+}
+
 /* start a new page if needed */
 static int ren_pagelimit(int ne)
 {
-	if (n_nl + ne >= n_p && !cdiv) {
+	if (detect_pagelimit(ne)) {
 		bp_force = 0;
 		ren_page(bp_next);
 		return 1;
@@ -228,9 +240,10 @@ static void ren_transparent(char *s)
 /* return 1 if triggered a trap */
 static int ren_bradj(struct adj *adj, int fill, int ad)
 {
+	char cmd[16];
 	struct sbuf sbuf;
 	int ll, li, lt, els_neg, els_pos;
-	int w, prev_d;
+	int w, prev_d, lspc;
 	ren_first();
 	if (!adj_empty(adj, fill)) {
 		sbuf_init(&sbuf);
@@ -248,16 +261,17 @@ static int ren_bradj(struct adj *adj, int fill, int ad)
 		if (els_pos)
 			ren_sp(els_pos);
 		n_a = els_pos;
-		if (!ren_traps(prev_d, n_d, 0)) {
-			if (n_L > 1 && (cdiv || n_d < n_p)) {
-				down(n_L * n_v - n_v);
-			} else {
-				if (ren_pagelimit(0))
-					return 1;
-			}
-			return 0;
+		lspc = MAX(1, n_L) * n_v - n_v;
+		if (detect_traps(prev_d, n_d) || detect_pagelimit(lspc)) {
+			sprintf(cmd, "%c&", c_ec);
+			if (!ren_cnl)	/* prevent unwanted newlines */
+				in_push(cmd, NULL);
+			if (!ren_traps(prev_d, n_d, 0))
+				ren_pagelimit(lspc);
+			return 1;
 		}
-		return 1;
+		if (lspc)
+			down(lspc);
 	}
 	return 0;
 }
@@ -742,6 +756,7 @@ void render(void)
 	ren_first();			/* transition to the first page */
 	c = ren_next();
 	while (c >= 0) {
+		ren_cnl = c == '\n';
 		if (c == ' ' || c == '\n') {
 			adj_swid(cadj, charwid(dev_spacewid(), n_s));
 			adj_wb(cadj, wb);
@@ -761,6 +776,8 @@ void render(void)
 		if (c != ' ') {
 			ren_back(c);
 			ren_char(wb, ren_next, ren_back);
+			if (c != '\n' && wb_empty(wb))
+				adj_nonl(cadj);
 		}
 		ren_nl = c == '\n';
 		c = ren_next();
