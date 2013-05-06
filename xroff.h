@@ -20,7 +20,8 @@
 #define NPREV		16	/* environment stack depth */
 #define NTRAPS		1024	/* number of traps per page */
 #define NIES		128	/* number of nested .ie commands */
-#define NTABS		16	/* the number of tab stops */
+#define NTABS		16	/* number of tab stops */
+#define NFIELDS		32	/* number of fields */
 
 /* escape sequences */
 #define ESC_Q	"bCDhHlLNoSvwxX"	/* quoted escape sequences */
@@ -34,7 +35,7 @@
 extern int c_ec;	/* escape character (\) */
 extern int c_cc;	/* basic control character (.) */
 extern int c_c2;	/* no-break control character (') */
-#define c_ni	3	/* non-interpreted copy mode escape */
+#define c_ni	4	/* non-interpreted copy mode escape */
 
 /* number registers */
 int num_get(int id, int inc);
@@ -223,6 +224,7 @@ void tr_divbeg(char **args);
 void tr_divend(char **args);
 void tr_dt(char **args);
 void tr_ev(char **args);
+void tr_fc(char **args);
 void tr_fi(char **args);
 void tr_fp(char **args);
 void tr_ft(char **args);

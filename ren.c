@@ -31,6 +31,9 @@ static int bp_first = 1;	/* prior to the first page */
 static int bp_next = 1;		/* next page number */
 static int bp_force;		/* execute the traps until the next page */
 
+static int c_fa;		/* field delimiter */
+static char c_fb[GNLEN];	/* field padding */
+
 static int ren_next(void)
 {
 	return ren_un > 0 ? ren_unbuf[--ren_un] : tr_next();
@@ -434,6 +437,17 @@ void tr_ce(char **args)
 	n_ce = args[1] ? atoi(args[1]) : 1;
 }
 
+void tr_fc(char **args)
+{
+	if (args[1]) {
+		c_fa = args[1][0];
+		strcpy(c_fb, args[2] ? args[2] : " ");
+	} else {
+		c_fa = -1;
+		c_fb[0] = '\0';
+	}
+}
+
 static void escarg_ren(char *d, int cmd, int (*next)(void), void (*back)(int))
 {
 	char delim[GNLEN];
@@ -555,6 +569,8 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 	}
 }
 
+static void ren_field(struct wb *wb, int (*next)(void), void (*back)(int));
+
 /* read one character and place it inside wb buffer */
 void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 {
@@ -570,6 +586,10 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 	if (c[0] == '\t' || c[0] == '') {
 		n = wb == &ren_wb ? f_hpos() : wb_wid(wb);
 		wb_hmov(wb, tab_next(n) - n);
+		return;
+	}
+	if (c[0] == c_fa) {
+		ren_field(wb, next, back);
 		return;
 	}
 	if (c[0] == c_ec) {
@@ -630,11 +650,13 @@ int ren_wid(int (*next)(void), void (*back)(int))
 	return n;
 }
 
-static void ren_until(struct wb *wb, char *delim, int (*next)(void), void (*back)(int))
+/* return 1 if the ending character (ec) was read */
+static int ren_until(struct wb *wb, char *delim, int ec,
+			int (*next)(void), void (*back)(int))
 {
 	int c;
 	c = next();
-	while (c >= 0 && c != '\n') {
+	while (c >= 0 && c != '\n' && c != ec) {
 		back(c);
 		if (!schar_jump(delim, next, back))
 			break;
@@ -643,6 +665,7 @@ static void ren_until(struct wb *wb, char *delim, int (*next)(void), void (*back
 	}
 	if (c == '\n')
 		back(c);
+	return c == ec;
 }
 
 static void wb_cpy(struct wb *dst, struct wb *src, int left)
@@ -661,13 +684,13 @@ void ren_tl(int (*next)(void), void (*back)(int))
 	wb_init(&wb2);
 	schar_read(delim, next);
 	/* the left-adjusted string */
-	ren_until(&wb2, delim, next, back);
+	ren_until(&wb2, delim, '\n', next, back);
 	wb_cpy(&wb, &wb2, 0);
 	/* the centered string */
-	ren_until(&wb2, delim, next, back);
+	ren_until(&wb2, delim, '\n', next, back);
 	wb_cpy(&wb, &wb2, (n_lt - wb_wid(&wb2)) / 2);
 	/* the right-adjusted string */
-	ren_until(&wb2, delim, next, back);
+	ren_until(&wb2, delim, '\n', next, back);
 	wb_cpy(&wb, &wb2, n_lt - wb_wid(&wb2));
 	/* flushing the line */
 	adj_ll(adj, n_lt);
@@ -677,6 +700,36 @@ void ren_tl(int (*next)(void), void (*back)(int))
 	adj_free(adj);
 	wb_done(&wb2);
 	wb_done(&wb);
+}
+
+static void ren_field(struct wb *wb, int (*next)(void), void (*back)(int))
+{
+	struct wb wbs[NFIELDS];
+	int i, n = 0;
+	int wid = 0;
+	int left, right, cur_left;
+	int pad, rem;
+	while (n < LEN(wbs)) {
+		wb_init(&wbs[n]);
+		if (ren_until(&wbs[n++], c_fb, c_fa, next, back))
+			break;
+	}
+	left = wb == &ren_wb ? f_hpos() : wb_wid(wb);
+	right = tab_next(left);
+	for (i = 0; i < n; i++)
+		wid += wb_wid(&wbs[i]);
+	pad = (right - left - wid) / (n > 1 ? n - 1 : 1);
+	rem = (right - left - wid) % (n > 1 ? n - 1 : 1);
+	for (i = 0; i < n; i++) {
+		if (i == 0)
+			cur_left = left;
+		else if (i == n - 1)
+			cur_left = right - wb_wid(&wbs[i]);
+		else
+			cur_left = wb_wid(wb) + pad + (i + rem >= n);
+		wb_cpy(wb, &wbs[i], cur_left);
+		wb_done(&wbs[i]);
+	}
 }
 
 /* read characters from in.c and pass rendered lines to out.c */

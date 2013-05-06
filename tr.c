@@ -582,6 +582,7 @@ static struct cmd {
 	{"eo", tr_eo},
 	{"ev", tr_ev},
 	{"ex", tr_ex},
+	{"fc", tr_fc},
 	{"fi", tr_fi},
 	{"fp", tr_fp},
 	{"ft", tr_ft},
