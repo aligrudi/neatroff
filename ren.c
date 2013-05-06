@@ -395,7 +395,7 @@ void tr_ti(char **args)
 
 static void ren_ft(char *s)
 {
-	int fn = !*s || !strcmp("P", s) ? n_f0 : dev_font(s);
+	int fn = !s || !*s || !strcmp("P", s) ? n_f0 : dev_font(s);
 	if (fn >= 0) {
 		n_f0 = n_f;
 		n_f = fn;
@@ -404,8 +404,7 @@ static void ren_ft(char *s)
 
 void tr_ft(char **args)
 {
-	if (args[1])
-		ren_ft(args[1]);
+	ren_ft(args[1]);
 }
 
 void tr_fp(char **args)
