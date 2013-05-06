@@ -22,6 +22,7 @@
 #define NIES		128	/* number of nested .ie commands */
 #define NTABS		16	/* number of tab stops */
 #define NFIELDS		32	/* number of fields */
+#define MAXFRAC		100000	/* maximum value of the fractional part */
 
 /* escape sequences */
 #define ESC_Q	"bCDhHlLNoSvwxX"	/* quoted escape sequences */

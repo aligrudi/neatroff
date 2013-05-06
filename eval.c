@@ -45,9 +45,13 @@ static int evalnum(char **_s)
 		mag *= 10;
 		n = n * 10 + *s++ - '0';
 	}
+	if (mag > MAXFRAC) {
+		n /= mag / MAXFRAC;
+		mag /= mag / MAXFRAC;
+	}
 	n = readunit(*s && strchr(SCHAR, *s) ? *s++ : defunit, n);
 	*_s = s;
-	return n / (mag > 0 ? mag : 1);		/* this may overflow */
+	return n / (mag > 0 ? mag : 1);
 }
 
 static int evaljmp(char **s, int c)
