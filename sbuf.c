@@ -4,21 +4,22 @@
 #include <string.h>
 #include "xroff.h"
 
-#define SBUF_SZ		1024
-
-void sbuf_init(struct sbuf *sbuf)
-{
-	sbuf->s = malloc(SBUF_SZ);
-	sbuf->sz = SBUF_SZ;
-	sbuf->n = 0;
-}
+#define SBUF_SZ		512
 
 static void sbuf_extend(struct sbuf *sbuf, int amount)
 {
 	char *s = sbuf->s;
-	sbuf->s = malloc(amount);
-	sbuf->sz = amount;
-	memcpy(sbuf->s, s, sbuf->n);
+	sbuf->sz = (MAX(1, amount) + SBUF_SZ - 1) & ~(SBUF_SZ - 1);
+	sbuf->s = malloc(sbuf->sz);
+	if (sbuf->n)
+		memcpy(sbuf->s, s, sbuf->n);
+	free(s);
+}
+
+void sbuf_init(struct sbuf *sbuf)
+{
+	memset(sbuf, 0, sizeof(*sbuf));
+	sbuf_extend(sbuf, SBUF_SZ);
 }
 
 void sbuf_add(struct sbuf *sbuf, int c)
