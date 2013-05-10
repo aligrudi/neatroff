@@ -106,11 +106,11 @@ static int adj_move(struct adj *a, int n, struct sbuf *s, int *els_neg, int *els
 		sbuf_printf(s, "%ch'%du'", c_ec, a->gaps[i]);
 		sbuf_append(s, sbuf_buf(&cur->sbuf));
 		w += wb_wid(cur) + a->gaps[i];
-		wb_done(cur);
 		if (cur->els_neg < *els_neg)
 			*els_neg = cur->els_neg;
 		if (cur->els_pos > *els_pos)
 			*els_pos = cur->els_pos;
+		wb_done(cur);
 	}
 	if (!n)
 		return 0;
