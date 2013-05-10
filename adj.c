@@ -5,16 +5,9 @@
 
 #define ADJ_LLEN(a)	MAX(0, (a)->ll - ((a)->lt >= 0 ? (a)->lt : (a)->li))
 
-struct word {
-	struct sbuf s;
-	int wid;	/* word width */
-	int gap;	/* the space before this word */
-	int els_neg;	/* pre-extra line space */
-	int els_pos;	/* post-extra line space */
-};
-
 struct adj {
-	struct word words[NWORDS];	/* words in buf */
+	struct wb wbs[NWORDS];		/* words in buf */
+	int gaps[NWORDS];		/* gaps before words */
 	int nwords;
 	int wid;			/* total width of buf */
 	int swid;			/* current space width */
@@ -77,20 +70,43 @@ void adj_swid(struct adj *adj, int swid)
 	adj->swid = swid;
 }
 
+/* move words inside an adj struct */
+static void adj_movewords(struct adj *a, int dst, int src, int len)
+{
+	memmove(a->wbs + dst, a->wbs + src, len * sizeof(a->wbs[0]));
+	memmove(a->gaps + dst, a->gaps + src, len * sizeof(a->gaps[0]));
+}
+
+static int adj_linewid(struct adj *a, int n)
+{
+	int i, w = 0;
+	for (i = 0; i < n; i++)
+		w += wb_wid(&a->wbs[i]) + a->gaps[i];
+	return w;
+}
+
+static int adj_linefit(struct adj *a, int llen)
+{
+	int i, w = 0;
+	for (i = 0; i < a->nwords && w <= llen; i++)
+		w += wb_wid(&a->wbs[i]) + a->gaps[i];
+	return i - 1;
+}
+
 /* move n words from the adjustment buffer to s */
 static int adj_move(struct adj *a, int n, struct sbuf *s, int *els_neg, int *els_pos)
 {
-	struct word *cur;
+	struct wb *cur;
 	int w = 0;
 	int i;
 	*els_neg = 0;
 	*els_pos = 0;
 	for (i = 0; i < n; i++) {
-		cur = &a->words[i];
-		sbuf_printf(s, "%ch'%du'", c_ec, cur->gap);
-		sbuf_append(s, sbuf_buf(&cur->s));
-		sbuf_done(&cur->s);
-		w += cur->wid + cur->gap;
+		cur = &a->wbs[i];
+		sbuf_printf(s, "%ch'%du'", c_ec, a->gaps[i]);
+		sbuf_append(s, sbuf_buf(&cur->sbuf));
+		w += wb_wid(cur) + a->gaps[i];
+		wb_done(cur);
 		if (cur->els_neg < *els_neg)
 			*els_neg = cur->els_neg;
 		if (cur->els_pos > *els_pos)
@@ -99,11 +115,31 @@ static int adj_move(struct adj *a, int n, struct sbuf *s, int *els_neg, int *els
 	if (!n)
 		return 0;
 	a->nwords -= n;
-	memmove(a->words, a->words + n, a->nwords * sizeof(a->words[0]));
-	a->wid -= w;
+	adj_movewords(a, 0, n, a->nwords);
+	a->wid = adj_linewid(a, a->nwords);
 	if (a->nwords)		/* apply the new .l and .i */
 		adj_confupdate(a);
 	return w;
+}
+
+/* try to hyphenate the n-th word */
+static void adj_hyph(struct adj *a, int n, int w)
+{
+	struct wb w1, w2;
+	wb_init(&w1);
+	wb_init(&w2);
+	if (wb_hyph(&a->wbs[n], w, &w1, &w2)) {
+		wb_done(&w1);
+		wb_done(&w2);
+		return;
+	}
+	adj_movewords(a, n + 2, n + 1, a->nwords - n);
+	wb_done(&a->wbs[n]);
+	memcpy(&a->wbs[n], &w1, sizeof(w1));
+	memcpy(&a->wbs[n + 1], &w2, sizeof(w2));
+	a->nwords++;
+	a->gaps[n + 1] = 0;
+	a->wid = adj_linewid(a, a->nwords);
 }
 
 /* fill and copy a line into s */
@@ -121,22 +157,23 @@ int adj_fill(struct adj *a, int ad_b, int fill, struct sbuf *s,
 		a->nls--;
 		return adj_move(a, a->nwords, s, els_neg, els_pos);
 	}
-	for (n = 0; n < a->nwords; n++) {
-		if (n && w + a->words[n].wid + a->words[n].gap > llen)
-			break;
-		w += a->words[n].wid + a->words[n].gap;
-	}
+	n = adj_linefit(a, llen);
+	if (n < a->nwords)
+		adj_hyph(a, n, llen - adj_linewid(a, n) - a->gaps[n]);
+	n = adj_linefit(a, llen);
+	if (!n && a->nwords)
+		n = 1;
+	w = adj_linewid(a, n);
 	if (ad_b && n > 1 && n < a->nwords) {
 		adj_div = (llen - w) / (n - 1);
-		adj_rem = llen - w - adj_div * (n - 1);
-		a->wid += llen - w;
+		adj_rem = (llen - w) % (n - 1);
 		for (i = 0; i < n - 1; i++)
-			a->words[i + 1].gap += adj_div + (i < adj_rem);
+			a->gaps[i + 1] += adj_div + (i < adj_rem);
 	}
 	w = adj_move(a, n, s, els_neg, els_pos);
 	if (a->nwords)
-		a->wid -= a->words[0].gap;
-	a->words[0].gap = 0;
+		a->wid -= a->gaps[0];
+	a->gaps[0] = 0;
 	return w;
 }
 
@@ -161,14 +198,11 @@ void adj_nonl(struct adj *adj)
 
 static void adj_word(struct adj *adj, struct wb *wb)
 {
-	struct word *cur = &adj->words[adj->nwords++];
-	cur->wid = wb_wid(wb);
-	cur->gap = adj->gap;
-	adj->wid += cur->wid + adj->gap;
-	wb_getels(wb, &cur->els_neg, &cur->els_pos);
-	sbuf_init(&cur->s);
-	sbuf_append(&cur->s, sbuf_buf(&wb->sbuf));
-	wb_reset(wb);
+	int i = adj->nwords++;
+	wb_init(&adj->wbs[i]);
+	adj->gaps[i] = adj->gap;
+	adj->wid += wb_wid(wb) + adj->gap;
+	wb_cat(&adj->wbs[i], wb);
 }
 
 /* insert wb into the adjustment buffer */

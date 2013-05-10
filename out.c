@@ -48,17 +48,17 @@ int utf8len(int c)
 		return 3;
 	if (c >= 0xc0)
 		return 2;
-	return 1;
+	return c != 0;
 }
 
-char *utf8get(char *d, char *s)
+static void utf8get(char **s, char *d)
 {
-	int l = utf8len((unsigned char) *s);
+	int l = utf8len((unsigned char) **s);
 	int i;
 	for (i = 0; i < l; i++)
-		d[i] = s[i];
+		d[i] = (*s)[i];
 	d[l] = '\0';
-	return s + l;
+	*s += l;
 }
 
 static int o_s = 10;
@@ -80,8 +80,9 @@ static void out_ft(int n)
 	}
 }
 
-static char *escarg(char *s, char *d, int cmd)
+static void escarg(char **sp, char *d, int cmd)
 {
+	char *s = *sp;
 	int q;
 	if (strchr(ESC_P, cmd)) {
 		if (cmd == 's' && (*s == '-' || *s == '+'))
@@ -107,7 +108,7 @@ static char *escarg(char *s, char *d, int cmd)
 	if (cmd == 'z')
 		*d++ = *s++;
 	*d = '\0';
-	return s;
+	*sp = s;
 }
 
 static int tok_num(char **s, int scale)
@@ -157,57 +158,76 @@ static void out_draw(char *s)
 	outnn("\n");
 }
 
+/*
+ * read a glyph or output troff request
+ *
+ * This functions reads from s either an output troff request
+ * (only the ones emitted by wb.c) or a glyph name and updates
+ * s.  The return value is the name of the troff request (the
+ * argument is copied into d) or zero for glyph names (it is
+ * copied into d).  Returns -1 when the end of s is reached.
+ */
+int out_readc(char **s, char *d)
+{
+	if (!**s)
+		return -1;
+	utf8get(s, d);
+	if (d[0] == c_ec) {
+		utf8get(s, d + 1);
+		if (d[1] == '(') {
+			utf8get(s, d + 2);
+			utf8get(s, d + strlen(d));
+		} else if (strchr("DfhsvXx", d[1])) {
+			int c = d[1];
+			escarg(s, d, d[1]);
+			return c;
+		}
+	}
+	if (d[0] == c_ni)
+		utf8get(s, d + 1);
+	return 0;
+}
+
 void out_line(char *s)
 {
 	struct glyph *g;
-	char c[GNLEN * 4];
-	char arg[ILNLEN];
-	while (*s) {
-		s = utf8get(c, s);
-		if (c[0] == c_ec) {
-			s = utf8get(c + 1, s);
-			if (c[1] == '(') {
-				s = utf8get(c + 2, s);
-				s = utf8get(c + strlen(c), s);
-			} else if (c[1] == c_ec) {
-				c[1] = '\0';
-			} else if (strchr("DfhsvX", c[1])) {
-				s = escarg(s, arg, c[1]);
-				if (c[1] == 'D') {
-					out_draw(arg);
-					continue;
-				}
-				if (c[1] == 'f') {
-					out_ft(dev_font(arg));
-					continue;
-				}
-				if (c[1] == 'h') {
-					outnn("h%d", eval(arg, 'm'));
-					continue;
-				}
-				if (c[1] == 's') {
-					out_ps(eval_re(arg, o_s, '\0'));
-					continue;
-				}
-				if (c[1] == 'v') {
-					outnn("v%d", eval(arg, 'v'));
-					continue;
-				}
-				if (c[1] == 'X') {
-					out("x X %s\n", arg);
-					continue;
-				}
-			}
+	char c[ILNLEN + GNLEN * 4];
+	int t;
+	while ((t = out_readc(&s, c)) >= 0) {
+		if (c[0] == c_ni) {
+			c[0] = c[1];
+			c[1] = '\0';
 		}
-		if (c[0] == c_ni)
-			s = utf8get(c, s);
-		if (c[0] == '\t' || c[0] == '')
+		if (!t) {
+			if (c[0] == '\t' || c[0] == '')
+				continue;
+			g = dev_glyph(c, o_f);
+			if (utf8len(c[0]) == strlen(c))
+				outnn("c%s%s", c, c[1] ? "\n" : "");
+			else
+				out("C%s\n", c[0] == c_ec && c[1] == '(' ? c + 2 : c);
+			outnn("h%d", charwid(g ? g->wid : SC_DW, o_s));
 			continue;
-		g = dev_glyph(c, o_f);
-		if (utf8len(c[0]) == strlen(c))
-			outnn("c%s%s", c, c[1] ? "\n" : "");
-		else
-			out("C%s\n", c[0] == c_ec && c[1] == '(' ? c + 2 : c);
-		outnn("h%d", charwid(g ? g->wid : SC_DW, o_s));
+		}
+		switch (t) {
+		case 'D':
+			out_draw(c);
+			break;
+		case 'f':
+			out_ft(dev_font(c));
+			break;
+		case 'h':
+			outnn("h%d", eval(c, 'm'));
+			break;
+		case 's':
+			out_ps(eval_re(c, o_s, '\0'));
+			break;
+		case 'v':
+			outnn("v%d", eval(c, 'v'));
+			break;
+		case 'X':
+			out("x X %s\n", c);
+			break;
+		}
 	}
 }

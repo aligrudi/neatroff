@@ -3,12 +3,17 @@
 #include <string.h>
 #include "xroff.h"
 
+#define R_F(wb)		((wb)->r_f >= 0 ? (wb)->r_f : n_f)	/* current font */
+#define R_S(wb)		((wb)->r_s >= 0 ? (wb)->r_s : n_s)	/* current size */
+
 void wb_init(struct wb *wb)
 {
 	memset(wb, 0, sizeof(*wb));
 	sbuf_init(&wb->sbuf);
 	wb->f = -1;
 	wb->s = -1;
+	wb->r_f = -1;
+	wb->r_s = -1;
 }
 
 void wb_done(struct wb *wb)
@@ -26,13 +31,13 @@ static void wb_stsb(struct wb *wb)
 /* append font and size to the buffer if needed */
 static void wb_font(struct wb *wb)
 {
-	if (wb->f != n_f) {
-		sbuf_printf(&wb->sbuf, "%cf(%02d", c_ec, n_f);
-		wb->f = n_f;
+	if (wb->f != R_F(wb)) {
+		sbuf_printf(&wb->sbuf, "%cf(%02d", c_ec, R_F(wb));
+		wb->f = R_F(wb);
 	}
-	if (wb->s != n_s) {
-		sbuf_printf(&wb->sbuf, "%cs(%02d", c_ec, n_s);
-		wb->s = n_s;
+	if (wb->s != R_S(wb)) {
+		sbuf_printf(&wb->sbuf, "%cs(%02d", c_ec, R_S(wb));
+		wb->s = R_S(wb);
 	}
 	wb_stsb(wb);
 }
@@ -55,6 +60,7 @@ void wb_els(struct wb *wb, int els)
 		wb->els_pos = els;
 	if (els < wb->els_neg)
 		wb->els_neg = els;
+	sbuf_printf(&wb->sbuf, "%cx'%du'", c_ec, els);
 }
 
 void wb_etc(struct wb *wb, char *x)
@@ -71,7 +77,7 @@ void wb_put(struct wb *wb, char *c)
 		return;
 	}
 	if (c[0] == ' ') {
-		wb_hmov(wb, charwid(dev_spacewid(), n_s));
+		wb_hmov(wb, charwid(dev_spacewid(), R_S(wb)));
 		return;
 	}
 	if (c[0] == '\t' || c[0] == '' ||
@@ -79,10 +85,10 @@ void wb_put(struct wb *wb, char *c)
 		sbuf_append(&wb->sbuf, c);
 		return;
 	}
-	g = dev_glyph(c, n_f);
+	g = dev_glyph(c, R_F(wb));
 	wb_font(wb);
 	sbuf_append(&wb->sbuf, c);
-	wb->h += charwid(g ? g->wid : SC_DW, n_s);
+	wb->h += charwid(g ? g->wid : SC_DW, R_S(wb));
 	wb->ct |= g ? g->type : 0;
 	wb_stsb(wb);
 }
@@ -148,38 +154,54 @@ void wb_drawxend(struct wb *wb)
 	sbuf_printf(&wb->sbuf, "'");
 }
 
-void wb_reset(struct wb *wb)
+static void wb_reset(struct wb *wb)
 {
-	sbuf_done(&wb->sbuf);
-	sbuf_init(&wb->sbuf);
-	wb->els_pos = 0;
-	wb->els_neg = 0;
-	wb->ct = 0;
-	wb->sb = 0;
-	wb->st = 0;
-	wb->h = 0;
-	wb->v = 0;
-	wb->f = -1;
-	wb->s = -1;
+	wb_done(wb);
+	wb_init(wb);
+}
+
+static void wb_putc(struct wb *wb, int t, char *s)
+{
+	switch (t) {
+	case 0:
+		wb_put(wb, s);
+		break;
+	case 'D':
+		ren_draw(wb, s);
+		break;
+	case 'f':
+		wb->r_f = atoi(s);
+		break;
+	case 'h':
+		wb_hmov(wb, atoi(s));
+		break;
+	case 's':
+		wb->r_s = atoi(s);
+		break;
+	case 'v':
+		wb_vmov(wb, atoi(s));
+		break;
+	case 'x':
+		wb_els(wb, atoi(s));
+		break;
+	case 'X':
+		wb_etc(wb, s);
+		break;
+	}
 }
 
 void wb_cat(struct wb *wb, struct wb *src)
 {
-	sbuf_append(&wb->sbuf, sbuf_buf(&src->sbuf));
-	if (src->f >= 0)
-		wb->f = src->f;
-	if (src->s >= 0)
-		wb->s = src->s;
-	wb_els(wb, src->els_neg);
-	wb_els(wb, src->els_pos);
-	if (src->part)
-		wb->part = src->part;
-	wb->ct |= src->ct;
-	wb->st = MIN(wb->st, wb->v + src->st);
-	wb->sb = MAX(wb->sb, wb->v + src->sb);
-	wb->h += src->h;
-	wb->v += src->v;
+	char *s = sbuf_buf(&src->sbuf);
+	char d[ILNLEN];
+	int c, part;
+	while ((c = out_readc(&s, d)) >= 0)
+		wb_putc(wb, c, d);
+	part = src->part;
+	wb->r_s = -1;
+	wb->r_f = -1;
 	wb_reset(src);
+	src->part = part;
 }
 
 int wb_wid(struct wb *wb)
@@ -192,15 +214,15 @@ int wb_empty(struct wb *wb)
 	return sbuf_empty(&wb->sbuf);
 }
 
-void wb_getels(struct wb *wb, int *els_neg, int *els_pos)
-{
-	*els_neg = wb->els_neg;
-	*els_pos = wb->els_pos;
-}
-
 void wb_wconf(struct wb *wb, int *ct, int *st, int *sb)
 {
 	*ct = wb->ct;
 	*st = -wb->st;
 	*sb = -wb->sb;
+}
+
+/* hyphenate wb into w1 and w2; return zero on success */
+int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2)
+{
+	return 1;
 }

@@ -152,15 +152,15 @@ int sbuf_empty(struct sbuf *sbuf);
 struct wb {
 	struct sbuf sbuf;
 	int f, s;		/* the last output font and size */
+	int r_f, r_s;		/* current font and size; use n_f and n_s if -1 */
 	int part;		/* partial input (\c) */
 	int els_neg, els_pos;	/* extra line spacing */
-	int h, v;		/* current buffer vertical and horizontal positions */
+	int h, v;		/* buffer vertical and horizontal positions */
 	int ct, sb, st;		/* \w registers */
 };
 
 void wb_init(struct wb *wb);
 void wb_done(struct wb *wb);
-void wb_reset(struct wb *wb);
 void wb_hmov(struct wb *wb, int n);
 void wb_vmov(struct wb *wb, int n);
 void wb_els(struct wb *wb, int els);
@@ -176,9 +176,9 @@ void wb_drawxbeg(struct wb *wb, int c);
 void wb_drawxdot(struct wb *wb, int h, int v);
 void wb_drawxend(struct wb *wb);
 void wb_cat(struct wb *wb, struct wb *src);
+int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2);
 int wb_wid(struct wb *wb);
 int wb_empty(struct wb *wb);
-void wb_getels(struct wb *wb, int *els_neg, int *els_pos);
 void wb_wconf(struct wb *wb, int *ct, int *st, int *sb);
 
 /* adjustment */
@@ -204,11 +204,12 @@ void adj_sp(struct adj *adj);
 void adj_nonl(struct adj *adj);
 
 /* rendering */
-void render(void);		/* read from in.c and print the output */
+void render(void);				/* the main loop */
 void ren_char(struct wb *wb, int (*next)(void), void (*back)(int));
 int ren_wid(int (*next)(void), void (*back)(int));
 void ren_tl(int (*next)(void), void (*back)(int));
-void out_line(char *s);		/* output the given rendered line */
+void out_line(char *s);				/* output rendered line */
+int out_readc(char **s, char *d);		/* read request or glyph */
 void out(char *s, ...);				/* output troff cmd */
 void ren_hline(struct wb *wb, char *arg);	/* horizontal line */
 void ren_vline(struct wb *wb, char *arg);	/* vertical line */
@@ -252,7 +253,6 @@ void tr_init(void);
 /* helpers */
 void errmsg(char *msg, ...);
 int utf8len(int c);
-char *utf8get(char *d, char *s);
 void schar_read(char *d, int (*next)(void));
 int schar_jump(char *d, int (*next)(void), void (*back)(int));
 
