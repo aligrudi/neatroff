@@ -37,6 +37,7 @@ extern int c_ec;	/* escape character (\) */
 extern int c_cc;	/* basic control character (.) */
 extern int c_c2;	/* no-break control character (') */
 #define c_ni	4	/* non-interpreted copy mode escape */
+#define c_hc	env_hc()/* hyphenation character */
 
 /* number registers */
 int num_get(int id, int inc);
@@ -65,6 +66,7 @@ void odiv_end(void);
 void env_init(void);
 void env_free(void);
 struct adj *env_adj(void);
+char *env_hc(void);
 int tab_next(int pos);
 
 /* device related variables */
@@ -176,10 +178,13 @@ void wb_drawxbeg(struct wb *wb, int c);
 void wb_drawxdot(struct wb *wb, int h, int v);
 void wb_drawxend(struct wb *wb);
 void wb_cat(struct wb *wb, struct wb *src);
-int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2);
+int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2, int flags);
 int wb_wid(struct wb *wb);
 int wb_empty(struct wb *wb);
 void wb_wconf(struct wb *wb, int *ct, int *st, int *sb);
+
+/* hyphenation flags */
+#define HY_ANY		1	/* break at any possible position */
 
 /* adjustment */
 #define AD_L		0
@@ -286,6 +291,7 @@ int schar_jump(char *d, int (*next)(void), void (*back)(int));
 #define n_lb		(*nreg(REG(0, 'b')))	/* input line beg */
 #define n_ce		(*nreg(REG(0, 'c')))	/* .ce remaining */
 #define n_f0		(*nreg(REG(0, 'f')))	/* last .f */
+#define n_hy		(*nreg(REG(0, 'h')))	/* .hy mode */
 #define n_i0		(*nreg(REG(0, 'i')))	/* last .i */
 #define n_l0		(*nreg(REG(0, 'l')))	/* last .l */
 #define n_L0		(*nreg(REG(0, 'L')))	/* last .L */

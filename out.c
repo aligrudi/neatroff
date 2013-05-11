@@ -199,7 +199,7 @@ void out_line(char *s)
 			c[1] = '\0';
 		}
 		if (!t) {
-			if (c[0] == '\t' || c[0] == '')
+			if (c[0] == '\t' || c[0] == '' || !strcmp(c_hc, c))
 				continue;
 			g = dev_glyph(c, o_f);
 			if (utf8len(c[0]) == strlen(c))

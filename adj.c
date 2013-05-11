@@ -128,7 +128,7 @@ static void adj_hyph(struct adj *a, int n, int w)
 	struct wb w1, w2;
 	wb_init(&w1);
 	wb_init(&w2);
-	if (wb_hyph(&a->wbs[n], w, &w1, &w2)) {
+	if (wb_hyph(&a->wbs[n], w, &w1, &w2, n == 0 ? HY_ANY : 0)) {
 		wb_done(&w1);
 		wb_done(&w2);
 		return;

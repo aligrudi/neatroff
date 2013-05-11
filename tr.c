@@ -394,6 +394,21 @@ static void tr_eo(char **args)
 	c_ec = -1;
 }
 
+static void tr_hc(char **args)
+{
+	strcpy(c_hc, args[1] ? args[1] : "\\%");
+}
+
+static void tr_nh(char **args)
+{
+	n_hy = 0;
+}
+
+static void tr_hy(char **args)
+{
+	n_hy = args[1] ? atoi(args[1]) : 1;
+}
+
 static char *arg_regname(char *s, int len)
 {
 	char *e = s + 2;
@@ -586,6 +601,8 @@ static struct cmd {
 	{"fi", tr_fi},
 	{"fp", tr_fp},
 	{"ft", tr_ft},
+	{"hc", tr_hc},
+	{"hy", tr_hy},
 	{"ie", tr_if, mkargs_null},
 	{"if", tr_if, mkargs_null},
 	{"ig", tr_ig},
@@ -597,6 +614,7 @@ static struct cmd {
 	{"na", tr_na},
 	{"ne", tr_ne},
 	{"nf", tr_nf},
+	{"nh", tr_nh},
 	{"nr", tr_nr, mkargs_reg1},
 	{"ns", tr_ns},
 	{"nx", tr_nx},

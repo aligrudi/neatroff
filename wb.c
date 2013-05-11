@@ -88,9 +88,11 @@ void wb_put(struct wb *wb, char *c)
 	g = dev_glyph(c, R_F(wb));
 	wb_font(wb);
 	sbuf_append(&wb->sbuf, c);
-	wb->h += charwid(g ? g->wid : SC_DW, R_S(wb));
-	wb->ct |= g ? g->type : 0;
-	wb_stsb(wb);
+	if (strcmp(c_hc, c)) {
+		wb->h += charwid(g ? g->wid : SC_DW, R_S(wb));
+		wb->ct |= g ? g->type : 0;
+		wb_stsb(wb);
+	}
 }
 
 int wb_part(struct wb *wb)
@@ -221,8 +223,87 @@ void wb_wconf(struct wb *wb, int *ct, int *st, int *sb)
 	*sb = -wb->sb;
 }
 
-/* hyphenate wb into w1 and w2; return zero on success */
-int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2)
+/* skip troff requests; return 1 if read c_hc */
+static int skipreqs(char **s, struct wb *w1)
 {
-	return 1;
+	char d[ILNLEN];
+	char *r = *s;
+	int c;
+	wb_reset(w1);
+	while ((c = out_readc(s, d)) > 0) {
+		wb_putc(w1, c, d);
+		r = *s;
+	}
+	if (c < 0 || !strcmp(c_hc, d))
+		return 1;
+	*s = r;
+	return 0;
+}
+
+static char *dashpos(char *s, int w, struct wb *w1, int any)
+{
+	char d[ILNLEN];
+	char *r = NULL;
+	int c;
+	skipreqs(&s, w1);
+	while ((c = out_readc(&s, d)) == 0) {
+		wb_putc(w1, c, d);
+		if (wb_wid(w1) > w && (!any || r))
+			break;
+		if (!strcmp("-", d) || (d[0] == c_ec && (!strcmp("(em", d + 1) ||
+							!strcmp("(hy", d + 1))))
+			r = s;
+	}
+	return r;
+}
+
+static char *hyphpos(char *s, int w, struct wb *w1, int any)
+{
+	char hy[GNLEN] = {c_ec, '(', 'h', 'y'};
+	char d[ILNLEN];
+	char *r = NULL;
+	struct glyph *g;
+	int c;
+	skipreqs(&s, w1);
+	while ((c = out_readc(&s, d)) == 0) {
+		wb_putc(w1, c, d);
+		g = dev_glyph(hy, R_F(w1));
+		if (!g || (wb_wid(w1) + charwid(g->wid, R_S(w1)) > w && (!any || r)))
+			break;
+		if (!strcmp(c_hc, d))
+			r = s;
+	}
+	return r;
+}
+
+static void dohyph(char *s, char *pos, int dash, struct wb *w1, struct wb *w2)
+{
+	char d[ILNLEN];
+	char hy[GNLEN] = {c_ec, '(', 'h', 'y'};
+	int c = -1;
+	wb_reset(w1);
+	wb_reset(w2);
+	while (s != pos && (c = out_readc(&s, d)) >= 0)
+		wb_putc(w1, c, d);
+	if (dash)
+		wb_putc(w1, 0, hy);
+	w2->r_s = w1->r_s;
+	w2->r_f = w1->r_f;
+	while ((c = out_readc(&s, d)) >= 0)
+		wb_putc(w2, c, d);
+}
+
+/* hyphenate wb into w1 and w2; return zero on success */
+int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2, int flags)
+{
+	char *s = sbuf_buf(&wb->sbuf);
+	char *dp, *hp, *p;
+	if (skipreqs(&s, w1))
+		return 1;
+	dp = dashpos(sbuf_buf(&wb->sbuf), w, w1, flags & HY_ANY);
+	hp = hyphpos(sbuf_buf(&wb->sbuf), w, w1, flags & HY_ANY);
+	p = flags & HY_ANY ? MIN(dp, hp) : MAX(dp, hp);
+	if (p)
+		dohyph(sbuf_buf(&wb->sbuf), p, p != dp, w1, w2);
+	return !p;
 }

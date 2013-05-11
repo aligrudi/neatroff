@@ -11,6 +11,7 @@ struct env {
 	int eregs[NENVS];	/* environment-specific number registers */
 	int tabs[NTABS];	/* tab stops */
 	struct adj *adj;	/* per environment line buffer */
+	char hc[GNLEN];		/* hyphenation character */
 };
 
 static int nregs[NREGS];	/* global number registers */
@@ -32,6 +33,7 @@ static int eregs[] = {		/* environment-specific number registers */
 	REG('.', 'v'),
 	REG(0, 'c'),
 	REG(0, 'f'),
+	REG(0, 'h'),
 	REG(0, 'i'),
 	REG(0, 'l'),
 	REG(0, 'L'),
@@ -168,6 +170,8 @@ static void env_set(int id)
 		n_f0 = n_f;
 		n_na = 0;
 		n_lt = SC_IN * 65 / 10;
+		n_hy = 1;
+		strcpy(env->hc, "\\%");
 		adj_ll(env->adj, n_l);
 		adj_in(env->adj, n_i);
 		for (i = 0; i < NTABS; i++)
@@ -209,6 +213,11 @@ void tr_ev(char **args)
 struct adj *env_adj(void)
 {
 	return env->adj;
+}
+
+char *env_hc(void)
+{
+	return env->hc;
 }
 
 /* saving and restoring registers around diverted lines */
