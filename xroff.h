@@ -178,13 +178,19 @@ void wb_drawxbeg(struct wb *wb, int c);
 void wb_drawxdot(struct wb *wb, int h, int v);
 void wb_drawxend(struct wb *wb);
 void wb_cat(struct wb *wb, struct wb *src);
-int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2, int flags);
+int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2, int flg);
 int wb_wid(struct wb *wb);
 int wb_empty(struct wb *wb);
 void wb_wconf(struct wb *wb, int *ct, int *st, int *sb);
 
 /* hyphenation flags */
-#define HY_ANY		1	/* break at any possible position */
+#define HY_MASK		0x0f	/* enable hyphenation */
+#define HY_LAST		0x02	/* do not hyphenate last lines */
+#define HY_FINAL	0x04	/* do not hyphenate the final character */
+#define HY_FIRSTTWO	0x08	/* do not hyphenate the first two characters */
+#define HY_ANY		0x10	/* break at any possible position */
+
+void hyphenate(char *hyphs, char *word);
 
 /* adjustment */
 #define AD_L		0
@@ -194,7 +200,7 @@ void wb_wconf(struct wb *wb, int *ct, int *st, int *sb);
 
 struct adj *adj_alloc(void);
 void adj_free(struct adj *adj);
-int adj_fill(struct adj *adj, int ad_b, int fill, struct sbuf *dst,
+int adj_fill(struct adj *adj, int ad_b, int fill, int hyph, struct sbuf *dst,
 		int *ll, int *in, int *ti, int *els_neg, int *els_pos);
 int adj_full(struct adj *adj, int fill);
 int adj_empty(struct adj *adj, int fill);
@@ -236,6 +242,7 @@ void tr_fc(char **args);
 void tr_fi(char **args);
 void tr_fp(char **args);
 void tr_ft(char **args);
+void tr_hw(char **args);
 void tr_in(char **args);
 void tr_ll(char **args);
 void tr_mk(char **args);
@@ -258,6 +265,7 @@ void tr_init(void);
 /* helpers */
 void errmsg(char *msg, ...);
 int utf8len(int c);
+int utf8read(char **s, char *d);
 void schar_read(char *d, int (*next)(void));
 int schar_jump(char *d, int (*next)(void), void (*back)(int));
 

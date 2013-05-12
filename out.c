@@ -51,7 +51,7 @@ int utf8len(int c)
 	return c != 0;
 }
 
-static void utf8get(char **s, char *d)
+int utf8read(char **s, char *d)
 {
 	int l = utf8len((unsigned char) **s);
 	int i;
@@ -59,6 +59,7 @@ static void utf8get(char **s, char *d)
 		d[i] = (*s)[i];
 	d[l] = '\0';
 	*s += l;
+	return l;
 }
 
 static int o_s = 10;
@@ -171,12 +172,12 @@ int out_readc(char **s, char *d)
 {
 	if (!**s)
 		return -1;
-	utf8get(s, d);
+	utf8read(s, d);
 	if (d[0] == c_ec) {
-		utf8get(s, d + 1);
+		utf8read(s, d + 1);
 		if (d[1] == '(') {
-			utf8get(s, d + 2);
-			utf8get(s, d + strlen(d));
+			utf8read(s, d + 2);
+			utf8read(s, d + strlen(d));
 		} else if (strchr("DfhsvXx", d[1])) {
 			int c = d[1];
 			escarg(s, d, d[1]);
@@ -184,7 +185,7 @@ int out_readc(char **s, char *d)
 		}
 	}
 	if (d[0] == c_ni)
-		utf8get(s, d + 1);
+		utf8read(s, d + 1);
 	return 0;
 }
 

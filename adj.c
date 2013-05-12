@@ -123,12 +123,13 @@ static int adj_move(struct adj *a, int n, struct sbuf *s, int *els_neg, int *els
 }
 
 /* try to hyphenate the n-th word */
-static void adj_hyph(struct adj *a, int n, int w)
+static void adj_hyph(struct adj *a, int n, int w, int hyph)
 {
 	struct wb w1, w2;
+	int flg = hyph | (n ? 0 : HY_ANY);
 	wb_init(&w1);
 	wb_init(&w2);
-	if (wb_hyph(&a->wbs[n], w, &w1, &w2, n == 0 ? HY_ANY : 0)) {
+	if (wb_hyph(&a->wbs[n], w, &w1, &w2, flg)) {
 		wb_done(&w1);
 		wb_done(&w2);
 		return;
@@ -143,7 +144,7 @@ static void adj_hyph(struct adj *a, int n, int w)
 }
 
 /* fill and copy a line into s */
-int adj_fill(struct adj *a, int ad_b, int fill, struct sbuf *s,
+int adj_fill(struct adj *a, int ad_b, int fill, int hyph, struct sbuf *s,
 		int *ll, int *in, int *ti, int *els_neg, int *els_pos)
 {
 	int adj_div, adj_rem;
@@ -159,7 +160,7 @@ int adj_fill(struct adj *a, int ad_b, int fill, struct sbuf *s,
 	}
 	n = adj_linefit(a, llen);
 	if (n < a->nwords)
-		adj_hyph(a, n, llen - adj_linewid(a, n) - a->gaps[n]);
+		adj_hyph(a, n, llen - adj_linewid(a, n) - a->gaps[n], hyph);
 	n = adj_linefit(a, llen);
 	if (!n && a->nwords)
 		n = 1;

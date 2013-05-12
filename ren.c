@@ -247,7 +247,7 @@ static int ren_bradj(struct adj *adj, int fill, int ad)
 	ren_first();
 	if (!adj_empty(adj, fill)) {
 		sbuf_init(&sbuf);
-		w = adj_fill(adj, ad == AD_B, fill, &sbuf,
+		w = adj_fill(adj, ad == AD_B, fill, n_hy, &sbuf,
 				&ll, &li, &lt, &els_neg, &els_pos);
 		prev_d = n_d;
 		if (els_neg)

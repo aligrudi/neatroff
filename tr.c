@@ -603,6 +603,7 @@ static struct cmd {
 	{"ft", tr_ft},
 	{"hc", tr_hc},
 	{"hy", tr_hy},
+	{"hw", tr_hw},
 	{"ie", tr_if, mkargs_null},
 	{"if", tr_if, mkargs_null},
 	{"ig", tr_ig},

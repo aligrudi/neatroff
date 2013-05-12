@@ -257,22 +257,56 @@ static char *dashpos(char *s, int w, struct wb *w1, int any)
 	return r;
 }
 
-static char *hyphpos(char *s, int w, struct wb *w1, int any)
+static int wb_dashwid(struct wb *wb)
 {
-	char hy[GNLEN] = {c_ec, '(', 'h', 'y'};
+	struct glyph *g = dev_glyph("hy", R_F(wb));
+	return charwid(g ? g->wid : SC_DW, R_S(wb));
+}
+
+static char *indicatorpos(char *s, int w, struct wb *w1, int flg)
+{
 	char d[ILNLEN];
 	char *r = NULL;
-	struct glyph *g;
 	int c;
 	skipreqs(&s, w1);
 	while ((c = out_readc(&s, d)) == 0) {
 		wb_putc(w1, c, d);
-		g = dev_glyph(hy, R_F(w1));
-		if (!g || (wb_wid(w1) + charwid(g->wid, R_S(w1)) > w && (!any || r)))
+		if (wb_wid(w1) + wb_dashwid(w1) > w && (!(flg & HY_ANY) || r))
 			break;
 		if (!strcmp(c_hc, d))
 			r = s;
 	}
+	return r;
+}
+
+static char *hyphpos(char *s, int w, struct wb *w1, int flg)
+{
+	char word[ILNLEN];
+	char hyph[ILNLEN];
+	char d[ILNLEN];
+	char *r = NULL;
+	char *hy_beg, *hy_wid = NULL, *hy_end = NULL;
+	char *wp = word;
+	int beg, end;
+	int i, c;
+	skipreqs(&s, w1);
+	hy_beg = s;
+	while ((c = out_readc(&s, d)) == 0) {
+		wb_putc(w1, c, d);
+		if (wb_wid(w1) + wb_dashwid(w1) <= w)
+			hy_wid = s;
+		hy_end = s;
+		strcpy(wp, d);
+		wp = strchr(wp, '\0');
+	}
+	if (strlen(word) < 4)
+		return NULL;
+	hyphenate(hyph, word);
+	beg = flg & HY_FIRSTTWO ? 3 : 2;
+	end = hy_end - hy_beg - (flg & HY_FINAL ? 1 : 0);
+	for (i = beg; i < end; i++)
+		if (hyph[i] && (hy_beg + i <= hy_wid || ((flg & HY_ANY) && !r)))
+			r = hy_beg + i;
 	return r;
 }
 
@@ -294,15 +328,17 @@ static void dohyph(char *s, char *pos, int dash, struct wb *w1, struct wb *w2)
 }
 
 /* hyphenate wb into w1 and w2; return zero on success */
-int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2, int flags)
+int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2, int flg)
 {
 	char *s = sbuf_buf(&wb->sbuf);
 	char *dp, *hp, *p;
 	if (skipreqs(&s, w1))
 		return 1;
-	dp = dashpos(sbuf_buf(&wb->sbuf), w, w1, flags & HY_ANY);
-	hp = hyphpos(sbuf_buf(&wb->sbuf), w, w1, flags & HY_ANY);
-	p = flags & HY_ANY ? MIN(dp, hp) : MAX(dp, hp);
+	dp = dashpos(sbuf_buf(&wb->sbuf), w, w1, flg & HY_ANY);
+	hp = indicatorpos(sbuf_buf(&wb->sbuf), w, w1, flg & HY_ANY);
+	p = flg & HY_ANY ? MIN(dp, hp) : MAX(dp, hp);
+	if (!p && flg & HY_MASK)
+		p = hyphpos(sbuf_buf(&wb->sbuf), w, w1, flg & HY_ANY);
 	if (p)
 		dohyph(sbuf_buf(&wb->sbuf), p, p != dp, w1, w2);
 	return !p;
