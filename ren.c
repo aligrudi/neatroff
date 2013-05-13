@@ -126,18 +126,20 @@ static void ren_first(void)
 	}
 }
 
-static void ren_sp(int n)
+/* when nodiv, do not append .sp to diversions */
+static void ren_sp(int n, int nodiv)
 {
 	char cmd[32];
 	ren_first();
+	/* ignore .sp without arguments when reading diversions */
 	if (!n && ren_div && !n_u)
 		return;
 	n_d += n ? n : n_v;
 	if (n_d > n_h)
 		n_h = n_d;
-	if (cdiv) {
+	if (cdiv && !nodiv) {
 		sbuf_putnl(&cdiv->sbuf);
-		sprintf(cmd, "'sp %du\n", n ? n : n_v);
+		sprintf(cmd, "%csp %du\n", c_cc, n ? n : n_v);
 		sbuf_append(&cdiv->sbuf, cmd);
 	} else {
 		n_nl = n_d;
@@ -171,7 +173,7 @@ static int ren_traps(int beg, int end, int dosp)
 	int pos = trap_pos(beg);
 	if (detect_traps(beg, end)) {
 		if (dosp && pos > beg)
-			ren_sp(pos - beg);
+			ren_sp(pos - beg, 0);
 		trap_exec(trap_reg(beg));
 		return 1;
 	}
@@ -197,7 +199,7 @@ static int ren_pagelimit(int ne)
 static void down(int n)
 {
 	if (!ren_traps(n_d, n_d + (n ? n : n_v), 1)) {
-		ren_sp(n);
+		ren_sp(n, 0);
 		ren_pagelimit(0);
 	}
 }
@@ -251,15 +253,15 @@ static int ren_bradj(struct adj *adj, int fill, int ad)
 				&ll, &li, &lt, &els_neg, &els_pos);
 		prev_d = n_d;
 		if (els_neg)
-			ren_sp(-els_neg);
+			ren_sp(-els_neg, 1);
 		if (!n_ns || w || els_neg || els_pos) {
-			ren_sp(0);
+			ren_sp(0, 0);
 			ren_line(sbuf_buf(&sbuf), w, ad, ll, li, lt);
 			n_ns = 0;
 		}
 		sbuf_done(&sbuf);
 		if (els_pos)
-			ren_sp(els_pos);
+			ren_sp(els_pos, 1);
 		n_a = els_pos;
 		lspc = MAX(1, n_L) * n_v - n_v;
 		if (detect_traps(prev_d, n_d) || detect_pagelimit(lspc)) {
@@ -338,7 +340,7 @@ void tr_rt(char **args)
 {
 	int n = args[1] ? eval_re(args[1], n_d, 'v') : n_mk;
 	if (n >= 0 && n < n_d)
-		ren_sp(n - n_d);
+		ren_sp(n - n_d, 0);
 }
 
 void tr_ne(char **args)
