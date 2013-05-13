@@ -6,15 +6,16 @@
 #define ADJ_LLEN(a)	MAX(0, (a)->ll - ((a)->lt >= 0 ? (a)->lt : (a)->li))
 
 struct adj {
-	struct wb wbs[NWORDS];		/* words in buf */
-	int gaps[NWORDS];		/* gaps before words */
+	struct wb wbs[NWORDS];	/* words in buf */
+	int gaps[NWORDS];	/* gaps before words */
 	int nwords;
-	int wid;			/* total width of buf */
-	int swid;			/* current space width */
-	int gap;			/* space before the next word */
-	int nls;			/* newlines before the next word */
-	int l, i, t;			/* current .l, .i and ti */
-	int ll, li, lt;			/* current line's .l, .i and ti */
+	int wid;		/* total width of buf */
+	int swid;		/* current space width */
+	int gap;		/* space before the next word */
+	int nls;		/* newlines before the next word */
+	int l, i, t;		/* current .l, .i and ti */
+	int ll, li, lt;		/* current line's .l, .i and ti */
+	int filled;		/* filled all words in the last adj_fill() */
 };
 
 void adj_ll(struct adj *adj, int ll)
@@ -45,23 +46,24 @@ static void adj_confupdate(struct adj *adj)
 static int adj_fullnf(struct adj *a)
 {
 	/* blank lines; indented lines; newlines when buffer is empty */
-	return a->nls > 1 || (a->nls && a->gap) || (a->nls && !a->nwords);
+	return a->nls > 1 || (a->nls && a->gap) ||
+			(a->nls - a->filled > 0 && !a->nwords);
 }
 
 /* does the adjustment buffer need to be flushed? */
 int adj_full(struct adj *a, int fill)
 {
 	if (!fill)
-		return a->nls;
+		return a->nls - a->filled > 0;
 	if (adj_fullnf(a))
 		return 1;
-	return a->wid > ADJ_LLEN(a);
+	return a->nwords && a->wid > ADJ_LLEN(a);
 }
 
 /* is the adjustment buffer empty? */
 int adj_empty(struct adj *a, int fill)
 {
-	return !fill ? !a->nls : !a->nwords && !adj_fullnf(a);
+	return !fill ? a->nls - a->filled <= 0 : !a->nwords && !adj_fullnf(a);
 }
 
 /* set space width */
@@ -88,9 +90,12 @@ static int adj_linewid(struct adj *a, int n)
 static int adj_linefit(struct adj *a, int llen)
 {
 	int i, w = 0;
-	for (i = 0; i < a->nwords && w <= llen; i++)
+	for (i = 0; i < a->nwords; i++) {
 		w += wb_wid(&a->wbs[i]) + a->gaps[i];
-	return i - 1;
+		if (w > llen)
+			return i;
+	}
+	return i;
 }
 
 /* move n words from the adjustment buffer to s */
@@ -155,6 +160,7 @@ int adj_fill(struct adj *a, int ad_b, int fill, int hyph, struct sbuf *s,
 	*in = a->li;
 	*ti = a->lt;
 	if (!fill || adj_fullnf(a)) {
+		a->filled = 0;
 		a->nls--;
 		return adj_move(a, a->nwords, s, els_neg, els_pos);
 	}
@@ -165,7 +171,7 @@ int adj_fill(struct adj *a, int ad_b, int fill, int hyph, struct sbuf *s,
 	if (!n && a->nwords)
 		n = 1;
 	w = adj_linewid(a, n);
-	if (ad_b && n > 1 && n < a->nwords) {
+	if (ad_b && n > 1) {
 		adj_div = (llen - w) / (n - 1);
 		adj_rem = (llen - w) % (n - 1);
 		for (i = 0; i < n - 1; i++)
@@ -175,6 +181,7 @@ int adj_fill(struct adj *a, int ad_b, int fill, int hyph, struct sbuf *s,
 	if (a->nwords)
 		a->wid -= a->gaps[0];
 	a->gaps[0] = 0;
+	a->filled = n && !a->nwords;
 	return w;
 }
 
@@ -201,7 +208,8 @@ static void adj_word(struct adj *adj, struct wb *wb)
 {
 	int i = adj->nwords++;
 	wb_init(&adj->wbs[i]);
-	adj->gaps[i] = adj->gap;
+	adj->gaps[i] = adj->filled ? 0 : adj->gap;
+	adj->filled = 0;
 	adj->wid += wb_wid(wb) + adj->gap;
 	wb_cat(&adj->wbs[i], wb);
 }
