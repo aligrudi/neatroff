@@ -170,9 +170,11 @@ int dev_font(char *id)
 		}
 		return num;
 	}
-	for (i = 0; i < fn_n; i++)
+	for (i = 1; i < fn_n; i++)
 		if (!strcmp(fn_name[i], id))
 			return i;
+	if (!strcmp(fn_name[0], id))
+		return 0;
 	return dev_mnt(0, id, id);
 }
 
