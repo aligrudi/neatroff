@@ -37,7 +37,7 @@ static void font_charset(struct font *fn, FILE *fin)
 	struct glyph *glyph = NULL;
 	struct glyph *prev = NULL;
 	int wid, type;
-	while (1) {
+	while (fn->n < NGLYPHS) {
 		if (fscanf(fin, "%s", name) != 1)
 			break;
 		fscanf(fin, "%s", tok);
