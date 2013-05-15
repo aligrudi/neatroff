@@ -129,7 +129,6 @@ static void ren_first(void)
 /* when nodiv, do not append .sp to diversions */
 static void ren_sp(int n, int nodiv)
 {
-	char cmd[32];
 	ren_first();
 	/* ignore .sp without arguments when reading diversions */
 	if (!n && ren_div && !n_u)
@@ -139,8 +138,7 @@ static void ren_sp(int n, int nodiv)
 		n_h = n_d;
 	if (cdiv && !nodiv) {
 		sbuf_putnl(&cdiv->sbuf);
-		sprintf(cmd, "%csp %du\n", c_cc, n ? n : n_v);
-		sbuf_append(&cdiv->sbuf, cmd);
+		sbuf_printf(&cdiv->sbuf, "%csp %du\n", c_cc, n ? n : n_v);
 	} else {
 		n_nl = n_d;
 	}
@@ -207,25 +205,21 @@ static void down(int n)
 /* flush the given line and send it to out.c */
 static void ren_line(char *s, int w, int ad, int ll, int li, int lt)
 {
-	int ljust = 0;
-	char cmd[32];
-	int llen = ll - (lt >= 0 ? lt : li);
+	int ljust = lt >= 0 ? lt : li;
+	int llen = ll - ljust;
 	n_n = w;
 	if (ad == AD_C)
-		ljust = llen > w ? (llen - w) / 2 : 0;
+		ljust += llen > w ? (llen - w) / 2 : 0;
 	if (ad == AD_R)
-		ljust = llen - w;
+		ljust += llen - w;
 	if (cdiv) {
 		if (cdiv->dl < w)
 			cdiv->dl = w;
-		ljust += lt >= 0 ? lt : li;
-		if (ljust) {
-			sprintf(cmd, "%ch'%du'", c_ec, ljust);
-			sbuf_append(&cdiv->sbuf, cmd);
-		}
+		if (ljust)
+			sbuf_printf(&cdiv->sbuf, "%ch'%du'", c_ec, ljust);
 		sbuf_append(&cdiv->sbuf, s);
 	} else {
-		out("H%d\n", n_o + (lt >= 0 ? lt : li) + ljust);
+		out("H%d\n", n_o + ljust);
 		out("V%d\n", n_d);
 		out_line(s);
 	}
@@ -352,7 +346,7 @@ void tr_ne(char **args)
 
 void tr_bp(char **args)
 {
-	char br[] = {c_cc, 'b', 'r', '\n'};
+	char br[8] = {c_cc, 'b', 'r', '\n'};
 	if (!cdiv && (args[1] || !n_ns)) {
 		if (!bp_force)
 			push_ne();
