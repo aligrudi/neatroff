@@ -253,7 +253,7 @@ int escread(char **s, char **d)
 			*r = '\0';
 			if (**s == ']')
 				(*s)++;
-		} else if (strchr("CDfhmsvXx", r[1])) {
+		} else if (strchr("CDfhmsvXx<>", r[1])) {
 			int c = r[1];
 			r[0] = '\0';
 			if (strchr(ESC_P, c))

@@ -41,6 +41,7 @@ static char *eregs[] = {	/* environment-specific number registers */
 	".hy", ".hycost", ".hycost2", ".hycost3", ".hlm",
 	".L0", ".m0", ".n0", ".s0", ".ss", ".ssh", ".sss", ".pmll", ".pmllcost",
 	".ti", ".lt", ".lt0", ".v0",
+	".I", ".I0", ".tI", ".td", ".cd",
 };
 
 /* return the address of a number register */
@@ -230,6 +231,7 @@ static void env_set(int id)
 		env = envs[id];
 		n_f = 1;
 		n_i = 0;
+		n_I = 0;
 		n_j = AD_B;
 		n_l = SC_IN * 65 / 10;
 		n_L = 1;
@@ -343,7 +345,7 @@ char *env_lc(void)
 
 /* saving and restoring registers around diverted lines */
 struct odiv {
-	int f, s, m, f0, s0, m0;
+	int f, s, m, f0, s0, m0, cd;
 };
 
 static struct odiv odivs[NPREV];	/* state before diverted text */
@@ -359,6 +361,7 @@ void odiv_beg(void)
 	o->f0 = n_f0;
 	o->s0 = n_s0;
 	o->m0 = n_m0;
+	o->cd = n_cd;
 }
 
 /* end outputting diverted line */
@@ -371,6 +374,7 @@ void odiv_end(void)
 	n_f0 = o->f0;
 	n_s0 = o->s0;
 	n_m0 = o->m0;
+	n_cd = o->cd;
 }
 
 void tr_ta(char **args)

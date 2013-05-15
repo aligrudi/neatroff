@@ -225,8 +225,8 @@ int sbuf_empty(struct sbuf *sbuf);
 /* word buffer */
 struct wb {
 	struct sbuf sbuf;
-	int f, s, m;		/* the last output font and size */
-	int r_f, r_s, r_m;	/* current font and size; use n_f and n_s if -1 */
+	int f, s, m, cd;	/* the last output font and size */
+	int r_f, r_s, r_m, r_cd;/* current font and size; use n_f and n_s if -1 */
 	int part;		/* partial input (\c) */
 	int cost;		/* the extra cost of line break after this word */
 	int els_neg, els_pos;	/* extra line spacing */
@@ -274,8 +274,9 @@ void wb_wconf(struct wb *wb, int *ct, int *st, int *sb,
 		int *llx, int *lly, int *urx, int *ury);
 void wb_reset(struct wb *wb);
 char *wb_buf(struct wb *wb);
-void wb_fnszget(struct wb *wb, int *fn, int *sz, int *m);
-void wb_fnszset(struct wb *wb, int fn, int sz, int m);
+void wb_fnszget(struct wb *wb, int *fn, int *sz, int *m, int *cd);
+void wb_fnszset(struct wb *wb, int fn, int sz, int m, int cd);
+void wb_flushdir(struct wb *wb);
 int wb_hywid(struct wb *wb);
 int wb_swid(struct wb *wb);
 int c_eossent(char *s);
@@ -321,7 +322,7 @@ int fmt_fill(struct fmt *fmt, int br);
 int fmt_morelines(struct fmt *fmt);
 int fmt_morewords(struct fmt *fmt);
 char *fmt_nextline(struct fmt *fmt, int *w,
-		int *li, int *ll, int *els_neg, int *els_pos);
+		int *li, int *lI, int *ll, int *els_neg, int *els_pos);
 
 /* rendering */
 int render(void);				/* the main loop */
@@ -383,6 +384,11 @@ void tr_wh(char **args);
 void tr_popren(char **args);
 void tr_transparent(char **args);
 
+void tr_in2(char **args);
+void tr_ti2(char **args);
+void tr_l2r(char **args);
+void tr_r2l(char **args);
+
 void tr_init(void);
 void tr_done(void);
 
@@ -426,6 +432,12 @@ int map(char *s);		/* map name s to an index */
 char *map_name(int id);		/* return the name mapped to id */
 void map_done(void);
 
+/* text direction */
+extern int dir_do;
+
+void dir_fix(struct sbuf *sbuf, char *s);
+void dir_done(void);
+
 /* colors */
 #define CLR_R(c)		(((c) >> 16) & 0xff)
 #define CLR_G(c)		(((c) >> 8) & 0xff)
@@ -444,6 +456,7 @@ int clr_get(char *s);
 #define n_i		(*nreg(DOTMAP('i')))
 #define n_it		(*nreg(map(".it")))	/* .it trap macro */
 #define n_itn		(*nreg(map(".itn")))	/* .it lines left */
+#define n_I		(*nreg(DOTMAP('I')))	/* base indent */
 #define n_j		(*nreg(DOTMAP('j')))
 #define n_l		(*nreg(DOTMAP('l')))
 #define n_L		(*nreg(DOTMAP('L')))
@@ -462,6 +475,8 @@ int clr_get(char *s);
 #define n_u		(*nreg(DOTMAP('u')))
 #define n_v		(*nreg(DOTMAP('v')))
 #define n_ct		(*nreg(map("ct")))
+#define n_td		(*nreg(map(".td")))	/* text direction */
+#define n_cd		(*nreg(map(".cd")))	/* current direction */
 #define n_dl		(*nreg(map("dl")))
 #define n_dn		(*nreg(map("dn")))
 #define n_ln		(*nreg(map("ln")))
@@ -481,6 +496,8 @@ int clr_get(char *s);
 #define n_i0		(*nreg(map(".i0")))	/* last .i */
 #define n_ti		(*nreg(map(".ti")))	/* pending .ti */
 #define n_kn		(*nreg(map(".kn")))	/* .kn mode */
+#define n_tI		(*nreg(map(".tI")))	/* pending .ti2 */
+#define n_I0		(*nreg(map(".I0")))	/* last .I */
 #define n_l0		(*nreg(map(".l0")))	/* last .l */
 #define n_L0		(*nreg(map(".L0")))	/* last .L */
 #define n_m0		(*nreg(map(".m0")))	/* last .m */

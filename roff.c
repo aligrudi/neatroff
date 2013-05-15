@@ -157,5 +157,6 @@ int main(int argc, char **argv)
 	env_done();
 	dev_close();
 	map_done();
+	dir_done();
 	return ret;
 }

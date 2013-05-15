@@ -9,6 +9,7 @@
 #define R_F(wb)		((wb)->r_f >= 0 ? (wb)->r_f : n_f)	/* current font */
 #define R_S(wb)		((wb)->r_s >= 0 ? (wb)->r_s : n_s)	/* current size */
 #define R_M(wb)		((wb)->r_m >= 0 ? (wb)->r_m : n_m)	/* current color */
+#define R_CD(b)		((wb)->r_cd >= 0 ? (wb)->r_cd : n_cd)	/* current direction */
 /* italic correction */
 #define glyph_ic(g)	(MAX(0, (g)->urx - (g)->wid))
 #define glyph_icleft(g)	(MAX(0, -(g)->llx))
@@ -26,9 +27,11 @@ void wb_init(struct wb *wb)
 	wb->f = -1;
 	wb->s = -1;
 	wb->m = -1;
+	wb->cd = -1;
 	wb->r_f = -1;
 	wb->r_s = -1;
 	wb->r_m = -1;
+	wb->r_cd = -1;
 	wb->llx = BBMAX;
 	wb->lly = BBMAX;
 	wb->urx = BBMIN;
@@ -63,6 +66,12 @@ static int wb_pendingfont(struct wb *wb)
 			(!n_cp && wb->m != R_M(wb));
 }
 
+/* pending direction change */
+static int wb_pendingdir(struct wb *wb)
+{
+	return wb->cd != R_CD(wb);
+}
+
 /* append font and size to the buffer if needed */
 static void wb_flushfont(struct wb *wb)
 {
@@ -84,10 +93,22 @@ static void wb_flushfont(struct wb *wb)
 	wb_stsb(wb);
 }
 
+/* append current text direction to the buffer if needed */
+void wb_flushdir(struct wb *wb)
+{
+	if (wb->cd != R_CD(wb)) {
+		wb_flushsub(wb);
+		if (dir_do)
+			sbuf_printf(&wb->sbuf, "%c%c", c_ec, R_CD(wb) > 0 ? '<' : '>');
+		wb->cd = R_CD(wb);
+	}
+}
+
 /* apply font and size changes and flush the collected subword */
 static void wb_flush(struct wb *wb)
 {
 	wb_flushsub(wb);
+	wb_flushdir(wb);
 	wb_flushfont(wb);
 }
 
@@ -220,20 +241,22 @@ static void wb_flushsub(struct wb *wb)
 		dst_n = font_layout(fn, gsrc, sidx - beg, wb->s,
 				gdst, dmap, x, y, xadv, yadv, n_lg, n_kn);
 		for (i = 0; i < dst_n; i++) {
-			if (x[i])
-				wb_hmov(wb, font_wid(fn, wb->s, x[i]));
-			if (y[i])
-				wb_vmov(wb, font_wid(fn, wb->s, y[i]));
+			int xd[2] = {x[i], xadv[i] - x[i]};
+			int yd[2] = {y[i], yadv[i] - y[i]};
+			if (xd[wb->cd])
+				wb_hmov(wb, font_wid(fn, wb->s, xd[wb->cd]));
+			if (yd[wb->cd])
+				wb_vmov(wb, font_wid(fn, wb->s, yd[wb->cd]));
 			if (src_hyph[beg + dmap[i]])
 				wb_putbuf(wb, c_hc);
 			if (gdst[i] == gsrc[dmap[i]])
 				wb_putbuf(wb, wb->sub_c[beg + dmap[i]]);
 			else
 				wb_putbuf(wb, gdst[i]->name);
-			if (x[i] || xadv[i])
-				wb_hmov(wb, font_wid(fn, wb->s, xadv[i] - x[i]));
-			if (y[i] || yadv[i])
-				wb_vmov(wb, font_wid(fn, wb->s, yadv[i] - y[i]));
+			if (xd[1 - wb->cd])
+				wb_hmov(wb, font_wid(fn, wb->s, xd[1 - wb->cd]));
+			if (yd[1 - wb->cd])
+				wb_vmov(wb, font_wid(fn, wb->s, yd[1 - wb->cd]));
 		}
 		for (; sidx < wb->sub_n && c_hymark(wb->sub_c[sidx]); sidx++)
 			wb_putbuf(wb, wb->sub_c[sidx]);
@@ -249,6 +272,8 @@ void wb_put(struct wb *wb, char *c)
 		wb->part = 0;
 		return;
 	}
+	if (wb_pendingdir(wb))
+		wb_flushdir(wb);
 	if (c[0] == ' ') {
 		wb_flushsub(wb);
 		wb_hmov(wb, font_swid(dev_font(R_F(wb)), R_S(wb), n_ss));
@@ -411,6 +436,11 @@ static void wb_putc(struct wb *wb, int t, char *s)
 	case 'X':
 		wb_etc(wb, s);
 		break;
+	case '<':
+	case '>':
+		wb->r_cd = t == '<';
+		wb_flushdir(wb);
+		break;
 	}
 }
 
@@ -429,6 +459,7 @@ void wb_cat(struct wb *wb, struct wb *src)
 	wb->r_s = -1;
 	wb->r_f = -1;
 	wb->r_m = -1;
+	wb->r_cd = -1;
 	wb_reset(src);
 	src->part = part;
 	wb_collect(wb, collect);
@@ -497,19 +528,21 @@ void wb_italiccorrectionleft(struct wb *wb)
 	wb->icleft = 1;
 }
 
-void wb_fnszget(struct wb *wb, int *fn, int *sz, int *m)
+void wb_fnszget(struct wb *wb, int *fn, int *sz, int *m, int *cd)
 {
 	wb_flushsub(wb);
 	*fn = wb->r_f;
 	*sz = wb->r_s;
 	*m = wb->r_m;
+	*cd = wb->r_cd;
 }
 
-void wb_fnszset(struct wb *wb, int fn, int sz, int m)
+void wb_fnszset(struct wb *wb, int fn, int sz, int m, int cd)
 {
 	wb->r_f = fn;
 	wb->r_s = sz;
 	wb->r_m = m;
+	wb->r_cd = cd;
 }
 
 void wb_catstr(struct wb *wb, char *s, char *end)
