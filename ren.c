@@ -238,10 +238,10 @@ static int down(int n)
 }
 
 /* line adjustment */
-static int ren_ljust(struct sbuf *spre, int w, int ad, int li, int ll)
+static int ren_ljust(struct sbuf *spre, int w, int ad, int li, int lI, int ll)
 {
 	int ljust = li;
-	int llen = ll - ljust;
+	int llen = ll - lI - li;
 	n_n = w;
 	if ((ad & AD_B) == AD_C)
 		ljust += llen > w ? (llen - w) / 2 : 0;
@@ -269,6 +269,17 @@ static void ren_out(char *beg, char *mid, char *end)
 		out_line(mid);
 		out_line(end);
 	}
+}
+
+static void ren_dir(struct sbuf *sbuf)
+{
+	struct sbuf fixed;
+	sbuf_init(&fixed);
+	dir_fix(&fixed, sbuf_buf(sbuf));
+	sbuf_done(sbuf);
+	sbuf_init(sbuf);
+	sbuf_append(sbuf, sbuf_buf(&fixed));
+	sbuf_done(&fixed);
 }
 
 static int zwid(void)
@@ -317,13 +328,15 @@ static void ren_mc(struct sbuf *sbuf, int w, int ljust)
 
 /* process a line and print it with ren_out() */
 static int ren_line(char *line, int w, int ad, int body,
-		int li, int ll, int els_neg, int els_pos)
+		int li, int lI, int ll, int els_neg, int els_pos)
 {
-	struct sbuf sbeg, send;
+	struct sbuf sbeg, send, sbuf;
 	int prev_d, lspc, ljust;
 	ren_first();
 	sbuf_init(&sbeg);
 	sbuf_init(&send);
+	sbuf_init(&sbuf);
+	sbuf_append(&sbuf, line);
 	lspc = MAX(1, n_L) * n_v;	/* line space, ignoreing \x */
 	prev_d = n_d;
 	if (!n_ns || line[0] || els_neg || els_pos) {
@@ -332,16 +345,19 @@ static int ren_line(char *line, int w, int ad, int body,
 		ren_sp(0, 0);
 		if (line[0] && n_nm && body)
 			ren_lnum(&sbeg);
-		ljust = ren_ljust(&sbeg, w, ad, li, ll);
+		if (!ren_div)
+			ren_dir(&sbuf);
+		ljust = ren_ljust(&sbeg, w, ad, li, lI, ll);
 		if (line[0] && body && n_mc)
 			ren_mc(&send, w, ljust);
-		ren_out(sbuf_buf(&sbeg), line, sbuf_buf(&send));
+		ren_out(sbuf_buf(&sbeg), sbuf_buf(&sbuf), sbuf_buf(&send));
 		n_ns = 0;
 		if (els_pos)
 			ren_sp(els_pos, 1);
 	}
 	sbuf_done(&sbeg);
 	sbuf_done(&send);
+	sbuf_done(&sbuf);
 	n_a = els_pos;
 	if (detect_traps(prev_d, n_d) || detect_pagelimit(lspc - n_v)) {
 		if (!ren_pagelimit(lspc - n_v))
@@ -357,17 +373,19 @@ static int ren_line(char *line, int w, int ad, int body,
 static int ren_passline(struct fmt *fmt)
 {
 	char *buf;
-	int ll, li, els_neg, els_pos, w, ret;
+	int ll, li, lI, els_neg, els_pos, w, ret;
 	int ad = n_j;
 	ren_first();
 	if (!fmt_morewords(fmt))
 		return 0;
-	buf = fmt_nextline(fmt, &w, &li, &ll, &els_neg, &els_pos);
+	buf = fmt_nextline(fmt, &w, &li, &lI, &ll, &els_neg, &els_pos);
 	if ((n_cp && !n_u) || n_na)
 		ad = AD_L;
+	else if ((ad & AD_B) == AD_B)
+		ad = n_td > 0 ? AD_R : AD_L;
 	if (n_ce)
 		ad = AD_C;
-	ret = ren_line(buf, w, ad, 1, li, ll, els_neg, els_pos);
+	ret = ren_line(buf, w, ad, 1, li, lI, ll, els_neg, els_pos);
 	free(buf);
 	return ret;
 }
@@ -546,6 +564,40 @@ void tr_ti(char **args)
 		n_ti = eval_re(args[1], n_i, 'm');
 }
 
+void tr_l2r(char **args)
+{
+	if (args[0][0] == c_cc)
+		ren_br();
+	n_td = 0;
+	n_cd = 0;
+}
+
+void tr_r2l(char **args)
+{
+	if (args[0][0] == c_cc)
+		ren_br();
+	n_td = 1;
+	n_cd = 1;
+}
+
+void tr_in2(char **args)
+{
+	int I = args[1] ? eval_re(args[1], n_I, 'm') : n_I0;
+	if (args[0][0] == c_cc)
+		ren_br();
+	n_I0 = n_I;
+	n_I = MAX(0, I);
+	n_tI = -1;
+}
+
+void tr_ti2(char **args)
+{
+	if (args[0][0] == c_cc)
+		ren_br();
+	if (args[1])
+		n_tI = eval_re(args[1], n_I, 'm');
+}
+
 static void ren_ft(char *s)
 {
 	int fn = !s || !*s || !strcmp("P", s) ? n_f0 : dev_pos(s);
@@ -710,6 +762,11 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 	case ',':
 		wb_italiccorrectionleft(wb);
 		break;
+	case '<':
+	case '>':
+		n_cd = c == '<';
+		wb_flushdir(wb);
+		break;
 	}
 }
 
@@ -739,7 +796,7 @@ static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int)
 			wb_hmov(wb, w - wb_wid(wb));
 			return;
 		}
-		if (strchr(" bCcDdefHhjkLlmNoprSsuvXxZz0^|!{}&/,", c[1])) {
+		if (strchr(" bCcDdefHhjkLlmNoprSsuvXxZz0^|!{}&/,<>", c[1])) {
 			char *arg = NULL;
 			if (strchr(ESC_P, c[1]))
 				arg = unquotednext(c[1], next, back);
@@ -875,7 +932,7 @@ void ren_tl(int (*next)(void), void (*back)(int))
 	wb_cpy(&wb, &wb2, n_lt - wb_wid(&wb2));
 	/* flushing the line */
 	ren_line(wb_buf(&wb), wb_wid(&wb), AD_L, 0,
-			0, n_lt, wb.els_neg, wb.els_pos);
+			0, 0, n_lt, wb.els_neg, wb.els_pos);
 	wb_done(&wb2);
 	wb_done(&wb);
 }
