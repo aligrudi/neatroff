@@ -687,4 +687,5 @@ void tr_init(void)
 void tr_first(void)
 {
 	cp_back(tr_next());
+	tr_nl = 1;
 }
