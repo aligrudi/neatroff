@@ -26,14 +26,12 @@ static void hyfind(char *hyph, char *word);
 static void hyexcept_add(char *s)
 {
 	char *d = hyexcept + nhyexcept;
-	char *prev_d = d;
 	*d++ = ' ';
 	while (*s) {
 		if (*s == '-') {
-			hyexcept_hyph[prev_d - hyexcept] = 1;
+			hyexcept_hyph[d - hyexcept - 1] = 1;
 			s++;
 		} else {
-			prev_d = d;
 			d += utf8read(&s, d);
 		}
 	}
@@ -55,10 +53,17 @@ static char *hyexcept_lookup(char *s)
 {
 	char word[ILNLEN];
 	char *r;
+	int len, i;
 	word[0] = ' ';
 	strcpy_lower(word + 1, s);
-	r = strstr(hyexcept, word);
-	return r ? hyexcept_hyph + (r - hyexcept) : NULL;
+	len = strlen(word);
+	for (i = len; i >= 4; i--) {
+		word[i] = ' ';
+		word[i + 1] = '\0';
+		if ((r = strstr(hyexcept, word)))
+			return hyexcept_hyph + (r - hyexcept);
+	}
+	return NULL;
 }
 
 void hyphenate(char *hyph, char *word)
