@@ -784,6 +784,8 @@ void render(void)
 
 /* trap handling */
 
+#define tposval(i)		(tpos[i] < 0 ? n_p + tpos[i] : tpos[i])
+
 static int tpos[NTRAPS];	/* trap positions */
 static int treg[NTRAPS];	/* trap registers */
 static int ntraps;
@@ -793,8 +795,8 @@ static int trap_first(int pos)
 	int best = -1;
 	int i;
 	for (i = 0; i < ntraps; i++)
-		if (treg[i] >= 0 && tpos[i] > pos)
-			if (best < 0 || tpos[i] < tpos[best])
+		if (treg[i] >= 0 && tposval(i) > pos)
+			if (best < 0 || tposval(i) < tposval(best))
 				best = i;
 	return best;
 }
@@ -812,16 +814,10 @@ static int trap_bypos(int reg, int pos)
 {
 	int i;
 	for (i = 0; i < ntraps; i++)
-		if (treg[i] >= 0 && tpos[i] == pos)
+		if (treg[i] >= 0 && tposval(i) == pos)
 			if (reg == -1 || treg[i] == reg)
 				return i;
 	return -1;
-}
-
-static int tpos_parse(char *s)
-{
-	int pos = eval(s, 'v');
-	return pos >= 0 ? pos : n_p + pos;
 }
 
 void tr_wh(char **args)
@@ -829,7 +825,7 @@ void tr_wh(char **args)
 	int reg, pos, id;
 	if (!args[1])
 		return;
-	pos = tpos_parse(args[1]);
+	pos = eval(args[1], 'v');
 	id = trap_bypos(-1, pos);
 	if (!args[2]) {
 		if (id >= 0)
@@ -853,8 +849,8 @@ void tr_ch(char **args)
 		return;
 	reg = REG(args[1][0], args[1][1]);
 	id = trap_byreg(reg);
-	if (id)
-		tpos[id] = args[2] ? tpos_parse(args[2]) : -1;
+	if (id >= 0)
+		tpos[id] = args[2] ? eval(args[2], 'v') : -1;
 }
 
 void tr_dt(char **args)
@@ -874,7 +870,7 @@ static int trap_pos(int pos)
 	int ret = trap_first(pos);
 	if (cdiv)
 		return cdiv->treg && cdiv->tpos > pos ? cdiv->tpos : -1;
-	return ret >= 0 ? tpos[ret] : -1;
+	return ret >= 0 ? tposval(ret) : -1;
 }
 
 static int trap_reg(int pos)
