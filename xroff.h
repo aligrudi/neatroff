@@ -237,6 +237,7 @@ void tr_di(char **args);
 void tr_divbeg(char **args);
 void tr_divend(char **args);
 void tr_dt(char **args);
+void tr_em(char **args);
 void tr_ev(char **args);
 void tr_fc(char **args);
 void tr_fi(char **args);
@@ -259,6 +260,7 @@ void tr_sv(char **args);
 void tr_ta(char **args);
 void tr_ti(char **args);
 void tr_wh(char **args);
+void tr_eject(char **args);
 
 void tr_init(void);
 
@@ -269,9 +271,10 @@ int utf8read(char **s, char *d);
 void schar_read(char *d, int (*next)(void));
 int schar_jump(char *d, int (*next)(void), void (*back)(int));
 
-/* diversions */
-#define DIV_BEG		"&<"
-#define DIV_END		"&>"
+/* internal commands */
+#define TR_DIVBEG	"\07<"	/* diversion begins */
+#define TR_DIVEND	"\07>"	/* diversion ends */
+#define TR_EJECT	"\07P"	/* page eject */
 
 /* builtin number registers; n_X for .X register */
 #define REG(c1, c2)	((c1) * 256 + (c2))

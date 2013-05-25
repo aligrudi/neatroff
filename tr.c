@@ -576,8 +576,9 @@ static struct cmd {
 	void (*f)(char **args);
 	int (*args)(char **args, char *buf, int len);
 } cmds[] = {
-	{DIV_BEG, tr_divbeg},
-	{DIV_END, tr_divend},
+	{TR_DIVBEG, tr_divbeg},
+	{TR_DIVEND, tr_divend},
+	{TR_EJECT, tr_eject},
 	{"ad", tr_ad},
 	{"am", tr_de, mkargs_reg1},
 	{"as", tr_as, mkargs_ds},
@@ -594,6 +595,7 @@ static struct cmd {
 	{"dt", tr_dt},
 	{"ec", tr_ec},
 	{"el", tr_el, mkargs_null},
+	{"em", tr_em},
 	{"eo", tr_eo},
 	{"ev", tr_ev},
 	{"ex", tr_ex},
@@ -649,7 +651,7 @@ int tr_next(void)
 	char cmd[RLEN];
 	char buf[LNLEN];
 	struct cmd *req;
-	while (tr_nl && (c == c_cc || c == c_c2)) {
+	while (tr_nl && c >= 0 && (c == c_cc || c == c_c2)) {
 		nl = 1;
 		memset(args, 0, sizeof(args));
 		args[0] = cmd;
@@ -673,7 +675,7 @@ int tr_next(void)
 		c = cp_next();
 		nl = c == '\n';
 	}
-	tr_nl = nl;
+	tr_nl = c < 0 || nl;
 	return c;
 }
 

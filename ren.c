@@ -21,6 +21,7 @@ struct div {
 static struct div divs[NPREV];	/* diversion stack */
 static struct div *cdiv;	/* current diversion */
 static int ren_div;		/* rendering a diversion */
+static int trap_em = -1;	/* end macro */
 
 static struct wb ren_wb;	/* the main ren.c word buffer */
 static int ren_nl;		/* just after newline */
@@ -30,7 +31,9 @@ static int ren_un;
 
 static int bp_first = 1;	/* prior to the first page */
 static int bp_next = 1;		/* next page number */
-static int bp_force;		/* execute the traps until the next page */
+static int bp_count;		/* number of pages so far */
+static int bp_ejected;		/* current ejected page */
+static int bp_final;		/* 1: the final page, 2: the 2nd final page */
 
 static int c_fa;		/* field delimiter */
 static char c_fb[GNLEN];	/* field padding */
@@ -55,7 +58,7 @@ void tr_di(char **args)
 		cdiv->treg = -1;
 		if (args[0][2] == 'a' && str_get(cdiv->reg))	/* .da */
 			sbuf_append(&cdiv->sbuf, str_get(cdiv->reg));
-		sbuf_printf(&cdiv->sbuf, "%c%s\n", c_cc, DIV_BEG);
+		sbuf_printf(&cdiv->sbuf, "%c%s\n", c_cc, TR_DIVBEG);
 		cdiv->prev_d = n_d;
 		cdiv->prev_h = n_h;
 		cdiv->prev_mk = n_mk;
@@ -66,7 +69,7 @@ void tr_di(char **args)
 		n_ns = 0;
 	} else if (cdiv) {
 		sbuf_putnl(&cdiv->sbuf);
-		sbuf_printf(&cdiv->sbuf, "%c%s\n", c_cc, DIV_END);
+		sbuf_printf(&cdiv->sbuf, "%c%s\n", c_cc, TR_DIVEND);
 		str_set(cdiv->reg, sbuf_buf(&cdiv->sbuf));
 		sbuf_done(&cdiv->sbuf);
 		n_dl = cdiv->dl;
@@ -105,13 +108,16 @@ static int trap_reg(int pos);
 static int trap_pos(int pos);
 static void trap_exec(int reg);
 
-static void ren_page(int pg)
+static void ren_page(int pg, int force)
 {
+	if (!force && bp_final)
+		return;
 	n_nl = 0;
 	n_d = 0;
 	n_h = 0;
 	n_pg = pg;
 	bp_next = n_pg + 1;
+	bp_count++;
 	out("p%d\n", pg);
 	out("V%d\n", 0);
 	if (trap_pos(-1) == 0)
@@ -122,7 +128,7 @@ static void ren_first(void)
 {
 	if (bp_first && !cdiv) {
 		bp_first = 0;
-		ren_page(bp_next);
+		ren_page(bp_next, 1);
 	}
 }
 
@@ -144,17 +150,8 @@ static void ren_sp(int n, int nodiv)
 	}
 }
 
-static void push_ne(void)
-{
-	char buf[32];
-	sprintf(buf, "%cne %du\n", c_cc, n_p);
-	in_pushnl(buf, NULL);
-}
-
 static void trap_exec(int reg)
 {
-	if (bp_force)
-		push_ne();
 	if (str_get(reg))
 		in_pushnl(str_get(reg), NULL);
 }
@@ -187,8 +184,7 @@ static int detect_pagelimit(int ne)
 static int ren_pagelimit(int ne)
 {
 	if (detect_pagelimit(ne)) {
-		bp_force = 0;
-		ren_page(bp_next);
+		ren_page(bp_next, 0);
 		return 1;
 	}
 	return 0;
@@ -344,15 +340,45 @@ void tr_ne(char **args)
 		ren_pagelimit(n);
 }
 
-void tr_bp(char **args)
+static void push_eject(void)
+{
+	char buf[32];
+	bp_ejected = bp_count;
+	sprintf(buf, "%c%s %d\n", c_cc, TR_EJECT, bp_ejected);
+	in_pushnl(buf, NULL);
+}
+
+static void push_br(void)
 {
 	char br[8] = {c_cc, 'b', 'r', '\n'};
+	in_pushnl(br, NULL);
+}
+
+static void ren_eject(int id)
+{
+	if (id == bp_ejected && !cdiv) {
+		if (detect_traps(n_d, n_p)) {
+			push_eject();
+			ren_traps(n_d, n_p, 1);
+		} else {
+			bp_ejected = 0;
+			ren_page(bp_next, 0);
+		}
+	}
+}
+
+void tr_eject(char **args)
+{
+	ren_eject(atoi(args[1]));
+}
+
+void tr_bp(char **args)
+{
 	if (!cdiv && (args[1] || !n_ns)) {
-		if (!bp_force)
-			push_ne();
+		if (bp_ejected != bp_count)
+			push_eject();
 		if (args[0][0] == c_cc)
-			in_pushnl(br, NULL);
-		bp_force = 1;
+			push_br();
 		if (args[1])
 			bp_next = eval_re(args[1], n_pg, 0);
 	}
@@ -751,7 +777,18 @@ void render(void)
 	tr_first();
 	ren_first();			/* transition to the first page */
 	c = ren_next();
-	while (c >= 0) {
+	while (1) {
+		if (c < 0) {
+			if (bp_final)
+				break;
+			bp_final = 1;
+			push_eject();
+			push_br();
+			if (trap_em >= 0)
+				trap_exec(trap_em);
+			c = ren_next();
+			continue;
+		}
 		ren_cnl = c == '\n';
 		if (c == ' ' || c == '\n') {
 			adj_swid(cadj, charwid(dev_spacewid(), n_s));
@@ -778,6 +815,9 @@ void render(void)
 		ren_nl = c == '\n';
 		c = ren_next();
 	}
+	bp_final = 2;
+	if (!adj_empty(cadj, 0))
+		ren_page(bp_next, 1);
 	ren_br(1);
 	wb_done(wb);
 }
@@ -865,9 +905,16 @@ void tr_dt(char **args)
 	}
 }
 
+void tr_em(char **args)
+{
+	trap_em = args[1] ? REG(args[1][0], args[1][1]) : -1;
+}
+
 static int trap_pos(int pos)
 {
 	int ret = trap_first(pos);
+	if (bp_final > 1)
+		return -1;
 	if (cdiv)
 		return cdiv->treg && cdiv->tpos > pos ? cdiv->tpos : -1;
 	return ret >= 0 ? tposval(ret) : -1;

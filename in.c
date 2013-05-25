@@ -20,7 +20,7 @@ static struct inbuf *buf;
 static char files[NFILES][PATHLEN];
 static int nfiles;
 static int cfile;
-static int in_last[2];		/* the last chars returned from in_next() */
+static int in_last[2] = {'\n'};	/* the last chars returned from in_next() */
 
 static char **args_init(char **args);
 static void args_free(char **args);
@@ -119,13 +119,18 @@ static int in_read(void)
 
 int in_next(void)
 {
-	in_last[1] = in_last[0];
-	in_last[0] = in_read();
-	return in_last[0];
+	int c = in_read();
+	if (c >= 0) {
+		in_last[1] = in_last[0];
+		in_last[0] = c;
+	}
+	return c;
 }
 
 void in_back(int c)
 {
+	if (c < 0)
+		return;
 	in_last[0] = in_last[1];
 	if (buf)
 		buf->unbuf[buf->un++] = c;
