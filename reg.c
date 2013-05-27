@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "xroff.h"
 
 #define NREGS		(1 << 16)
@@ -80,6 +81,9 @@ char *num_str(int id)
 		break;
 	case REG('.', '$'):
 		sprintf(numbuf, "%d", in_nargs());
+		break;
+	case REG('y', 'r'):
+		sprintf(numbuf, "%02d", nregs[id]);
 		break;
 	default:
 		sprintf(numbuf, "%d", *nreg(id));
@@ -179,9 +183,20 @@ static void env_set(int id)
 	}
 }
 
+static void init_time(void)
+{
+	time_t t = time(NULL);
+	struct tm *tm = localtime(&t);
+	nregs[REG('d', 'w')] = tm->tm_wday + 1;
+	nregs[REG('d', 'y')] = tm->tm_mday;
+	nregs[REG('m', 'o')] = tm->tm_mon + 1;
+	nregs[REG('y', 'r')] = tm->tm_year % 100;
+}
+
 void env_init(void)
 {
 	int i;
+	init_time();
 	for (i = 0; i < LEN(eregs); i++)
 		eregs_idx[eregs[i]] = i + 1;
 	env_set(0);
