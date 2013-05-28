@@ -191,7 +191,7 @@ int schar_jump(char *d, int (*next)(void), void (*back)(int))
 	return 0;
 }
 
-/* read into sbuf until stop */
+/* read into sbuf until stop; if stop is NULL, stop at whitespace */
 static int read_until(struct sbuf *sbuf, char *stop)
 {
 	int c;
@@ -199,7 +199,9 @@ static int read_until(struct sbuf *sbuf, char *stop)
 		cp_back(c);
 		if (c == '\n')
 			return 1;
-		if (!schar_jump(stop, cp_next, cp_back))
+		if (!stop && (c == ' ' || c == '\t'))
+			return 0;
+		if (stop && !schar_jump(stop, cp_next, cp_back))
 			return 0;
 		sbuf_add(sbuf, cp_next());
 	}
@@ -245,7 +247,7 @@ static int if_eval(void)
 	struct sbuf sbuf;
 	int ret;
 	sbuf_init(&sbuf);
-	if (!read_until(&sbuf, " "))
+	if (!read_until(&sbuf, NULL))
 		cp_back(' ');
 	ret = eval(sbuf_buf(&sbuf), '\0') > 0;
 	sbuf_done(&sbuf);
