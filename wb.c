@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "xroff.h"
+#include "roff.h"
 
 #define R_F(wb)		((wb)->r_f >= 0 ? (wb)->r_f : n_f)	/* current font */
 #define R_S(wb)		((wb)->r_s >= 0 ? (wb)->r_s : n_s)	/* current size */

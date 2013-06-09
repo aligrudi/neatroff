@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "xroff.h"
+#include "roff.h"
 
 static int tr_nl = 1;
 static int c_pc = '%';		/* page number character */

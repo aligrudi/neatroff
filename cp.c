@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "xroff.h"
+#include "roff.h"
 
 #define CPBUF		4
 

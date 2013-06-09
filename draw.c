@@ -1,7 +1,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-#include "xroff.h"
+#include "roff.h"
 
 static char *ln_s;
 

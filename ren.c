@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "xroff.h"
+#include "roff.h"
 
 #define cadj		env_adj()		/* line buffer */
 

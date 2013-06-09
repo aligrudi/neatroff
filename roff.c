@@ -8,7 +8,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include "xroff.h"
+#include "roff.h"
 
 static void g_init(void)
 {

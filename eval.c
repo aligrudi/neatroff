@@ -1,7 +1,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
-#include "xroff.h"
+#include "roff.h"
 
 #define SCHAR	"icpPvmnu"	/* scale indicators */
 

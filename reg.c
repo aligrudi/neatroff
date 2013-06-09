@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "xroff.h"
+#include "roff.h"
 
 #define NREGS		(1 << 16)
 #define NENVS		(1 << 5)

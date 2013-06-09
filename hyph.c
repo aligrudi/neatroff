@@ -1,7 +1,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdio.h>
-#include "xroff.h"
+#include "roff.h"
 
 #define HYEXLEN		(1 << 17)	/* hyphenation exception list length */
 #define HYEXWLEN	128		/* hyphenation exception word length */
