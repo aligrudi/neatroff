@@ -12,7 +12,7 @@
 #define FNLEN		32	/* font name length */
 #define NGLYPHS		512	/* glyphs in fonts */
 #define GNLEN		32	/* glyph name length */
-#define ILNLEN		256	/* line limit of input files */
+#define ILNLEN		1000	/* line limit of input files */
 #define LNLEN		4000	/* line buffer length (ren.c/out.c) */
 #define NWORDS		256	/* number of words in line buffer */
 #define NARGS		9	/* number of macro arguments */
@@ -89,7 +89,7 @@ struct font {
 	int nglyphs;
 	int spacewid;
 	int special;
-	char c[NGLYPHS][FNLEN];		/* character names in charset */
+	char c[NGLYPHS][GNLEN];		/* character names in charset */
 	struct glyph *g[NGLYPHS];	/* character glyphs in charset */
 	int n;				/* number of characters in charset */
 };
