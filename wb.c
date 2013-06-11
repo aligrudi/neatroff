@@ -286,12 +286,12 @@ static char *hyphpos(char *s, int w, struct wb *w1, int flg)
 	char d[ILNLEN];
 	char *r = NULL;
 	char *hy_beg, *hy_wid = NULL, *hy_end = NULL;
-	char *wp = word;
+	char *wp = word, *we = word + sizeof(word);
 	int beg, end;
 	int i, c;
 	skipreqs(&s, w1);
 	hy_beg = s;
-	while ((c = out_readc(&s, d)) == 0) {
+	while ((c = out_readc(&s, d)) == 0 && wp + strlen(d) + 1 < we) {
 		wb_putc(w1, c, d);
 		if (wb_wid(w1) + wb_dashwid(w1) <= w)
 			hy_wid = s;
