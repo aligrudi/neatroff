@@ -568,3 +568,52 @@ int wb_swid(struct wb *wb)
 {
 	return font_swid(dev_font(R_F(wb)), R_S(wb), n_ss);
 }
+
+static char *keshideh_chars[] = {
+	"ﺒ", "ﺑ", "ﭙ", "ﭘ", "ﺘ", "ﺗ", "ﺜ", "ﺛ", "ﺴ", "ﺳ",
+	"ﺸ", "ﺷ", "ﻔ", "ﻓ", "ﻘ", "ﻗ", "ﮑ", "ﮐ", "ﮕ", "ﮔ",
+	"ﻤ", "ﻣ", "ﻨ", "ﻧ", "ﻬ", "ﻫ", "ﯿ", "ﯾ",
+};
+
+static int keshideh(char *c)
+{
+	int i;
+	for (i = 0; i < LEN(keshideh_chars); i++)
+		if (!strcmp(keshideh_chars[i], c))
+			return 1;
+	return 0;
+}
+
+/* insert keshideh */
+int wb_keshideh(char *word, struct wb *dst, int wid)
+{
+	char p[GNLEN] = "";
+	char *s, *d, *s_prev = NULL, *s_kesh = NULL;
+	int ins = 0;
+	int c;
+	/* find the last keshideh position */
+	s = word;
+	while ((c = escread(&s, &d)) >= 0) {
+		wb_putc(dst, c, d);
+		if (!c && strcmp("ـ", d) && keshideh(p)) {
+			struct glyph *g = dev_glyph("ـ", R_F(dst));
+			int kw = g ? font_gwid(g->font,
+					dev_font(R_F(dst)), R_S(dst), g->wid) : 0;
+			if (g && kw < wid) {
+				s_kesh = s_prev;
+				ins = kw;
+			}
+		}
+		s_prev = s;
+		strcpy(p, c ? "" : d);
+	}
+	/* insert the keshideh at s_kesh */
+	s = word;
+	wb_reset(dst);
+	while ((c = escread(&s, &d)) >= 0) {
+		wb_putc(dst, c, d);
+		if (s == s_kesh)
+				wb_putc(dst, 0, "ـ");
+	}
+	return ins;
+}

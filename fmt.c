@@ -182,6 +182,8 @@ static struct line *fmt_mkline(struct fmt *f)
 	return l;
 }
 
+static void fmt_keshideh(struct fmt *f, int beg, int end, int wid);
+
 /* extract words from beg to end; shrink or stretch spaces if needed */
 static int fmt_extractline(struct fmt *f, int beg, int end, int str)
 {
@@ -192,6 +194,10 @@ static int fmt_extractline(struct fmt *f, int beg, int end, int str)
 		return 1;
 	llen = FMT_LLEN(f);
 	w = fmt_wordslen(f, beg, end);
+	if (str && FMT_ADJ(f) && n_j & AD_K) {
+		fmt_keshideh(f, beg, end, llen - w);
+		w = fmt_wordslen(f, beg, end);
+	}
 	nspc = fmt_spaces(f, beg, end);
 	if (nspc && FMT_ADJ(f) && (llen < w || str)) {
 		fmt_div = (llen - w) / nspc;
@@ -394,6 +400,34 @@ int fmt_word(struct fmt *f, struct wb *wb)
 	f->nls_sup = 0;
 	f->gap = 0;
 	return 0;
+}
+
+/* insert keshideh characters */
+static void fmt_keshideh(struct fmt *f, int beg, int end, int wid)
+{
+	struct wb wb;
+	int kw, i = 0, c = 0;
+	struct word *w;
+	int cnt = 0;
+	do {
+		cnt = 0;
+		for (c = 0; c < 2; c++) {
+			for (i = end - 1 - c; i >= beg; i -= 2) {
+				w = &f->words[i];
+				wb_init(&wb);
+				kw = wb_keshideh(w->s, &wb, wid);
+				if (kw > 0) {
+					free(w->s);
+					w->s = xmalloc(strlen(wb_buf(&wb)) + 1);
+					strcpy(w->s, wb_buf(&wb));
+					w->wid = wb_wid(&wb);
+					wid -= kw;
+					cnt++;
+				}
+				wb_done(&wb);
+			}
+		}
+	} while (cnt);
 }
 
 /* approximate 8 * sqrt(cost) */
