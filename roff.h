@@ -277,6 +277,8 @@ char *wb_buf(struct wb *wb);
 void wb_fnszget(struct wb *wb, int *fn, int *sz, int *m, int *cd);
 void wb_fnszset(struct wb *wb, int fn, int sz, int m, int cd);
 void wb_flushdir(struct wb *wb);
+void wb_reset(struct wb *wb);
+int wb_keshideh(char *word, struct wb *dst, int wid);
 int wb_hywid(struct wb *wb);
 int wb_swid(struct wb *wb);
 int c_eossent(char *s);
@@ -308,6 +310,7 @@ void hyph_done(void);
 #define AD_R		2	/* adjust right margin (flag) */
 #define AD_B		3	/* adjust both margin (mask) */
 #define AD_P		4	/* paragraph-at-once adjustment (flag) */
+#define AD_K		8	/* keshideh adjustment (flag) */
 
 /* line formatting */
 struct fmt *fmt_alloc(void);
