@@ -15,7 +15,7 @@ struct glyph *font_find(struct font *fn, char *name)
 {
 	int i;
 	for (i = 0; i < fn->n; i++)
-		if (!strcmp(name, fn->c[i]))
+		if (name[0] == fn->c[i][0] && !strcmp(name, fn->c[i]))
 			return fn->g[i];
 	return NULL;
 }
