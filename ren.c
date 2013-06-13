@@ -5,6 +5,7 @@
 #include "roff.h"
 
 #define cadj		env_adj()		/* line buffer */
+#define RENWB(wb)	((wb) == &ren_wb)	/* is ren_wb */
 
 /* diversions */
 struct div {
@@ -28,6 +29,7 @@ static int ren_nl;		/* just after newline */
 static int ren_cnl;		/* current char is a newline */
 static int ren_unbuf[8];	/* ren_back() buffer */
 static int ren_un;
+static int ren_fillreq;		/* \p request */
 
 static int bp_first = 1;	/* prior to the first page */
 static int bp_next = 1;		/* next page number */
@@ -559,7 +561,7 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 		break;
 	case 'k':
 		num_set(REG(arg[0], arg[1]),
-			wb == &ren_wb ? f_hpos() - n_lb : wb_wid(wb));
+			RENWB(wb) ? f_hpos() - n_lb : wb_wid(wb));
 		break;
 	case 'L':
 		ren_vline(wb, arg);
@@ -569,6 +571,10 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 		break;
 	case 'o':
 		ren_over(wb, arg);
+		break;
+	case 'p':
+		if (RENWB(wb))
+			ren_fillreq = 1;
 		break;
 	case 'r':
 		wb_vmov(wb, -SC_EM);
@@ -619,7 +625,7 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 		return;
 	}
 	if (c[0] == '\t' || c[0] == '') {
-		n = wb == &ren_wb ? f_hpos() : wb_wid(wb);
+		n = RENWB(wb) ? f_hpos() : wb_wid(wb);
 		wb_hmov(wb, tab_next(n) - n);
 		return;
 	}
@@ -650,7 +656,7 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 				ren_transparent(arg);
 			}
 			return;
-		} else if (strchr(" bcDdfhkLlorsuvXxz0^|{}&", c[1])) {
+		} else if (strchr(" bcDdfhkLloprsuvXxz0^|{}&", c[1])) {
 			escarg_ren(arg, c[1], next, back);
 			ren_cmd(wb, c[1], arg);
 			return;
@@ -749,7 +755,7 @@ static void ren_field(struct wb *wb, int (*next)(void), void (*back)(int))
 		if (ren_until(&wbs[n++], c_fb, c_fa, next, back))
 			break;
 	}
-	left = wb == &ren_wb ? f_hpos() : wb_wid(wb);
+	left = RENWB(wb) ? f_hpos() : wb_wid(wb);
 	right = tab_next(left);
 	for (i = 0; i < n; i++)
 		wid += wb_wid(&wbs[i]);
@@ -771,6 +777,7 @@ static void ren_field(struct wb *wb, int (*next)(void), void (*back)(int))
 void render(void)
 {
 	struct wb *wb = &ren_wb;
+	int fillreq;
 	int c;
 	n_nl = -1;
 	wb_init(wb);
@@ -790,18 +797,24 @@ void render(void)
 			continue;
 		}
 		ren_cnl = c == '\n';
+		fillreq = 0;
+		/* add wb (the current word) to cadj */
 		if (c == ' ' || c == '\n') {
 			adj_swid(cadj, charwid(dev_spacewid(), n_s));
-			adj_wb(cadj, wb);
-			if (!wb_part(wb)) {
+			if (!wb_part(wb)) {	/* not after a \c */
+				adj_wb(cadj, wb);
+				fillreq = ren_fillreq;
+				ren_fillreq = 0;
 				if (c == '\n')
 					adj_nl(cadj);
 				else
 					adj_sp(cadj);
 			}
 		}
-		while (adj_full(cadj, !n_ce && n_u))
+		while ((fillreq && !n_ce && n_u) || adj_full(cadj, !n_ce && n_u)) {
 			ren_br(0);
+			fillreq = 0;
+		}
 		if (c == '\n' || ren_nl)	/* end or start of input line */
 			n_lb = f_hpos();
 		if (c == '\n' && !wb_part(wb))
