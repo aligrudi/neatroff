@@ -246,7 +246,7 @@ static int ren_bradj(struct adj *adj, int fill, int ad)
 		prev_d = n_d;
 		if (els_neg)
 			ren_sp(-els_neg, 1);
-		if (!n_ns || w || els_neg || els_pos) {
+		if (!n_ns || !sbuf_empty(&sbuf) || els_neg || els_pos) {
 			ren_sp(0, 0);
 			ren_line(sbuf_buf(&sbuf), w, ad, ll, li, lt);
 			n_ns = 0;
