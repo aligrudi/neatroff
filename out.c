@@ -176,12 +176,12 @@ int out_readc(char **s, char *d)
 	if (d[0] == c_ec) {
 		utf8read(s, d + 1);
 		if (d[1] == '(') {
-			utf8read(s, d + 2);
+			utf8read(s, d);
 			utf8read(s, d + strlen(d));
-		} else if (strchr("DfhsvXx", d[1])) {
+		} else if (strchr("CDfhsvXx", d[1])) {
 			int c = d[1];
 			escarg(s, d, d[1]);
-			return c;
+			return c == 'C' ? 0 : c;
 		}
 	}
 	if (d[0] == c_ni)

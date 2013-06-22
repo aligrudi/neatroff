@@ -656,10 +656,13 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 				ren_transparent(arg);
 			}
 			return;
-		} else if (strchr(" bcDdfhkLloprsuvXxz0^|{}&", c[1])) {
+		} else if (strchr(" bCcDdfhkLloprsuvXxz0^|{}&", c[1])) {
 			escarg_ren(arg, c[1], next, back);
-			ren_cmd(wb, c[1], arg);
-			return;
+			if (c[1] != 'C') {
+				ren_cmd(wb, c[1], arg);
+				return;
+			}
+			strcpy(c, arg);
 		}
 	}
 	if (c[0] == c_ni)

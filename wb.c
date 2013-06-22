@@ -87,7 +87,15 @@ void wb_put(struct wb *wb, char *c)
 	}
 	g = dev_glyph(c, R_F(wb));
 	wb_font(wb);
-	sbuf_append(&wb->sbuf, c);
+	if (!c[1] || c[0] == c_ec || c[0] == c_ni ||
+			utf8len((unsigned char) c[0]) == strlen(c)) {
+		sbuf_append(&wb->sbuf, c);
+	} else {
+		if (c[1] && !c[2])
+			sbuf_printf(&wb->sbuf, "%c(%s", c_ec, c);
+		else
+			sbuf_printf(&wb->sbuf, "%cC'%s'", c_ec, c);
+	}
 	if (strcmp(c_hc, c)) {
 		wb->h += charwid(g ? g->wid : SC_DW, R_S(wb));
 		wb->ct |= g ? g->type : 0;
@@ -166,6 +174,7 @@ static void wb_putc(struct wb *wb, int t, char *s)
 {
 	switch (t) {
 	case 0:
+	case 'C':
 		wb_put(wb, s);
 		break;
 	case 'D':
@@ -250,8 +259,7 @@ static char *dashpos(char *s, int w, struct wb *w1, int any)
 		wb_putc(w1, c, d);
 		if (wb_wid(w1) > w && (!any || r))
 			break;
-		if (!strcmp("-", d) || (d[0] == c_ec && (!strcmp("(em", d + 1) ||
-							!strcmp("(hy", d + 1))))
+		if (!strcmp("-", d) || (!strcmp("em", d) || !strcmp("hy", d)))
 			r = s;
 	}
 	return r;
@@ -313,14 +321,13 @@ static char *hyphpos(char *s, int w, struct wb *w1, int flg)
 static void dohyph(char *s, char *pos, int dash, struct wb *w1, struct wb *w2)
 {
 	char d[ILNLEN];
-	char hy[GNLEN] = {c_ec, '(', 'h', 'y'};
 	int c = -1;
 	wb_reset(w1);
 	wb_reset(w2);
 	while (s != pos && (c = out_readc(&s, d)) >= 0)
 		wb_putc(w1, c, d);
 	if (dash)
-		wb_putc(w1, 0, hy);
+		wb_putc(w1, 0, "hy");
 	w2->r_s = w1->r_s;
 	w2->r_f = w1->r_f;
 	while ((c = out_readc(&s, d)) >= 0)
