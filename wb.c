@@ -309,31 +309,33 @@ static char *indicatorpos(char *s, int w, struct wb *w1, int flg)
 static char *hyphpos(char *s, int w, struct wb *w1, int flg)
 {
 	char word[ILNLEN];
+	char *map[ILNLEN];	/* mapping from word to s */
 	char hyph[ILNLEN];
 	char d[ILNLEN];
+	char *prev_s = s;
 	char *r = NULL;
-	char *hy_beg, *hy_wid = NULL, *hy_end = NULL;
+	int fit = 0;
 	char *wp = word, *we = word + sizeof(word);
 	int beg, end;
 	int i, c;
 	skipreqs(&s, w1);
-	hy_beg = s;
 	while ((c = out_readc(&s, d)) == 0 && wp + strlen(d) + 1 < we) {
 		wb_putc(w1, c, d);
-		if (wb_wid(w1) + wb_dashwid(w1) <= w)
-			hy_wid = s;
-		hy_end = s;
 		strcpy(wp, d);
-		wp = strchr(wp, '\0');
+		while (*wp)
+			map[wp++ - word] = prev_s;
+		if (wb_wid(w1) + wb_dashwid(w1) <= w)
+			fit = wp - word;
+		prev_s = s;
 	}
 	if (strlen(word) < 4)
 		return NULL;
 	hyphenate(hyph, word);
 	beg = flg & HY_FIRSTTWO ? 3 : 2;
-	end = hy_end - hy_beg - (flg & HY_FINAL ? 1 : 0);
+	end = strlen(word) - (flg & HY_FINAL ? 2 : 1);
 	for (i = beg; i < end; i++)
-		if (hyph[i] && (hy_beg + i <= hy_wid || ((flg & HY_ANY) && !r)))
-			r = hy_beg + i;
+		if (hyph[i] && (i <= fit || ((flg & HY_ANY) && !r)))
+			r = map[i];
 	return r;
 }
 
