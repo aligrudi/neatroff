@@ -9,6 +9,7 @@
 #define PATHLEN		1024	/* path length */
 #define NFILES		16	/* number of input files */
 #define NFONTS		32	/* number of fonts */
+#define NLIGS		32	/* number of font ligatures */
 #define FNLEN		32	/* font name length */
 #define NGLYPHS		512	/* glyphs in fonts */
 #define GNLEN		32	/* glyph name length */
@@ -92,6 +93,8 @@ struct font {
 	char c[NGLYPHS][GNLEN];		/* character names in charset */
 	struct glyph *g[NGLYPHS];	/* character glyphs in charset */
 	int n;				/* number of characters in charset */
+	char lig[NLIGS][GNLEN * 4];	/* font ligatures */
+	int nlig;			/* number of font ligatures */
 };
 
 /* output device functions */
@@ -100,6 +103,7 @@ void dev_close(void);
 int dev_mnt(int pos, char *id, char *name);
 int dev_font(char *id);
 int charwid(int wid, int sz);
+int dev_lig(int f, char *c);
 
 /* font-related functions */
 struct font *font_open(char *path);
@@ -139,6 +143,7 @@ struct sbuf {
 	char *s;
 	int sz;
 	int n;
+	int prev_n;		/* n before the last sbuf_append() */
 };
 
 void sbuf_init(struct sbuf *sbuf);
@@ -149,6 +154,8 @@ void sbuf_append(struct sbuf *sbuf, char *s);
 void sbuf_printf(struct sbuf *sbuf, char *s, ...);
 void sbuf_putnl(struct sbuf *sbuf);
 int sbuf_empty(struct sbuf *sbuf);
+char *sbuf_last(struct sbuf *sbuf);
+void sbuf_pop(struct sbuf *sbuf);
 
 /* word buffer */
 struct wb {
@@ -159,6 +166,7 @@ struct wb {
 	int els_neg, els_pos;	/* extra line spacing */
 	int h, v;		/* buffer vertical and horizontal positions */
 	int ct, sb, st;		/* \w registers */
+	int prev_h;		/* previous value of h */
 };
 
 void wb_init(struct wb *wb);
@@ -182,6 +190,7 @@ int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2, int flg);
 int wb_wid(struct wb *wb);
 int wb_empty(struct wb *wb);
 void wb_wconf(struct wb *wb, int *ct, int *st, int *sb);
+int wb_lig(struct wb *wb, char *c);
 
 /* hyphenation flags */
 #define HY_MASK		0x0f	/* enable hyphenation */
@@ -302,6 +311,7 @@ int schar_jump(char *d, int (*next)(void), void (*back)(int));
 #define n_lb		(*nreg(REG(0, 'b')))	/* input line beg */
 #define n_ce		(*nreg(REG(0, 'c')))	/* .ce remaining */
 #define n_f0		(*nreg(REG(0, 'f')))	/* last .f */
+#define n_lg		(*nreg(REG(0, 'g')))	/* .lg mode */
 #define n_hy		(*nreg(REG(0, 'h')))	/* .hy mode */
 #define n_i0		(*nreg(REG(0, 'i')))	/* last .i */
 #define n_l0		(*nreg(REG(0, 'l')))	/* last .l */

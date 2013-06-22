@@ -93,9 +93,12 @@ struct font *font_open(char *path)
 			continue;
 		}
 		if (!strcmp("ligatures", tok)) {
-			while (fscanf(fin, "%s", tok) == 1)
+			while (fscanf(fin, "%s", tok) == 1) {
 				if (!strcmp("0", tok))
 					break;
+				if (fn->nlig < NLIGS)
+					strcpy(fn->lig[fn->nlig++], tok);
+			}
 			skipline(fin);
 			continue;
 		}

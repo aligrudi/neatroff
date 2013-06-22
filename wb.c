@@ -103,6 +103,25 @@ void wb_put(struct wb *wb, char *c)
 	}
 }
 
+/* return zero if c formed a ligature with its previous character */
+int wb_lig(struct wb *wb, char *c)
+{
+	char *p = sbuf_last(&wb->sbuf);
+	char lig[GNLEN];
+	if (!p || strlen(p) + strlen(c) + 4 > GNLEN)
+		return 1;
+	if (p[0] == c_ec && p[1] == '(')
+		p += 2;
+	sprintf(lig, "%s%s", p, c);
+	if (dev_lig(R_F(wb), lig)) {
+		wb->h = wb->prev_h;
+		sbuf_pop(&wb->sbuf);
+		wb_put(wb, lig);
+		return 0;
+	}
+	return 1;
+}
+
 int wb_part(struct wb *wb)
 {
 	return wb->part;

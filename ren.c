@@ -670,7 +670,8 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 	}
 	if (c[0] == c_ni)
 		nextchar(c + 1, next);
-	wb_put(wb, c);
+	if (!n_lg || wb_lig(wb, c))
+		wb_put(wb, c);
 }
 
 /* read the argument of \w and push its width */

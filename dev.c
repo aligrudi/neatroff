@@ -144,11 +144,6 @@ struct glyph *dev_glyph_byid(char *id, int fn)
 	return font_glyph(fn_font[fn], id);
 }
 
-struct glyph *dev_ligature(char **s, int n)
-{
-	return NULL;
-}
-
 int dev_kernpair(char *c1, char *c2)
 {
 	return 0;
@@ -182,4 +177,15 @@ int charwid(int wid, int sz)
 {
 	/* the original troff rounds the widths up */
 	return (wid * sz + dev_uwid / 2) / dev_uwid;
+}
+
+/* return 1 if lig is a ligature in the font mounted at f */
+int dev_lig(int f, char *lig)
+{
+	struct font *fn = fn_font[f];
+	int i;
+	for (i = 0; i < fn->nlig; i++)
+		if (!strcmp(lig, fn->lig[i]))
+			return 1;
+	return 0;
 }
