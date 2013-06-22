@@ -601,6 +601,9 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 	case '|':
 		wb_hmov(wb, SC_EM / 6);
 		break;
+	case '&':
+		wb_hmov(wb, 0);
+		break;
 	case '^':
 		wb_hmov(wb, SC_EM / 12);
 		break;
