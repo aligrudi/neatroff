@@ -186,6 +186,6 @@ int dev_lig(int f, char *lig)
 	int i;
 	for (i = 0; i < fn->nlig; i++)
 		if (!strcmp(lig, fn->lig[i]))
-			return 1;
+			return font_find(fn, lig) != NULL;
 	return 0;
 }
