@@ -97,6 +97,8 @@ void wb_put(struct wb *wb, char *c)
 			sbuf_printf(&wb->sbuf, "%cC'%s'", c_ec, c);
 	}
 	if (strcmp(c_hc, c)) {
+		strcpy(wb->prev_c, c);
+		wb->prev_l = sbuf_len(&wb->sbuf);
 		wb->prev_h = wb->h;
 		wb->h += charwid(g ? g->wid : SC_DW, R_S(wb));
 		wb->ct |= g ? g->type : 0;
@@ -107,13 +109,10 @@ void wb_put(struct wb *wb, char *c)
 /* return zero if c formed a ligature with its previous character */
 int wb_lig(struct wb *wb, char *c)
 {
-	char *p = sbuf_last(&wb->sbuf);
-	char lig[GNLEN];
-	if (!p || strlen(p) + strlen(c) + 4 > GNLEN)
+	char lig[GNLEN * 2];
+	if (wb->prev_l != sbuf_len(&wb->sbuf) || !wb->prev_c[0])
 		return 1;
-	if (p[0] == c_ec && p[1] == '(')
-		p += 2;
-	sprintf(lig, "%s%s", p, c);
+	sprintf(lig, "%s%s", wb->prev_c, c);
 	if (font_lig(dev_font(R_F(wb)), lig)) {
 		wb->h = wb->prev_h;
 		sbuf_pop(&wb->sbuf);
@@ -126,9 +125,10 @@ int wb_lig(struct wb *wb, char *c)
 /* return 0 if pairwise kerning was done */
 int wb_kern(struct wb *wb, char *c)
 {
-	char *p = sbuf_last(&wb->sbuf);
 	int val;
-	val = p ? font_kern(dev_font(R_F(wb)), p, c) : 0;
+	if (wb->prev_l != sbuf_len(&wb->sbuf) || !wb->prev_c[0])
+		return 1;
+	val = font_kern(dev_font(R_F(wb)), wb->prev_c, c);
 	if (val)
 		wb_hmov(wb, charwid(val, R_S(wb)));
 	return !val;

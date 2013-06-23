@@ -66,11 +66,12 @@ char *sbuf_buf(struct sbuf *sbuf)
 	return sbuf->s;
 }
 
-char *sbuf_last(struct sbuf *sbuf)
+int sbuf_len(struct sbuf *sbuf)
 {
-	return sbuf->prev_n < sbuf->n ? sbuf_buf(sbuf) + sbuf->prev_n : NULL;
+	return sbuf->n;
 }
 
+/* undo last sbuf_append() */
 void sbuf_pop(struct sbuf *sbuf)
 {
 	if (sbuf->prev_n < sbuf->n)

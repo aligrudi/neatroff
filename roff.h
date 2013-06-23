@@ -147,9 +147,9 @@ void tr_first(void);		/* read until the first non-command line */
 
 /* variable length string buffer */
 struct sbuf {
-	char *s;
-	int sz;
-	int n;
+	char *s;		/* allocated buffer */
+	int sz;			/* buffer size */
+	int n;			/* length of the string stored in s */
 	int prev_n;		/* n before the last sbuf_append() */
 };
 
@@ -160,9 +160,9 @@ void sbuf_add(struct sbuf *sbuf, int c);
 void sbuf_append(struct sbuf *sbuf, char *s);
 void sbuf_printf(struct sbuf *sbuf, char *s, ...);
 void sbuf_putnl(struct sbuf *sbuf);
-int sbuf_empty(struct sbuf *sbuf);
-char *sbuf_last(struct sbuf *sbuf);
 void sbuf_pop(struct sbuf *sbuf);
+int sbuf_len(struct sbuf *sbuf);
+int sbuf_empty(struct sbuf *sbuf);
 
 /* word buffer */
 struct wb {
@@ -173,7 +173,9 @@ struct wb {
 	int els_neg, els_pos;	/* extra line spacing */
 	int h, v;		/* buffer vertical and horizontal positions */
 	int ct, sb, st;		/* \w registers */
-	int prev_h;		/* previous value of h */
+	char prev_c[GNLEN];	/* previous character added via wb_put() */
+	int prev_h;		/* wb->h after wb_put() calls */
+	int prev_l;		/* sbuf_len(&wb->sbuf) after wb_put() calls */
 };
 
 void wb_init(struct wb *wb);
