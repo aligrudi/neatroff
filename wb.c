@@ -97,6 +97,7 @@ void wb_put(struct wb *wb, char *c)
 			sbuf_printf(&wb->sbuf, "%cC'%s'", c_ec, c);
 	}
 	if (strcmp(c_hc, c)) {
+		wb->prev_h = wb->h;
 		wb->h += charwid(g ? g->wid : SC_DW, R_S(wb));
 		wb->ct |= g ? g->type : 0;
 		wb_stsb(wb);
@@ -113,13 +114,24 @@ int wb_lig(struct wb *wb, char *c)
 	if (p[0] == c_ec && p[1] == '(')
 		p += 2;
 	sprintf(lig, "%s%s", p, c);
-	if (dev_lig(R_F(wb), lig)) {
+	if (font_lig(dev_font(R_F(wb)), lig)) {
 		wb->h = wb->prev_h;
 		sbuf_pop(&wb->sbuf);
 		wb_put(wb, lig);
 		return 0;
 	}
 	return 1;
+}
+
+/* return 0 if pairwise kerning was done */
+int wb_kern(struct wb *wb, char *c)
+{
+	char *p = sbuf_last(&wb->sbuf);
+	int val;
+	val = p ? font_kern(dev_font(R_F(wb)), p, c) : 0;
+	if (val)
+		wb_hmov(wb, charwid(val, R_S(wb)));
+	return !val;
 }
 
 int wb_part(struct wb *wb)
@@ -274,11 +286,11 @@ static char *dashpos(char *s, int w, struct wb *w1, int any)
 	char *r = NULL;
 	int c;
 	skipreqs(&s, w1);
-	while ((c = out_readc(&s, d)) == 0) {
+	while ((c = out_readc(&s, d)) >= 0) {
 		wb_putc(w1, c, d);
 		if (wb_wid(w1) > w && (!any || r))
-			break;
-		if (!strcmp("-", d) || (!strcmp("em", d) || !strcmp("hy", d)))
+			continue;
+		if (!c && (!strcmp("-", d) || (!strcmp("em", d) || !strcmp("hy", d))))
 			r = s;
 	}
 	return r;
@@ -296,11 +308,11 @@ static char *indicatorpos(char *s, int w, struct wb *w1, int flg)
 	char *r = NULL;
 	int c;
 	skipreqs(&s, w1);
-	while ((c = out_readc(&s, d)) == 0) {
+	while ((c = out_readc(&s, d)) >= 0) {
 		wb_putc(w1, c, d);
 		if (wb_wid(w1) + wb_dashwid(w1) > w && (!(flg & HY_ANY) || r))
-			break;
-		if (!strcmp(c_hc, d))
+			continue;
+		if (!c && !strcmp(c_hc, d))
 			r = s;
 	}
 	return r;
@@ -308,24 +320,25 @@ static char *indicatorpos(char *s, int w, struct wb *w1, int flg)
 
 static char *hyphpos(char *s, int w, struct wb *w1, int flg)
 {
+	char *map[ILNLEN] = {NULL};	/* mapping from word to s */
+	int fits[ILNLEN] = {0};		/* fits[i] if word[0..i]- fits w */
 	char word[ILNLEN];
-	char *map[ILNLEN];	/* mapping from word to s */
 	char hyph[ILNLEN];
 	char d[ILNLEN];
 	char *prev_s = s;
 	char *r = NULL;
-	int fit = 0;
 	char *wp = word, *we = word + sizeof(word);
 	int beg, end;
 	int i, c;
 	skipreqs(&s, w1);
-	while ((c = out_readc(&s, d)) == 0 && wp + strlen(d) + 1 < we) {
+	while ((c = out_readc(&s, d)) >= 0 && wp + strlen(d) + 1 < we) {
 		wb_putc(w1, c, d);
-		strcpy(wp, d);
-		while (*wp)
-			map[wp++ - word] = prev_s;
-		if (wb_wid(w1) + wb_dashwid(w1) <= w)
-			fit = wp - word;
+		if (c == 0) {
+			strcpy(wp, d);
+			map[wp - word] = prev_s;
+			wp = strchr(wp, '\0');
+			fits[wp - word] = wb_wid(w1) + wb_dashwid(w1) <= w;
+		}
 		prev_s = s;
 	}
 	if (strlen(word) < 4)
@@ -334,7 +347,7 @@ static char *hyphpos(char *s, int w, struct wb *w1, int flg)
 	beg = flg & HY_FIRSTTWO ? 3 : 2;
 	end = strlen(word) - (flg & HY_FINAL ? 2 : 1);
 	for (i = beg; i < end; i++)
-		if (hyph[i] && (i <= fit || ((flg & HY_ANY) && !r)))
+		if (map[i] && hyph[i] && (fits[i] || ((flg & HY_ANY) && !r)))
 			r = map[i];
 	return r;
 }

@@ -154,7 +154,8 @@ int dev_spacewid(void)
 	return fn_font[n_f]->spacewid;
 }
 
-int dev_font(char *id)
+/* return the mounted position of font */
+int dev_pos(char *id)
 {
 	int i;
 	if (isdigit(id[0])) {
@@ -173,19 +174,14 @@ int dev_font(char *id)
 	return dev_mnt(0, id, id);
 }
 
+/* return the font struct at pos */
+struct font *dev_font(int pos)
+{
+	return pos >= 0 && pos < fn_n ? fn_font[pos] : NULL;
+}
+
 int charwid(int wid, int sz)
 {
 	/* the original troff rounds the widths up */
 	return (wid * sz + dev_uwid / 2) / dev_uwid;
-}
-
-/* return 1 if lig is a ligature in the font mounted at f */
-int dev_lig(int f, char *lig)
-{
-	struct font *fn = fn_font[f];
-	int i;
-	for (i = 0; i < fn->nlig; i++)
-		if (!strcmp(lig, fn->lig[i]))
-			return font_find(fn, lig) != NULL;
-	return 0;
 }

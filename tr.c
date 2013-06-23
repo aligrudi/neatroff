@@ -417,6 +417,12 @@ static void tr_lg(char **args)
 		n_lg = atoi(args[1]);
 }
 
+static void tr_kn(char **args)
+{
+	if (args[1])
+		n_kn = atoi(args[1]);
+}
+
 static char *arg_regname(char *s, int len)
 {
 	char *e = s + 2;
@@ -618,6 +624,7 @@ static struct cmd {
 	{"if", tr_if, mkargs_null},
 	{"ig", tr_ig},
 	{"in", tr_in},
+	{"kn", tr_kn},
 	{"lg", tr_lg},
 	{"ll", tr_ll},
 	{"ls", tr_ls},

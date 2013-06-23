@@ -29,6 +29,8 @@ struct glyph *font_glyph(struct font *fn, char *id)
 	return NULL;
 }
 
+static int font_section(struct font *fn, FILE *fin, char *name);
+
 static void font_charset(struct font *fn, FILE *fin)
 {
 	char tok[ILNLEN];
@@ -39,6 +41,8 @@ static void font_charset(struct font *fn, FILE *fin)
 	int wid, type;
 	while (fn->n < NGLYPHS) {
 		if (fscanf(fin, "%s", name) != 1)
+			break;
+		if (!font_section(fn, fin, name))
 			break;
 		fscanf(fin, "%s", tok);
 		glyph = prev;
@@ -58,6 +62,57 @@ static void font_charset(struct font *fn, FILE *fin)
 		fn->g[fn->n] = glyph;
 		fn->n++;
 	}
+}
+
+static void font_kernpairs(struct font *fn, FILE *fin)
+{
+	char c1[ILNLEN], c2[ILNLEN];
+	int val;
+	while (fn->n < NGLYPHS) {
+		if (fscanf(fin, "%s", c1) != 1)
+			break;
+		if (!font_section(fn, fin, c1))
+			break;
+		if (fscanf(fin, "%s %d", c2, &val) != 2)
+			break;
+		strcpy(fn->kern_c1[fn->nkern], c1);
+		strcpy(fn->kern_c2[fn->nkern], c2);
+		fn->kern[fn->nkern] = val;
+		fn->nkern++;
+	}
+}
+
+static int font_section(struct font *fn, FILE *fin, char *name)
+{
+	if (!strcmp("charset", name)) {
+		font_charset(fn, fin);
+		return 0;
+	}
+	if (!strcmp("kernpairs", name)) {
+		font_kernpairs(fn, fin);
+		return 0;
+	}
+	return 1;
+}
+
+/* return 1 if lig is a ligature */
+int font_lig(struct font *fn, char *lig)
+{
+	int i;
+	for (i = 0; i < fn->nlig; i++)
+		if (!strcmp(lig, fn->lig[i]))
+			return font_find(fn, lig) != NULL;
+	return 0;
+}
+
+/* return pairwise kerning value between c1 and c2 */
+int font_kern(struct font *fn, char *c1, char *c2)
+{
+	int i;
+	for (i = 0; i < fn->nkern; i++)
+		if (!strcmp(fn->kern_c1[i], c1) && !strcmp(fn->kern_c2[i], c2))
+			return fn->kern[i];
+	return 0;
 }
 
 struct font *font_open(char *path)
@@ -102,10 +157,8 @@ struct font *font_open(char *path)
 			skipline(fin);
 			continue;
 		}
-		if (!strcmp("charset", tok)) {
-			font_charset(fn, fin);
+		if (!font_section(fn, fin, tok))
 			break;
-		}
 	}
 	fclose(fin);
 	return fn;

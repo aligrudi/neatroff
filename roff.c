@@ -15,6 +15,7 @@ static void g_init(void)
 	n_o = SC_IN;
 	n_p = SC_IN * 11;
 	n_lg = 1;
+	n_kn = 0;
 }
 
 static void compile(void)

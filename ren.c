@@ -433,7 +433,7 @@ void tr_ti(char **args)
 
 static void ren_ft(char *s)
 {
-	int fn = !s || !*s || !strcmp("P", s) ? n_f0 : dev_font(s);
+	int fn = !s || !*s || !strcmp("P", s) ? n_f0 : dev_pos(s);
 	if (fn >= 0) {
 		n_f0 = n_f;
 		n_f = fn;
@@ -670,8 +670,11 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 	}
 	if (c[0] == c_ni)
 		nextchar(c + 1, next);
-	if (!n_lg || wb_lig(wb, c))
+	if (!n_lg || wb_lig(wb, c)) {
+		if (n_kn)
+			wb_kern(wb, c);
 		wb_put(wb, c);
+	}
 }
 
 /* read the argument of \w and push its width */

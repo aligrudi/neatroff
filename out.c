@@ -215,7 +215,7 @@ void out_line(char *s)
 			out_draw(c);
 			break;
 		case 'f':
-			out_ft(dev_font(c));
+			out_ft(dev_pos(c));
 			break;
 		case 'h':
 			outnn("h%d", eval(c, 'm'));

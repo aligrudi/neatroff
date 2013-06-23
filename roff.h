@@ -10,6 +10,7 @@
 #define NFILES		16	/* number of input files */
 #define NFONTS		32	/* number of fonts */
 #define NLIGS		32	/* number of font ligatures */
+#define NKERNS		128	/* number of font pairwise kerning pairs */
 #define FNLEN		32	/* font name length */
 #define NGLYPHS		512	/* glyphs in fonts */
 #define GNLEN		32	/* glyph name length */
@@ -94,22 +95,28 @@ struct font {
 	struct glyph *g[NGLYPHS];	/* character glyphs in charset */
 	int n;				/* number of characters in charset */
 	char lig[NLIGS][GNLEN * 4];	/* font ligatures */
-	int nlig;			/* number of font ligatures */
+	int nlig;
+	int kern[NKERNS];		/* font pairwise kerning */
+	char kern_c1[NKERNS][GNLEN];
+	char kern_c2[NKERNS][GNLEN];
+	int nkern;
 };
 
 /* output device functions */
 int dev_open(char *path);
 void dev_close(void);
 int dev_mnt(int pos, char *id, char *name);
-int dev_font(char *id);
+int dev_pos(char *id);
+struct font *dev_font(int pos);
 int charwid(int wid, int sz);
-int dev_lig(int f, char *c);
 
 /* font-related functions */
 struct font *font_open(char *path);
 void font_close(struct font *fn);
 struct glyph *font_glyph(struct font *fn, char *id);
 struct glyph *font_find(struct font *fn, char *name);
+int font_lig(struct font *fn, char *c);
+int font_kern(struct font *fn, char *c1, char *c2);
 
 /* glyph handling functions */
 struct glyph *dev_glyph(char *c, int fn);
@@ -191,6 +198,7 @@ int wb_wid(struct wb *wb);
 int wb_empty(struct wb *wb);
 void wb_wconf(struct wb *wb, int *ct, int *st, int *sb);
 int wb_lig(struct wb *wb, char *c);
+int wb_kern(struct wb *wb, char *c);
 
 /* hyphenation flags */
 #define HY_MASK		0x0f	/* enable hyphenation */
@@ -314,6 +322,7 @@ int schar_jump(char *d, int (*next)(void), void (*back)(int));
 #define n_lg		(*nreg(REG(0, 'g')))	/* .lg mode */
 #define n_hy		(*nreg(REG(0, 'h')))	/* .hy mode */
 #define n_i0		(*nreg(REG(0, 'i')))	/* last .i */
+#define n_kn		(*nreg(REG(0, 'k')))	/* .kn mode */
 #define n_l0		(*nreg(REG(0, 'l')))	/* last .l */
 #define n_L0		(*nreg(REG(0, 'L')))	/* last .L */
 #define n_mk		(*nreg(REG(0, 'm')))	/* .mk internal register */
