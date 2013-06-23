@@ -78,8 +78,8 @@ extern int dev_hor;
 extern int dev_ver;
 
 struct glyph {
-	char name[FNLEN];	/* name of the glyph */
-	char id[FNLEN];		/* device-dependent glyph identifier */
+	char name[GNLEN];	/* name of the glyph */
+	char id[GNLEN];		/* device-dependent glyph identifier */
 	struct font *font;	/* glyph font */
 	int wid;		/* character width */
 	int type;		/* character type; ascender/descender */
@@ -87,6 +87,7 @@ struct glyph {
 
 struct font {
 	char name[FNLEN];
+	char fontname[FNLEN];
 	struct glyph glyphs[NGLYPHS];
 	int nglyphs;
 	int spacewid;

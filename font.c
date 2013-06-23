@@ -39,11 +39,13 @@ static void font_charset(struct font *fn, FILE *fin)
 	struct glyph *glyph = NULL;
 	struct glyph *prev = NULL;
 	int wid, type;
-	while (fn->n < NGLYPHS) {
-		if (fscanf(fin, "%s", name) != 1)
-			break;
+	while (fscanf(fin, "%s", name) == 1) {
 		if (!font_section(fn, fin, name))
 			break;
+		if (fn->n >= NGLYPHS) {
+			skipline(fin);
+			continue;
+		}
 		fscanf(fin, "%s", tok);
 		glyph = prev;
 		if (strcmp("\"", tok)) {
@@ -68,17 +70,17 @@ static void font_kernpairs(struct font *fn, FILE *fin)
 {
 	char c1[ILNLEN], c2[ILNLEN];
 	int val;
-	while (fn->n < NGLYPHS) {
-		if (fscanf(fin, "%s", c1) != 1)
-			break;
+	while (fscanf(fin, "%s", c1) == 1) {
 		if (!font_section(fn, fin, c1))
 			break;
 		if (fscanf(fin, "%s %d", c2, &val) != 2)
 			break;
-		strcpy(fn->kern_c1[fn->nkern], c1);
-		strcpy(fn->kern_c2[fn->nkern], c2);
-		fn->kern[fn->nkern] = val;
-		fn->nkern++;
+		if (fn->nkern < NKERNS) {
+			strcpy(fn->kern_c1[fn->nkern], c1);
+			strcpy(fn->kern_c2[fn->nkern], c2);
+			fn->kern[fn->nkern] = val;
+			fn->nkern++;
+		}
 	}
 }
 
@@ -140,7 +142,7 @@ struct font *font_open(char *path)
 			continue;
 		}
 		if (!strcmp("fontname", tok)) {
-			skipline(fin);
+			fscanf(fin, "%s", fn->fontname);
 			continue;
 		}
 		if (!strcmp("named", tok)) {
