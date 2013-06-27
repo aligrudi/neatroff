@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdlib.h>
@@ -17,6 +18,7 @@ struct env {
 
 static int nregs[NREGS];	/* global number registers */
 static int nregs_inc[NREGS];	/* number register auto-increment size */
+static int nregs_fmt[NREGS];	/* number register format */
 static char *sregs[NREGS];	/* global string registers */
 static void *sregs_dat[NREGS];	/* builtin function data */
 static struct env envs[3];	/* environments */
@@ -60,6 +62,8 @@ static void reg_name(char *s, int id)
 	s[3] = '\0';
 }
 
+static int num_fmt(char *s, int n, int fmt);
+
 /* the contents of a number register (returns a static buffer) */
 char *num_str(int id)
 {
@@ -86,7 +90,8 @@ char *num_str(int id)
 		sprintf(numbuf, "%02d", nregs[id]);
 		break;
 	default:
-		sprintf(numbuf, "%d", *nreg(id));
+		if (!nregs_fmt[id] || num_fmt(numbuf, *nreg(id), nregs_fmt[id]))
+			sprintf(numbuf, "%d", *nreg(id));
 	}
 	return numbuf;
 }
@@ -105,6 +110,7 @@ void num_del(int id)
 {
 	*nreg(id) = 0;
 	nregs_inc[id] = 0;
+	nregs_fmt[id] = 0;
 }
 
 int num_get(int id, int inc)
@@ -277,4 +283,108 @@ int tab_next(int pos)
 		if (env->tabs[i] > pos)
 			return env->tabs[i];
 	return pos;
+}
+
+/* number register format (.af) */
+#define NF_LSH		8		/* number format length shifts */
+#define NF_FMT		0x00ff		/* number format mask */
+
+/* the format of a number register (returns a static buffer) */
+char *num_getfmt(int id)
+{
+	static char fmtbuf[128];
+	char *s = fmtbuf;
+	int i;
+	if (!nregs_fmt[id] || (nregs_fmt[id] & NF_FMT) == '0') {
+		*s++ = '0';
+		i = nregs_fmt[id] >> NF_LSH;
+		while (i-- > 1)
+			*s++ = '0';
+	} else {
+		*s++ = nregs_fmt[id] & NF_FMT;
+	}
+	*s = '\0';
+	return fmtbuf;
+}
+
+void num_setfmt(int id, char *s)
+{
+	int i = 0;
+	if (strchr("iIaA", s[0])) {
+		nregs_fmt[id] = s[0];
+	} else {
+		while (isdigit(s[i]))
+			i++;
+		nregs_fmt[id] = '0' | (i << NF_LSH);
+	}
+}
+
+static void nf_reverse(char *s)
+{
+	char r[128];
+	int i, l;
+	strcpy(r, s);
+	l = strlen(r);
+	for (i = 0; i < l; i++)
+		s[i] = r[l - i - 1];
+}
+
+static void nf_roman(char *s, int n, char *I, char *V)
+{
+	int i;
+	if (!n)
+		return;
+	if (n % 5 == 4) {
+		*s++ = n % 10 == 9 ? I[1] : V[0];
+		*s++ = I[0];
+	} else {
+		for (i = 0; i < n % 5; i++)
+			*s++ = I[0];
+		if (n % 10 >= 5)
+			*s++ = V[0];
+	}
+	*s = '\0';
+	nf_roman(s, n / 10, I + 1, V + 1);
+}
+
+static void nf_alpha(char *s, int n, int a)
+{
+	while (n) {
+		*s++ = a + ((n - 1) % 26);
+		n /= 26;
+	}
+	*s = '\0';
+}
+
+/* returns nonzero on failure */
+static int num_fmt(char *s, int n, int fmt)
+{
+	int type = fmt & NF_FMT;
+	int len;
+	if (n < 0) {
+		n = -n;
+		*s++ = '-';
+	}
+	if ((type == 'i' || type == 'I') && n > 0 && n < 40000) {
+		if (type == 'i')
+			nf_roman(s, n, "ixcmz", "vldw");
+		else
+			nf_roman(s, n, "IXCMZ", "VLDW");
+		nf_reverse(s);
+		return 0;
+	}
+	if ((type == 'a' || type == 'A') && n > 0) {
+		nf_alpha(s, n, type);
+		nf_reverse(s);
+		return 0;
+	}
+	if (type == '0') {
+		sprintf(s, "%d", n);
+		len = strlen(s);
+		while (len++ < fmt >> NF_LSH)
+			*s++ = '0';
+		sprintf(s, "%d", n);
+		return 0;
+	}
+	return 1;
 }

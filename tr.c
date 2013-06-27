@@ -57,11 +57,16 @@ static void tr_rr(char **args)
 			num_del(REG(args[i][0], args[i][1]));
 }
 
+static void tr_af(char **args)
+{
+	if (args[2])
+		num_setfmt(REG(args[1][0], args[1][1]), args[2]);
+}
+
 static void tr_ds(char **args)
 {
-	if (!args[2])
-		return;
-	str_set(REG(args[1][0], args[1][1]), args[2]);
+	if (args[2])
+		str_set(REG(args[1][0], args[1][1]), args[2]);
 }
 
 static void tr_as(char **args)
@@ -594,6 +599,7 @@ static struct cmd {
 	{TR_DIVEND, tr_divend},
 	{TR_EJECT, tr_eject},
 	{"ad", tr_ad},
+	{"af", tr_af},
 	{"am", tr_de, mkargs_reg1},
 	{"as", tr_as, mkargs_ds},
 	{"bp", tr_bp},

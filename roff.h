@@ -47,6 +47,8 @@ void num_set(int id, int val);
 void num_inc(int id, int val);
 void num_del(int id);
 char *num_str(int id);
+char *num_getfmt(int id);
+void num_setfmt(int id, char *fmt);
 int *nreg(int id);
 int eval(char *s, int unit);
 int eval_up(char **s, int unit);

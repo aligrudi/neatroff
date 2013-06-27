@@ -40,6 +40,11 @@ static void cp_str(void)
 		in_push(buf, NULL);
 }
 
+static void cp_numfmt(void)
+{
+	in_push(num_getfmt(regid()), NULL);
+}
+
 static void cp_arg(void)
 {
 	int c;
@@ -116,6 +121,9 @@ int cp_next(void)
 			c = cp_next();
 		} else if (c == '*') {
 			cp_str();
+			c = cp_next();
+		} else if (c == 'g') {
+			cp_numfmt();
 			c = cp_next();
 		} else if (c == '$') {
 			cp_arg();
