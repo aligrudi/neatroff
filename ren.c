@@ -35,7 +35,7 @@ static int bp_first = 1;	/* prior to the first page */
 static int bp_next = 1;		/* next page number */
 static int bp_count;		/* number of pages so far */
 static int bp_ejected;		/* current ejected page */
-static int bp_final;		/* 1: the final page, 2: the 2nd final page */
+static int bp_final;		/* 1: executing em, 2: the final page, 3: the 2nd final page */
 
 static int c_fa;		/* field delimiter */
 static char c_fb[GNLEN];	/* field padding */
@@ -112,7 +112,7 @@ static void trap_exec(int reg);
 
 static void ren_page(int pg, int force)
 {
-	if (!force && bp_final)
+	if (!force && bp_final >= 2)
 		return;
 	n_nl = 0;
 	n_d = 0;
@@ -358,7 +358,7 @@ static void push_br(void)
 
 static void ren_eject(int id)
 {
-	if (id == bp_ejected && !cdiv) {
+	if (id == bp_ejected && id == bp_count && !cdiv) {
 		if (detect_traps(n_d, n_p)) {
 			push_eject();
 			ren_traps(n_d, n_p, 1);
@@ -796,13 +796,16 @@ void render(void)
 	c = ren_next();
 	while (1) {
 		if (c < 0) {
-			if (bp_final)
+			if (bp_final >= 2)
 				break;
-			bp_final = 1;
-			push_eject();
-			push_br();
-			if (trap_em >= 0)
+			if (bp_final == 0 && trap_em >= 0) {
 				trap_exec(trap_em);
+				bp_final = 1;
+			} else {
+				bp_final = 2;
+				push_eject();
+				push_br();
+			}
 			c = ren_next();
 			continue;
 		}
@@ -838,7 +841,7 @@ void render(void)
 		ren_nl = c == '\n';
 		c = ren_next();
 	}
-	bp_final = 2;
+	bp_final = 3;
 	if (!adj_empty(cadj, 0))
 		ren_page(bp_next, 1);
 	ren_br(1);
@@ -936,7 +939,7 @@ void tr_em(char **args)
 static int trap_pos(int pos)
 {
 	int ret = trap_first(pos);
-	if (bp_final > 1)
+	if (bp_final >= 3)
 		return -1;
 	if (cdiv)
 		return cdiv->treg && cdiv->tpos > pos ? cdiv->tpos : -1;
