@@ -10,12 +10,22 @@ static int cp_widreq = 1;	/* inline \w requests */
 
 static int regid(void)
 {
+	char key[NMLEN];
+	int i = 0;
 	int c1;
 	int c2 = 0;
 	c1 = cp_next();
 	if (c1 == '(') {
 		c1 = cp_next();
 		c2 = cp_next();
+	} else if (!n_cp && c1 == '[') {
+		c1 = cp_next();
+		while (i < NMLEN - 1 && c1 >= 0 && c1 != ']') {
+			key[i++] = c1;
+			c1 = cp_next();
+		}
+		key[i] = '\0';
+		return map(key);
 	}
 	return REG(c1, c2);
 }

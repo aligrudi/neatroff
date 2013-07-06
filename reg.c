@@ -6,8 +6,7 @@
 #include <time.h>
 #include "roff.h"
 
-#define NREGS		(1 << 16)
-#define NENVS		(1 << 5)
+#define NENVS		32	/* number of environment registers */
 
 struct env {
 	int eregs[NENVS];	/* environment-specific number registers */
@@ -16,13 +15,14 @@ struct env {
 	char hc[GNLEN];		/* hyphenation character */
 };
 
-static int nregs[NREGS];	/* global number registers */
-static int nregs_inc[NREGS];	/* number register auto-increment size */
-static int nregs_fmt[NREGS];	/* number register format */
-static char *sregs[NREGS];	/* global string registers */
-static void *sregs_dat[NREGS];	/* builtin function data */
-static struct env envs[3];	/* environments */
+static int nregs[NREGS2];	/* global number registers */
+static int nregs_inc[NREGS2];	/* number register auto-increment size */
+static int nregs_fmt[NREGS2];	/* number register format */
+static char *sregs[NREGS2];	/* global string registers */
+static void *sregs_dat[NREGS2];	/* builtin function data */
+static struct env *envs[NREGS2];/* environments */
 static struct env *env;		/* current enviroment */
+static int env_id;		/* current environment id */
 static int eregs_idx[NREGS];	/* register environment index in eregs[] */
 
 static int eregs[] = {		/* environment-specific number registers */
@@ -55,13 +55,6 @@ int *nreg(int id)
 	return &nregs[id];
 }
 
-static void reg_name(char *s, int id)
-{
-	s[0] = (id >> 8) & 0xff;
-	s[1] = id & 0xff;
-	s[3] = '\0';
-}
-
 static int num_fmt(char *s, int n, int fmt);
 
 /* the contents of a number register (returns a static buffer) */
@@ -78,7 +71,7 @@ char *num_str(int id)
 		break;
 	case REG('.', 'z'):
 		if (f_divreg() >= 0)
-			reg_name(numbuf, f_divreg());
+			sprintf(numbuf, "%s", map_name(f_divreg()));
 		break;
 	case REG('.', 'F'):
 		sprintf(numbuf, "%s", in_filename());
@@ -162,12 +155,28 @@ void str_rn(int src, int dst)
 	sregs_dat[src] = NULL;
 }
 
+static struct env *env_alloc(void)
+{
+	struct env *env = malloc(sizeof(*env));
+	memset(env, 0, sizeof(*env));
+	env->adj = adj_alloc();
+	return env;
+}
+
+static void env_free(struct env *env)
+{
+	adj_free(env->adj);
+	free(env);
+}
+
 static void env_set(int id)
 {
 	int i;
-	env = &envs[id];
-	if (!env->adj) {
-		env->adj = adj_alloc();
+	env = envs[id];
+	env_id = id;
+	if (!env) {
+		envs[id] = env_alloc();
+		env = envs[id];
 		n_f = 1;
 		n_i = 0;
 		n_j = AD_B;
@@ -208,12 +217,12 @@ void env_init(void)
 	env_set(0);
 }
 
-void env_free(void)
+void env_done(void)
 {
 	int i;
 	for (i = 0; i < LEN(envs); i++)
-		if (envs[i].adj)
-			adj_free(envs[i].adj);
+		if (envs[i])
+			env_free(envs[i]);
 }
 
 static int oenv[NPREV];		/* environment stack */
@@ -221,13 +230,15 @@ static int nenv;
 
 void tr_ev(char **args)
 {
-	int id = args[1] ? atoi(args[1]) : -1;
-	if (id < 0 && nenv)
-		id = oenv[--nenv];
-	if (id >= LEN(envs) || id < 0)
+	int id = -1;
+	if (args[1])
+		id = map(args[1]);
+	else
+		id = nenv ? oenv[--nenv] : -1;
+	if (id < 0)
 		return;
 	if (args[1] && env && nenv < NPREV)
-		oenv[nenv++] = env - envs;
+		oenv[nenv++] = env_id;
 	env_set(id);
 }
 

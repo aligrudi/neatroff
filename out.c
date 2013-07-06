@@ -92,6 +92,12 @@ static void escarg(char **sp, char *d, int cmd)
 			s++;
 			*d++ = *s++;
 			*d++ = *s++;
+		} else if (!n_cp && *s == '[') {
+			s++;
+			while (*s && *s != ']')
+				*d++ = *s++;
+			if (*s == ']')
+				s++;
 		} else {
 			*d++ = *s++;
 			if (cmd == 's' && s[-1] >= '1' && s[-1] <= '3')
@@ -170,6 +176,7 @@ static void out_draw(char *s)
  */
 int out_readc(char **s, char *d)
 {
+	char *r = d;
 	if (!**s)
 		return -1;
 	utf8read(s, d);
@@ -178,6 +185,11 @@ int out_readc(char **s, char *d)
 		if (d[1] == '(') {
 			utf8read(s, d);
 			utf8read(s, d + strlen(d));
+		} else if (!n_cp && d[1] == '[') {
+			while (**s && **s != ']')
+				*r++ = *(*s)++;
+			if (**s == ']')
+				(*s)++;
 		} else if (strchr("CDfhsvXx", d[1])) {
 			int c = d[1];
 			escarg(s, d, d[1]);

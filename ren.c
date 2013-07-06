@@ -56,7 +56,7 @@ void tr_di(char **args)
 		cdiv = cdiv ? cdiv + 1 : divs;
 		memset(cdiv, 0, sizeof(*cdiv));
 		sbuf_init(&cdiv->sbuf);
-		cdiv->reg = REG(args[1][0], args[1][1]);
+		cdiv->reg = map(args[1]);
 		cdiv->treg = -1;
 		if (args[0][2] == 'a' && str_get(cdiv->reg))	/* .da */
 			sbuf_append(&cdiv->sbuf, str_get(cdiv->reg));
@@ -323,7 +323,7 @@ void tr_os(char **args)
 void tr_mk(char **args)
 {
 	if (args[1])
-		num_set(REG(args[1][0], args[1][1]), n_d);
+		num_set(map(args[1]), n_d);
 	else
 		n_mk = n_d;
 }
@@ -498,6 +498,12 @@ static void escarg_ren(char *d, int cmd, int (*next)(void), void (*back)(int))
 		if (c == '(') {
 			*d++ = next();
 			*d++ = next();
+		} else if (!n_cp && c == '[') {
+			c = next();
+			while (c > 0 && c != '\n' && c != ']') {
+				*d++ = c;
+				c = next();
+			}
 		} else {
 			*d++ = c;
 			if (cmd == 's' && c >= '1' && c <= '3') {
@@ -560,8 +566,7 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 		wb_hmov(wb, eval(arg, 'm'));
 		break;
 	case 'k':
-		num_set(REG(arg[0], arg[1]),
-			RENWB(wb) ? f_hpos() - n_lb : wb_wid(wb));
+		num_set(map(arg), RENWB(wb) ? f_hpos() - n_lb : wb_wid(wb));
 		break;
 	case 'L':
 		ren_vline(wb, arg);
@@ -621,7 +626,7 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 	char c[GNLEN * 4];
 	char arg[ILNLEN];
 	char *s;
-	int w, n;
+	int w, n, l;
 	nextchar(c, next);
 	if (c[0] == ' ' || c[0] == '\n') {
 		wb_put(wb, c);
@@ -639,9 +644,17 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 	if (c[0] == c_ec) {
 		nextchar(c + 1, next);
 		if (c[1] == '(') {
-			int l = nextchar(c + 2, next);
+			l = nextchar(c + 2, next);
 			l += nextchar(c + 2 + l, next);
 			c[2 + l] = '\0';
+		} else if (!n_cp && c[1] == '[') {
+			l = 0;
+			n = next();
+			while (n >= 0 && n != '\n' && n != ']' && l < GNLEN - 1) {
+				c[l++] = n;
+				n = next();
+			}
+			c[l] = '\0';
 		} else if (c[1] == 'z') {
 			w = wb_wid(wb);
 			ren_char(wb, next, back);
@@ -898,7 +911,7 @@ void tr_wh(char **args)
 			treg[id] = -1;
 		return;
 	}
-	reg = REG(args[2][0], args[2][1]);
+	reg = map(args[2]);
 	if (id < 0)
 		id = trap_byreg(-1);
 	if (id < 0)
@@ -913,7 +926,7 @@ void tr_ch(char **args)
 	int id;
 	if (!args[1])
 		return;
-	reg = REG(args[1][0], args[1][1]);
+	reg = map(args[1]);
 	id = trap_byreg(reg);
 	if (id >= 0)
 		tpos[id] = args[2] ? eval(args[2], 'v') : -1;
@@ -925,7 +938,7 @@ void tr_dt(char **args)
 		return;
 	if (args[2]) {
 		cdiv->tpos = eval(args[1], 'v');
-		cdiv->treg = REG(args[2][0], args[2][1]);
+		cdiv->treg = map(args[2]);
 	} else {
 		cdiv->treg = -1;
 	}
@@ -933,7 +946,7 @@ void tr_dt(char **args)
 
 void tr_em(char **args)
 {
-	trap_em = args[1] ? REG(args[1][0], args[1][1]) : -1;
+	trap_em = args[1] ? map(args[1]) : -1;
 }
 
 static int trap_pos(int pos)

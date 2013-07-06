@@ -44,7 +44,7 @@ static void tr_nr(char **args)
 	int id;
 	if (!args[2])
 		return;
-	id = REG(args[1][0], args[1][1]);
+	id = map(args[1]);
 	num_set(id, eval_re(args[2], num_get(id, 0), 'u'));
 	num_inc(id, args[3] ? eval(args[3], 'u') : 0);
 }
@@ -54,19 +54,19 @@ static void tr_rr(char **args)
 	int i;
 	for (i = 1; i <= NARGS; i++)
 		if (args[i])
-			num_del(REG(args[i][0], args[i][1]));
+			num_del(map(args[i]));
 }
 
 static void tr_af(char **args)
 {
 	if (args[2])
-		num_setfmt(REG(args[1][0], args[1][1]), args[2]);
+		num_setfmt(map(args[1]), args[2]);
 }
 
 static void tr_ds(char **args)
 {
 	if (args[2])
-		str_set(REG(args[1][0], args[1][1]), args[2]);
+		str_set(map(args[1]), args[2]);
 }
 
 static void tr_as(char **args)
@@ -75,7 +75,7 @@ static void tr_as(char **args)
 	char *s1, *s2, *s;
 	if (!args[2])
 		return;
-	reg = REG(args[1][0], args[1][1]);
+	reg = map(args[1]);
 	s1 = str_get(reg) ? str_get(reg) : "";
 	s2 = args[2];
 	s = malloc(strlen(s1) + strlen(s2) + 1);
@@ -90,14 +90,14 @@ static void tr_rm(char **args)
 	int i;
 	for (i = 1; i <= NARGS; i++)
 		if (args[i])
-			str_rm(REG(args[i][0], args[i][1]));
+			str_rm(map(args[i]));
 }
 
 static void tr_rn(char **args)
 {
 	if (!args[2])
 		return;
-	str_rn(REG(args[1][0], args[1][1]), REG(args[2][0], args[2][1]));
+	str_rn(map(args[1]), map(args[2]));
 }
 
 static void tr_po(char **args)
@@ -111,7 +111,7 @@ static char *arg_regname(char *s, int len);
 
 static void macrobody(struct sbuf *sbuf, char *end)
 {
-	char buf[4];
+	char buf[NMLEN];
 	int i, c;
 	int first = 1;
 	cp_back('\n');
@@ -123,8 +123,9 @@ static void macrobody(struct sbuf *sbuf, char *end)
 		if (c == '\n') {
 			c = cp_next();
 			if (c == '.') {
-				arg_regname(buf, 4);
-				if (buf[0] == end[0] && buf[1] == end[1]) {
+				arg_regname(buf, sizeof(buf));
+				if ((n_cp && end[0] == buf[0] && end[1] == buf[1]) ||
+							!strcmp(end, buf)) {
 					jmp_eol();
 					break;
 				}
@@ -148,7 +149,7 @@ static void tr_de(char **args)
 	int id;
 	if (!args[1])
 		return;
-	id = REG(args[1][0], args[1][1]);
+	id = map(args[1]);
 	sbuf_init(&sbuf);
 	if (args[0][1] == 'a' && args[0][2] == 'm' && str_get(id))
 		sbuf_append(&sbuf, str_get(id));
@@ -428,9 +429,15 @@ static void tr_kn(char **args)
 		n_kn = atoi(args[1]);
 }
 
+static void tr_cp(char **args)
+{
+	if (args[1])
+		n_cp = atoi(args[1]);
+}
+
 static char *arg_regname(char *s, int len)
 {
-	char *e = s + 2;
+	char *e = n_cp ? s + 2 : s + len;
 	int c = cp_next();
 	while (c == ' ' || c == '\t')
 		c = cp_next();
@@ -608,6 +615,7 @@ static struct cmd {
 	{"cc", tr_cc},
 	{"ce", tr_ce},
 	{"ch", tr_ch},
+	{"cp", tr_cp},
 	{"da", tr_di},
 	{"de", tr_de, mkargs_reg1},
 	{"di", tr_di},
@@ -670,7 +678,7 @@ int tr_next(void)
 	int c = cp_next();
 	int nl = c == '\n';
 	char *args[NARGS + 3] = {NULL};
-	char cmd[RLEN];
+	char cmd[RNLEN];
 	char buf[LNLEN];
 	struct cmd *req;
 	while (tr_nl && c >= 0 && (c == c_cc || c == c_c2)) {
@@ -680,7 +688,7 @@ int tr_next(void)
 		cmd[0] = c;
 		req = NULL;
 		arg_regname(cmd + 1, sizeof(cmd) - 1);
-		req = str_dget(REG(cmd[1], cmd[2]));
+		req = str_dget(map(cmd + 1));
 		if (req) {
 			if (req->args)
 				req->args(args + 1, buf, sizeof(buf));
@@ -691,8 +699,8 @@ int tr_next(void)
 			cp_wid(0);
 			mkargs(args + 1, buf, sizeof(buf));
 			cp_wid(1);
-			if (str_get(REG(cmd[1], cmd[2])))
-				in_push(str_get(REG(cmd[1], cmd[2])), args + 1);
+			if (str_get(map(cmd + 1)))
+				in_push(str_get(map(cmd + 1)), args + 1);
 		}
 		c = cp_next();
 		nl = c == '\n';
@@ -705,7 +713,7 @@ void tr_init(void)
 {
 	int i;
 	for (i = 0; i < LEN(cmds); i++)
-		str_dset(REG(cmds[i].id[0], cmds[i].id[1]), &cmds[i]);
+		str_dset(map(cmds[i].id), &cmds[i]);
 }
 
 void tr_first(void)

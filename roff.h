@@ -13,12 +13,13 @@
 #define NKERNS		128	/* number of font pairwise kerning pairs */
 #define FNLEN		32	/* font name length */
 #define NGLYPHS		512	/* glyphs in fonts */
-#define GNLEN		32	/* glyph name length */
+#define NMLEN		32	/* macro/register/environment/glyph name length */
+#define GNLEN		NMLEN	/* glyph name length */
+#define RNLEN		NMLEN	/* register/macro name */
 #define ILNLEN		1000	/* line limit of input files */
 #define LNLEN		4000	/* line buffer length (ren.c/out.c) */
 #define NWORDS		256	/* number of words in line buffer */
 #define NARGS		9	/* number of macro arguments */
-#define RLEN		4	/* register/macro name */
 #define NPREV		16	/* environment stack depth */
 #define NTRAPS		1024	/* number of traps per page */
 #define NIES		128	/* number of nested .ie commands */
@@ -54,6 +55,10 @@ int eval(char *s, int unit);
 int eval_up(char **s, int unit);
 int eval_re(char *s, int orig, int unit);
 
+/* mapping register, macro and environment names to numbers */
+int map(char *s);
+char *map_name(int id);
+
 /* string registers */
 void str_set(int id, char *s);
 void str_dset(int id, void *d);
@@ -68,7 +73,7 @@ void odiv_end(void);
 
 /* enviroments */
 void env_init(void);
-void env_free(void);
+void env_done(void);
 struct adj *env_adj(void);
 char *env_hc(void);
 int tab_next(int pos);
@@ -298,9 +303,14 @@ int schar_jump(char *d, int (*next)(void), void (*back)(int));
 #define TR_DIVEND	"\07>"	/* diversion ends */
 #define TR_EJECT	"\07P"	/* page eject */
 
-/* builtin number registers; n_X for .X register */
+/* register mapping */
+#define NREGS		(1 << 16)
+#define NREGS2		(NREGS * 2)
 #define REG(c1, c2)	((c1) * 256 + (c2))
+
+/* builtin number registers; n_X for .X register */
 #define n_a		(*nreg(REG('.', 'a')))
+#define n_cp		(*nreg(REG('.', 'C')))
 #define n_d		(*nreg(REG('.', 'd')))
 #define n_f		(*nreg(REG('.', 'f')))
 #define n_h		(*nreg(REG('.', 'h')))
