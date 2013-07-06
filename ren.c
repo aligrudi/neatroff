@@ -485,6 +485,13 @@ void tr_fc(char **args)
 	}
 }
 
+static void ren_m(char *s)
+{
+	int m = !s || !*s ? n_m0 : clr_get(s);
+	n_m0 = n_m;
+	n_m = m;
+}
+
 static void escarg_ren(char *d, int cmd, int (*next)(void), void (*back)(int))
 {
 	char delim[GNLEN];
@@ -573,6 +580,9 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 		break;
 	case 'l':
 		ren_hline(wb, arg);
+		break;
+	case 'm':
+		ren_m(arg);
 		break;
 	case 'o':
 		ren_over(wb, arg);
@@ -672,7 +682,7 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 				ren_transparent(arg);
 			}
 			return;
-		} else if (strchr(" bCcDdfhkLloprsuvXxz0^|{}&", c[1])) {
+		} else if (strchr(" bCcDdfhkLlmoprsuvXxz0^|{}&", c[1])) {
 			escarg_ren(arg, c[1], next, back);
 			if (c[1] != 'C') {
 				ren_cmd(wb, c[1], arg);

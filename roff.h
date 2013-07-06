@@ -29,7 +29,7 @@
 
 /* escape sequences */
 #define ESC_Q	"bCDhHlLNoSvwxX"	/* quoted escape sequences */
-#define ESC_P	"*fgkns"		/* 1 or 2-char escape sequences */
+#define ESC_P	"*fgkmns"		/* 1 or 2-char escape sequences */
 
 #define MIN(a, b)	((a) < (b) ? (a) : (b))
 #define MAX(a, b)	((a) < (b) ? (b) : (a))
@@ -175,8 +175,8 @@ int sbuf_empty(struct sbuf *sbuf);
 /* word buffer */
 struct wb {
 	struct sbuf sbuf;
-	int f, s;		/* the last output font and size */
-	int r_f, r_s;		/* current font and size; use n_f and n_s if -1 */
+	int f, s, m;		/* the last output font and size */
+	int r_f, r_s, r_m;	/* current font and size; use n_f and n_s if -1 */
 	int part;		/* partial input (\c) */
 	int els_neg, els_pos;	/* extra line spacing */
 	int h, v;		/* buffer vertical and horizontal positions */
@@ -308,6 +308,15 @@ int schar_jump(char *d, int (*next)(void), void (*back)(int));
 #define NREGS2		(NREGS * 2)
 #define REG(c1, c2)	((c1) * 256 + (c2))
 
+/* colors */
+#define CLR_R(c)		(((c) >> 16) & 0xff)
+#define CLR_G(c)		(((c) >> 8) & 0xff)
+#define CLR_B(c)		((c) & 0xff)
+#define CLR_RGB(r, g, b)	(((r) << 16) | ((g) << 8) | (b))
+
+char *clr_str(int c);
+int clr_get(char *s);
+
 /* builtin number registers; n_X for .X register */
 #define n_a		(*nreg(REG('.', 'a')))
 #define n_cp		(*nreg(REG('.', 'C')))
@@ -319,6 +328,7 @@ int schar_jump(char *d, int (*next)(void), void (*back)(int));
 #define n_l		(*nreg(REG('.', 'l')))
 #define n_L		(*nreg(REG('.', 'L')))
 #define n_n		(*nreg(REG('.', 'n')))
+#define n_m		(*nreg(REG('.', 'm')))
 #define n_o		(*nreg(REG('.', 'o')))
 #define n_p		(*nreg(REG('.', 'p')))
 #define n_s		(*nreg(REG('.', 's')))
@@ -340,7 +350,8 @@ int schar_jump(char *d, int (*next)(void), void (*back)(int));
 #define n_kn		(*nreg(REG(0, 'k')))	/* .kn mode */
 #define n_l0		(*nreg(REG(0, 'l')))	/* last .l */
 #define n_L0		(*nreg(REG(0, 'L')))	/* last .L */
-#define n_mk		(*nreg(REG(0, 'm')))	/* .mk internal register */
+#define n_m0		(*nreg(REG(0, 'm')))	/* last .m */
+#define n_mk		(*nreg(REG(0, 'M')))	/* .mk internal register */
 #define n_na		(*nreg(REG(0, 'n')))	/* .na mode */
 #define n_ns		(*nreg(REG(0, 'N')))	/* .ns mode */
 #define n_o0		(*nreg(REG(0, 'o')))	/* last .o */

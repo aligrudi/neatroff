@@ -5,6 +5,7 @@
 
 #define R_F(wb)		((wb)->r_f >= 0 ? (wb)->r_f : n_f)	/* current font */
 #define R_S(wb)		((wb)->r_s >= 0 ? (wb)->r_s : n_s)	/* current size */
+#define R_M(wb)		((wb)->r_m >= 0 ? (wb)->r_m : n_m)	/* current color */
 
 void wb_init(struct wb *wb)
 {
@@ -12,8 +13,10 @@ void wb_init(struct wb *wb)
 	sbuf_init(&wb->sbuf);
 	wb->f = -1;
 	wb->s = -1;
+	wb->m = -1;
 	wb->r_f = -1;
 	wb->r_s = -1;
+	wb->r_m = -1;
 }
 
 void wb_done(struct wb *wb)
@@ -38,6 +41,10 @@ static void wb_font(struct wb *wb)
 	if (wb->s != R_S(wb)) {
 		sbuf_printf(&wb->sbuf, "%cs(%02d", c_ec, R_S(wb));
 		wb->s = R_S(wb);
+	}
+	if (!n_cp && wb->m != R_M(wb)) {
+		sbuf_printf(&wb->sbuf, "%cm[%s]", c_ec, clr_str(R_M(wb)));
+		wb->m = R_M(wb);
 	}
 	wb_stsb(wb);
 }
@@ -217,6 +224,9 @@ static void wb_putc(struct wb *wb, int t, char *s)
 	case 'h':
 		wb_hmov(wb, atoi(s));
 		break;
+	case 'm':
+		wb->r_m = clr_get(s);
+		break;
 	case 's':
 		wb->r_s = atoi(s);
 		break;
@@ -242,6 +252,7 @@ void wb_cat(struct wb *wb, struct wb *src)
 	part = src->part;
 	wb->r_s = -1;
 	wb->r_f = -1;
+	wb->r_m = -1;
 	wb_reset(src);
 	src->part = part;
 }
@@ -364,6 +375,7 @@ static void dohyph(char *s, char *pos, int dash, struct wb *w1, struct wb *w2)
 		wb_putc(w1, 0, "hy");
 	w2->r_s = w1->r_s;
 	w2->r_f = w1->r_f;
+	w2->r_m = w1->r_m;
 	while ((c = out_readc(&s, d)) >= 0)
 		wb_putc(w2, c, d);
 }

@@ -190,7 +190,7 @@ int out_readc(char **s, char *d)
 				*r++ = *(*s)++;
 			if (**s == ']')
 				(*s)++;
-		} else if (strchr("CDfhsvXx", d[1])) {
+		} else if (strchr("CDfhmsvXx", d[1])) {
 			int c = d[1];
 			escarg(s, d, d[1]);
 			return c == 'C' ? 0 : c;
@@ -231,6 +231,10 @@ void out_line(char *s)
 			break;
 		case 'h':
 			outnn("h%d", eval(c, 'm'));
+			break;
+		case 'm':
+			if (!n_cp)
+				out("m%s\n", clr_str(clr_get(c)));
 			break;
 		case 's':
 			out_ps(eval_re(c, o_s, '\0'));
