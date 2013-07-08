@@ -64,6 +64,7 @@ int utf8read(char **s, char *d)
 
 static int o_s = 10;
 static int o_f = 1;
+static int o_m = 0;
 
 static void out_ps(int n)
 {
@@ -78,6 +79,14 @@ static void out_ft(int n)
 	if (n >= 0 && o_f != n) {
 		o_f = n;
 		out("f%d\n", o_f);
+	}
+}
+
+static void out_clr(int n)
+{
+	if (n >= 0 && o_m != n) {
+		o_m = n;
+		out("m%s\n", clr_str(o_m));
 	}
 }
 
@@ -234,7 +243,7 @@ void out_line(char *s)
 			break;
 		case 'm':
 			if (!n_cp)
-				out("m%s\n", clr_str(clr_get(c)));
+				out_clr(clr_get(c));
 			break;
 		case 's':
 			out_ps(eval_re(c, o_s, '\0'));
