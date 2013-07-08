@@ -68,6 +68,9 @@ char *num_str(int id)
 	case REG('.', 'k'):
 		sprintf(numbuf, "%d", f_hpos());
 		break;
+	case REG('.', 'm'):
+		sprintf(numbuf, "#%02x%02x%02x", CLR_R(n_m), CLR_G(n_m), CLR_B(n_m));
+		break;
 	case REG('.', 't'):
 		sprintf(numbuf, "%d", f_nexttrap());
 		break;
