@@ -4,16 +4,6 @@
 #include <stdlib.h>
 #include "roff.h"
 
-/* returns a static buffer */
-char *clr_str(int c)
-{
-	static char clr_buf[32];
-	if (!c)
-		return "0";
-	sprintf(clr_buf, "#%02x%02x%02x", CLR_R(c), CLR_G(c), CLR_B(c));
-	return clr_buf;
-}
-
 static struct color {
 	char *name;
 	int value;
@@ -28,8 +18,18 @@ static struct color {
 	{"white", CLR_RGB(0xff, 0xff, 0xff)},
 };
 
+/* returns a static buffer */
+char *clr_str(int c)
+{
+	static char clr_buf[32];
+	if (!c)
+		return "0";
+	sprintf(clr_buf, "#%02x%02x%02x", CLR_R(c), CLR_G(c), CLR_B(c));
+	return clr_buf;
+}
+
 /* read color component */
-static int clrcomp(char *s, int len)
+static int ccom(char *s, int len)
 {
 	static char *digs = "0123456789abcdef";
 	int n = 0;
@@ -44,9 +44,13 @@ int clr_get(char *s)
 {
 	int i;
 	if (s[0] == '#' && strlen(s) == 7)
-		return CLR_RGB(clrcomp(s + 1, 2), clrcomp(s + 3, 2), clrcomp(s + 5, 2));
+		return CLR_RGB(ccom(s + 1, 2), ccom(s + 3, 2), ccom(s + 5, 2));
 	if (s[0] == '#' && strlen(s) == 4)
-		return CLR_RGB(clrcomp(s + 1, 1), clrcomp(s + 2, 1), clrcomp(s + 3, 1));
+		return CLR_RGB(ccom(s + 1, 1), ccom(s + 2, 1), ccom(s + 3, 1));
+	if (s[0] == '#' && strlen(s) == 3)
+		return CLR_RGB(ccom(s + 1, 2), ccom(s + 1, 2), ccom(s + 1, 2));
+	if (s[0] == '#' && strlen(s) == 2)
+		return CLR_RGB(ccom(s + 1, 1), ccom(s + 1, 1), ccom(s + 1, 1));
 	if (isdigit(s[0]) && atoi(s) >= 0 && atoi(s) < LEN(colors))
 		return colors[atoi(s)].value;
 	for (i = 0; i < LEN(colors); i++)
