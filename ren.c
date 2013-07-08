@@ -651,6 +651,8 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 		ren_field(wb, next, back);
 		return;
 	}
+	if (c[0] == c_ni)
+		nextchar(c + 1, next);
 	if (c[0] == c_ec) {
 		nextchar(c + 1, next);
 		if (c[1] == '(') {
@@ -691,8 +693,6 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 			strcpy(c, arg);
 		}
 	}
-	if (c[0] == c_ni)
-		nextchar(c + 1, next);
 	if (!n_lg || wb_lig(wb, c)) {
 		if (n_kn)
 			wb_kern(wb, c);

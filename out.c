@@ -216,11 +216,11 @@ void out_line(char *s)
 	char c[ILNLEN + GNLEN * 4];
 	int t;
 	while ((t = out_readc(&s, c)) >= 0) {
-		if (c[0] == c_ni) {
-			c[0] = c[1];
-			c[1] = '\0';
-		}
 		if (!t) {
+			if (c[0] == c_ni || (c[0] == '\\' && c[1] == '\\')) {
+				c[0] = c[1];
+				c[1] = '\0';
+			}
 			if (c[0] == '\t' || c[0] == '' || !strcmp(c_hc, c))
 				continue;
 			g = dev_glyph(c, o_f);

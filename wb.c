@@ -96,7 +96,10 @@ void wb_put(struct wb *wb, char *c)
 	wb_font(wb);
 	if (!c[1] || c[0] == c_ec || c[0] == c_ni ||
 			utf8len((unsigned char) c[0]) == strlen(c)) {
-		sbuf_append(&wb->sbuf, c);
+		if (c[0] == c_ni && c[1] == c_ec)
+			sbuf_printf(&wb->sbuf, "%c%c", c_ec, c_ec);
+		else
+			sbuf_append(&wb->sbuf, c);
 	} else {
 		if (c[1] && !c[2])
 			sbuf_printf(&wb->sbuf, "%c(%s", c_ec, c);
