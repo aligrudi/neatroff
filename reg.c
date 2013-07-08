@@ -256,7 +256,7 @@ char *env_hc(void)
 
 /* saving and restoring registers around diverted lines */
 struct odiv {
-	int f, s, f0, s0;
+	int f, s, m, f0, s0, m0;
 };
 
 static struct odiv odivs[NPREV];	/* state before diverted text */
@@ -268,8 +268,10 @@ void odiv_beg(void)
 	struct odiv *o = &odivs[nodivs++];
 	o->f = n_f;
 	o->s = n_s;
+	o->m = n_m;
 	o->f0 = n_f0;
 	o->s0 = n_s0;
+	o->m0 = n_m0;
 }
 
 /* end outputting diverted line */
@@ -278,8 +280,10 @@ void odiv_end(void)
 	struct odiv *o = &odivs[--nodivs];
 	n_f = o->f;
 	n_s = o->s;
+	n_m = o->m;
 	n_f0 = o->f0;
 	n_s0 = o->s0;
+	n_m0 = o->m0;
 }
 
 void tr_ta(char **args)
