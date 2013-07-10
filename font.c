@@ -48,6 +48,8 @@ static void font_charset(struct font *fn, FILE *fin)
 		}
 		fscanf(fin, "%s", tok);
 		glyph = prev;
++		if (!strcmp("---", name))
++			sprintf(name, "c%04d", fn->n);
 		if (strcmp("\"", tok)) {
 			wid = atoi(tok);
 			fscanf(fin, "%d %s", &type, id);
