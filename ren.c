@@ -635,6 +635,7 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 {
 	char c[GNLEN * 4];
 	char arg[ILNLEN];
+	struct glyph *g;
 	char *s;
 	int w, n, l;
 	nextchar(c, next);
@@ -684,8 +685,13 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 				ren_transparent(arg);
 			}
 			return;
-		} else if (strchr(" bCcDdfhkLlmoprsuvXxz0^|{}&", c[1])) {
+		} else if (strchr(" bCcDdfhkLlmNoprsuvXxz0^|{}&", c[1])) {
 			escarg_ren(arg, c[1], next, back);
+			if (c[1] == 'N') {
+				g = dev_glyph_byid(arg, n_f);
+				c[1] = 'C';
+				strcpy(arg, g ? g->name : "cnull");
+			}
 			if (c[1] != 'C') {
 				ren_cmd(wb, c[1], arg);
 				return;
