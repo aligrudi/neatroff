@@ -163,6 +163,7 @@ struct font *font_open(char *path)
 		}
 		if (!font_section(fn, fin, tok))
 			break;
+		skipline(fin);
 	}
 	fclose(fin);
 	return fn;

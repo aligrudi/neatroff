@@ -90,9 +90,9 @@ int dev_open(char *dir)
 			fscanf(desc, "%d", &dev_ver);
 			continue;
 		}
-		if (!strcmp("charset", tok)) {
+		if (!strcmp("charset", tok))
 			break;
-		}
+		skipline(desc);
 	}
 	fclose(desc);
 	dev_prologue();
