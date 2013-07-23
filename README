@@ -1,0 +1,17 @@
+NEATROFF
+========
+
+Neatroff is an implementation of troff typesetting system in
+C programming language.  Neatroff comes with its own postscript
+postprocessor, neatpost.  Neatroff and neatpost can be obtained
+from the following addresses:
+
+* Neatroff: git://repo.or.cz/neatroff.git
+* Neatpost: git://repo.or.cz/neatpost.git
+
+For compiling neatroff and neatpost, modify CFLAGS in their
+Makefiles to point TROFFROOT to the directory containing
+output devices and macro packages; to use the devices and
+macro packages of Plan 9 troff, TROFFROOT can point to the
+home directory of the Linux port of Plan 9 troff
+(git://repo.or.cz/troff.git).
