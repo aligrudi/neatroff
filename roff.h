@@ -28,8 +28,8 @@
 #define MAXFRAC		100000	/* maximum value of the fractional part */
 
 /* escape sequences */
-#define ESC_Q	"bCDhHlLNoSvwxX"	/* quoted escape sequences */
-#define ESC_P	"*fgkmns"		/* 1 or 2-char escape sequences */
+#define ESC_Q	"bCDhHlLNoSvwxX"	/* \X'ccc' quoted escape sequences */
+#define ESC_P	"*fgkmns"		/* \Xc \X(cc \X[ccc] escape sequences */
 
 #define MIN(a, b)	((a) < (b) ? (a) : (b))
 #define MAX(a, b)	((a) < (b) ? (b) : (a))

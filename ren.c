@@ -14,8 +14,8 @@ struct div {
 	int tpos;		/* diversion trap position */
 	int treg;		/* diversion trap register */
 	int dl;			/* diversion width */
-	int prev_d;		/* previous \(.d value */
-	int prev_h;		/* previous \(.h value */
+	int prev_d;		/* previous \n(.d value */
+	int prev_h;		/* previous \n(.h value */
 	int prev_mk;		/* previous .mk internal register */
 	int prev_ns;		/* previous .ns value */
 };
