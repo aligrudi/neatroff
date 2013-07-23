@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include "roff.h"
 
-#define CPBUF		4
-
 static int cp_nblk;		/* input block depth (text in \{ and \}) */
 static int cp_sblk[NIES];	/* skip \} escape at this depth, if set */
 static int cp_widreq = 1;	/* inline \w requests */
