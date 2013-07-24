@@ -174,3 +174,23 @@ struct font *dev_font(int pos)
 {
 	return pos >= 0 && pos < fn_n ? fn_font[pos] : NULL;
 }
+
+int dev_getcs(int fn)
+{
+	return dev_font(fn)->cs;
+}
+
+void dev_setcs(int fn, int cs)
+{
+	dev_font(fn)->cs = cs;
+}
+
+int dev_getbd(int fn)
+{
+	return dev_font(fn)->bd;
+}
+
+void dev_setbd(int fn, int bd)
+{
+	dev_font(fn)->bd = bd;
+}

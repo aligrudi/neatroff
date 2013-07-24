@@ -210,9 +210,34 @@ int out_readc(char **s, char *d)
 	return 0;
 }
 
+static void outg(char *c)
+{
+	if (utf8len((unsigned char) c[0]) == strlen(c))
+		outnn("c%s%s", c, c[1] ? "\n" : "");
+	else
+		out("C%s\n", c[0] == c_ec && c[1] == '(' ? c + 2 : c);
+}
+
+static void outc(char *c)
+{
+	struct glyph *g = dev_glyph(c, o_f);
+	int cwid = charwid(o_f, o_s, g ? g->wid : SC_DW);
+	int bwid = charwid_base(o_f, o_s, g ? g->wid : SC_DW);
+	if (dev_getcs(o_f))
+		outnn("h%d", (cwid - bwid) / 2);
+	outg(c);
+	if (dev_getbd(o_f)) {
+		outnn("h%d", dev_getbd(o_f) - 1);
+		outg(c);
+		outnn("h%d", -dev_getbd(o_f) + 1);
+	}
+	if (dev_getcs(o_f))
+		outnn("h%d", -(cwid - bwid) / 2);
+	outnn("h%d", cwid);
+}
+
 void out_line(char *s)
 {
-	struct glyph *g;
 	char c[ILNLEN + GNLEN * 4];
 	int t;
 	while ((t = out_readc(&s, c)) >= 0) {
@@ -223,12 +248,7 @@ void out_line(char *s)
 			}
 			if (c[0] == '\t' || c[0] == '' || !strcmp(c_hc, c))
 				continue;
-			g = dev_glyph(c, o_f);
-			if (utf8len((unsigned char) c[0]) == strlen(c))
-				outnn("c%s%s", c, c[1] ? "\n" : "");
-			else
-				out("C%s\n", c[0] == c_ec && c[1] == '(' ? c + 2 : c);
-			outnn("h%d", charwid(o_f, o_s, g ? g->wid : SC_DW));
+			outc(c);
 			continue;
 		}
 		switch (t) {

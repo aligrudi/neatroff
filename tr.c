@@ -446,6 +446,20 @@ static void tr_ss(char **args)
 		n_ss = eval_re(args[1], n_ss, 0);
 }
 
+static void tr_cs(char **args)
+{
+	if (!args[1])
+		return;
+	dev_setcs(dev_pos(args[1]), args[2] ? eval(args[2], 0) : 0);
+}
+
+static void tr_bd(char **args)
+{
+	if (!args[1] || !strcmp("S", args[1]))
+		return;
+	dev_setbd(dev_pos(args[1]), args[2] ? eval(args[2], 'u') : 0);
+}
+
 static char *arg_regname(char *s, int len)
 {
 	char *e = n_cp ? s + 2 : s + len;
@@ -621,6 +635,7 @@ static struct cmd {
 	{"af", tr_af},
 	{"am", tr_de, mkargs_reg1},
 	{"as", tr_as, mkargs_ds},
+	{"bd", tr_bd},
 	{"bp", tr_bp},
 	{"br", tr_br},
 	{"c2", tr_c2},
@@ -628,6 +643,7 @@ static struct cmd {
 	{"ce", tr_ce},
 	{"ch", tr_ch},
 	{"cp", tr_cp},
+	{"cs", tr_cs},
 	{"da", tr_di},
 	{"de", tr_de, mkargs_reg1},
 	{"di", tr_di},

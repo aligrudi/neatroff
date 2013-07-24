@@ -85,10 +85,18 @@ void tr_di(char **args)
 	}
 }
 
-int charwid(int fn, int sz, int wid)
+int charwid_base(int fn, int sz, int wid)
 {
 	/* the original troff rounds the widths up */
 	return (wid * sz + dev_uwid / 2) / dev_uwid;
+}
+
+int charwid(int fn, int sz, int wid)
+{
+	if (dev_getcs(fn))
+		return dev_getcs(n_f) * SC_EM / 36;
+	return charwid_base(fn, sz, wid) +
+		(dev_getbd(fn) ? dev_getbd(fn) - 1 : 0);
 }
 
 int spacewid(int fn, int sz)

@@ -95,6 +95,7 @@ struct font {
 	int nglyphs;
 	int spacewid;
 	int special;
+	int cs, bd;			/* for .cs and .bd requests */
 	char c[NGLYPHS][GNLEN];		/* character names in charset */
 	struct glyph *g[NGLYPHS];	/* character glyphs in charset */
 	int n;				/* number of characters in charset */
@@ -112,6 +113,10 @@ void dev_close(void);
 int dev_mnt(int pos, char *id, char *name);
 int dev_pos(char *id);
 struct font *dev_font(int pos);
+void dev_setcs(int fn, int cs);
+int dev_getcs(int fn);
+void dev_setbd(int fn, int bd);
+int dev_getbd(int fn);
 
 /* font-related functions */
 struct font *font_open(char *path);
@@ -126,6 +131,7 @@ struct glyph *dev_glyph(char *c, int fn);
 struct glyph *dev_glyph_byid(char *id, int fn);
 int charwid(int fn, int sz, int wid);
 int spacewid(int fn, int sz);
+int charwid_base(int fn, int sz, int wid);
 
 /* different layers of neatroff */
 int in_next(void);		/* input layer */
@@ -247,6 +253,7 @@ void ren_vline(struct wb *wb, char *arg);	/* vertical line */
 void ren_bracket(struct wb *wb, char *arg);	/* \b */
 void ren_over(struct wb *wb, char *arg);	/* \o */
 void ren_draw(struct wb *wb, char *arg);	/* \D */
+void ren_putc(struct wb *wb, char *c);		/* handling .cs and .bd */
 
 /* out.c */
 void out_line(char *s);				/* output rendered line */
