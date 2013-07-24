@@ -18,14 +18,6 @@ static void g_init(void)
 	n_kn = 0;
 }
 
-static void compile(void)
-{
-	out("s%d\n", n_s);
-	out("f%d\n", n_f);
-	render();
-	out("V%d\n", n_p);
-}
-
 void errmsg(char *fmt, ...)
 {
 	va_list ap;
@@ -38,6 +30,7 @@ int main(int argc, char **argv)
 {
 	int i;
 	char path[PATHLEN];
+	int ret;
 	dev_open(TROFFROOT "/font/devutf");
 	env_init();
 	tr_init();
@@ -57,8 +50,11 @@ int main(int argc, char **argv)
 	for (; i < argc; i++)
 		in_queue(!strcmp("-", argv[i]) ? NULL : argv[i]);
 	str_set(REG('.', 'P'), TROFFROOT);
-	compile();
+	out("s%d\n", n_s);
+	out("f%d\n", n_f);
+	ret = render();
+	out("V%d\n", n_p);
 	env_done();
 	dev_close();
-	return 0;
+	return ret;
 }

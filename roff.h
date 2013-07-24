@@ -55,10 +55,6 @@ int eval(char *s, int unit);
 int eval_up(char **s, int unit);
 int eval_re(char *s, int orig, int unit);
 
-/* mapping register, macro and environment names to numbers */
-int map(char *s);
-char *map_name(int id);
-
 /* string registers */
 void str_set(int id, char *s);
 void str_dset(int id, void *d);
@@ -242,20 +238,23 @@ void adj_sp(struct adj *adj);
 void adj_nonl(struct adj *adj);
 
 /* rendering */
-void render(void);				/* the main loop */
+int render(void);				/* the main loop */
 void ren_char(struct wb *wb, int (*next)(void), void (*back)(int));
 int ren_wid(int (*next)(void), void (*back)(int));
 void ren_tl(int (*next)(void), void (*back)(int));
-void out_line(char *s);				/* output rendered line */
-int out_readc(char **s, char *d);		/* read request or glyph */
-void out(char *s, ...);				/* output troff cmd */
 void ren_hline(struct wb *wb, char *arg);	/* horizontal line */
 void ren_vline(struct wb *wb, char *arg);	/* vertical line */
 void ren_bracket(struct wb *wb, char *arg);	/* \b */
 void ren_over(struct wb *wb, char *arg);	/* \o */
 void ren_draw(struct wb *wb, char *arg);	/* \D */
 
+/* out.c */
+void out_line(char *s);				/* output rendered line */
+int out_readc(char **s, char *d);		/* read request or glyph */
+void out(char *s, ...);				/* output troff cmd */
+
 /* troff commands */
+void tr_ab(char **args);
 void tr_bp(char **args);
 void tr_br(char **args);
 void tr_ce(char **args);
@@ -303,10 +302,13 @@ int schar_jump(char *d, int (*next)(void), void (*back)(int));
 #define TR_DIVEND	"\07>"	/* diversion ends */
 #define TR_EJECT	"\07P"	/* page eject */
 
-/* register mapping */
+/* mapping register, macro and environment names to numbers */
 #define NREGS		(1 << 16)
 #define NREGS2		(NREGS * 2)
 #define REG(c1, c2)	((c1) * 256 + (c2))
+
+int map(char *s);
+char *map_name(int id);
 
 /* colors */
 #define CLR_R(c)		(((c) >> 16) & 0xff)

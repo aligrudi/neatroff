@@ -30,6 +30,7 @@ static int ren_cnl;		/* current char is a newline */
 static int ren_unbuf[8];	/* ren_back() buffer */
 static int ren_un;
 static int ren_fillreq;		/* \p request */
+static int ren_aborted;		/* .ab executed */
 
 static int bp_first = 1;	/* prior to the first page */
 static int bp_next = 1;		/* next page number */
@@ -492,6 +493,12 @@ static void ren_m(char *s)
 	n_m = m;
 }
 
+void tr_ab(char **args)
+{
+	fprintf(stderr, "%s\n", args[1]);
+	ren_aborted = 1;
+}
+
 static void escarg_ren(char *d, int cmd, int (*next)(void), void (*back)(int))
 {
 	char delim[GNLEN];
@@ -813,7 +820,7 @@ static void ren_field(struct wb *wb, int (*next)(void), void (*back)(int))
 }
 
 /* read characters from in.c and pass rendered lines to out.c */
-void render(void)
+int render(void)
 {
 	struct wb *wb = &ren_wb;
 	int fillreq;
@@ -824,6 +831,8 @@ void render(void)
 	ren_first();			/* transition to the first page */
 	c = ren_next();
 	while (1) {
+		if (ren_aborted)
+			return 1;
 		if (c < 0) {
 			if (bp_final >= 2)
 				break;
@@ -875,6 +884,7 @@ void render(void)
 		ren_page(bp_next, 1);
 	ren_br(1);
 	wb_done(wb);
+	return 0;
 }
 
 /* trap handling */

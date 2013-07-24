@@ -605,6 +605,7 @@ static struct cmd {
 	{TR_DIVBEG, tr_divbeg},
 	{TR_DIVEND, tr_divend},
 	{TR_EJECT, tr_eject},
+	{"ab", tr_ab, mkargs_eol},
 	{"ad", tr_ad},
 	{"af", tr_af},
 	{"am", tr_de, mkargs_reg1},
