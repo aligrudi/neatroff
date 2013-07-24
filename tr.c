@@ -347,6 +347,11 @@ static void tr_ex(char **args)
 	in_ex();
 }
 
+static void tr_sy(char **args)
+{
+	system(args[1]);
+}
+
 static void tr_lt(char **args)
 {
 	int lt = args[1] ? eval_re(args[1], n_lt, 'm') : n_t0;
@@ -666,6 +671,7 @@ static struct cmd {
 	{"so", tr_so},
 	{"sp", tr_sp},
 	{"sv", tr_sv},
+	{"sy", tr_sy, mkargs_eol},
 	{"ta", tr_ta},
 	{"ti", tr_ti},
 	{"tl", tr_tl, mkargs_null},
