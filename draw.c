@@ -30,7 +30,7 @@ static void ln_pop(char *s)
 static int cwid(char *c)
 {
 	struct glyph *g = dev_glyph(c, n_f);
-	return charwid(g ? g->wid : SC_DW, n_s);
+	return charwid(n_f, n_s, g ? g->wid : SC_DW);
 }
 
 static int hchar(char *c)

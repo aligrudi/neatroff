@@ -85,6 +85,17 @@ void tr_di(char **args)
 	}
 }
 
+int charwid(int fn, int sz, int wid)
+{
+	/* the original troff rounds the widths up */
+	return (wid * sz + dev_uwid / 2) / dev_uwid;
+}
+
+int spacewid(int fn, int sz)
+{
+	return charwid(fn, sz, (dev_font(fn)->spacewid * n_ss + 6) / 12);
+}
+
 int f_divreg(void)
 {
 	return cdiv ? cdiv->reg : -1;
@@ -559,7 +570,7 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 	struct glyph *g;
 	switch (c) {
 	case ' ':
-		wb_hmov(wb, charwid(dev_spacewid(), n_s));
+		wb_hmov(wb, spacewid(n_f, n_s));
 		break;
 	case 'b':
 		ren_bracket(wb, arg);
@@ -618,7 +629,7 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 		break;
 	case '0':
 		g = dev_glyph("0", n_f);
-		wb_hmov(wb, charwid(g ? g->wid : SC_DW, n_s));
+		wb_hmov(wb, charwid(n_f, n_s, g ? g->wid : SC_DW));
 		break;
 	case '|':
 		wb_hmov(wb, SC_EM / 6);
@@ -851,7 +862,7 @@ int render(void)
 		fillreq = 0;
 		/* add wb (the current word) to cadj */
 		if (c == ' ' || c == '\n') {
-			adj_swid(cadj, charwid(dev_spacewid(), n_s));
+			adj_swid(cadj, spacewid(n_f, n_s));
 			if (!wb_part(wb)) {	/* not after a \c */
 				adj_wb(cadj, wb);
 				fillreq = ren_fillreq;

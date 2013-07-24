@@ -84,7 +84,7 @@ void wb_put(struct wb *wb, char *c)
 		return;
 	}
 	if (c[0] == ' ') {
-		wb_hmov(wb, charwid(dev_spacewid(), R_S(wb)));
+		wb_hmov(wb, spacewid(R_F(wb), R_S(wb)));
 		return;
 	}
 	if (c[0] == '\t' || c[0] == '' ||
@@ -110,7 +110,7 @@ void wb_put(struct wb *wb, char *c)
 		strcpy(wb->prev_c, c);
 		wb->prev_l = sbuf_len(&wb->sbuf);
 		wb->prev_h = wb->h;
-		wb->h += charwid(g ? g->wid : SC_DW, R_S(wb));
+		wb->h += charwid(R_F(wb), R_S(wb), g ? g->wid : SC_DW);
 		wb->ct |= g ? g->type : 0;
 		wb_stsb(wb);
 	}
@@ -140,7 +140,7 @@ int wb_kern(struct wb *wb, char *c)
 		return 1;
 	val = font_kern(dev_font(R_F(wb)), wb->prev_c, c);
 	if (val)
-		wb_hmov(wb, charwid(val, R_S(wb)));
+		wb_hmov(wb, charwid(R_F(wb), R_S(wb), val));
 	return !val;
 }
 
@@ -313,7 +313,7 @@ static char *dashpos(char *s, int w, struct wb *w1, int any)
 static int wb_dashwid(struct wb *wb)
 {
 	struct glyph *g = dev_glyph("hy", R_F(wb));
-	return charwid(g ? g->wid : SC_DW, R_S(wb));
+	return charwid(R_F(wb), R_S(wb), g ? g->wid : SC_DW);
 }
 
 static char *indicatorpos(char *s, int w, struct wb *w1, int flg)

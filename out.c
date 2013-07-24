@@ -228,7 +228,7 @@ void out_line(char *s)
 				outnn("c%s%s", c, c[1] ? "\n" : "");
 			else
 				out("C%s\n", c[0] == c_ec && c[1] == '(' ? c + 2 : c);
-			outnn("h%d", charwid(g ? g->wid : SC_DW, o_s));
+			outnn("h%d", charwid(o_f, o_s, g ? g->wid : SC_DW));
 			continue;
 		}
 		switch (t) {

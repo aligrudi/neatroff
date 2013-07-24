@@ -149,11 +149,6 @@ int dev_kernpair(char *c1, char *c2)
 	return 0;
 }
 
-int dev_spacewid(void)
-{
-	return fn_font[n_f]->spacewid;
-}
-
 /* return the mounted position of font */
 int dev_pos(char *id)
 {
@@ -178,10 +173,4 @@ int dev_pos(char *id)
 struct font *dev_font(int pos)
 {
 	return pos >= 0 && pos < fn_n ? fn_font[pos] : NULL;
-}
-
-int charwid(int wid, int sz)
-{
-	/* the original troff rounds the widths up */
-	return (wid * sz + dev_uwid / 2) / dev_uwid;
 }

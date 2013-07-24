@@ -112,7 +112,6 @@ void dev_close(void);
 int dev_mnt(int pos, char *id, char *name);
 int dev_pos(char *id);
 struct font *dev_font(int pos);
-int charwid(int wid, int sz);
 
 /* font-related functions */
 struct font *font_open(char *path);
@@ -125,7 +124,8 @@ int font_kern(struct font *fn, char *c1, char *c2);
 /* glyph handling functions */
 struct glyph *dev_glyph(char *c, int fn);
 struct glyph *dev_glyph_byid(char *id, int fn);
-int dev_spacewid(void);
+int charwid(int fn, int sz, int wid);
+int spacewid(int fn, int sz);
 
 /* different layers of neatroff */
 int in_next(void);		/* input layer */
@@ -357,6 +357,7 @@ int clr_get(char *s);
 #define n_na		(*nreg(REG(0, 'n')))	/* .na mode */
 #define n_ns		(*nreg(REG(0, 'N')))	/* .ns mode */
 #define n_o0		(*nreg(REG(0, 'o')))	/* last .o */
+#define n_ss		(*nreg(REG(0, 'p')))	/* .ss value */
 #define n_s0		(*nreg(REG(0, 's')))	/* last .s */
 #define n_sv		(*nreg(REG(0, 'S')))	/* .sv value */
 #define n_lt		(*nreg(REG(0, 't')))	/* .lt value */

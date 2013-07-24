@@ -440,6 +440,12 @@ static void tr_cp(char **args)
 		n_cp = atoi(args[1]);
 }
 
+static void tr_ss(char **args)
+{
+	if (args[1])
+		n_ss = eval_re(args[1], n_ss, 0);
+}
+
 static char *arg_regname(char *s, int len)
 {
 	char *e = n_cp ? s + 2 : s + len;
@@ -670,6 +676,7 @@ static struct cmd {
 	{"rt", tr_rt},
 	{"so", tr_so},
 	{"sp", tr_sp},
+	{"ss", tr_ss},
 	{"sv", tr_sv},
 	{"sy", tr_sy, mkargs_eol},
 	{"ta", tr_ta},
