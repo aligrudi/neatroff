@@ -935,6 +935,8 @@ int render(void)
 		}
 		if (c == '\n' || ren_nl)	/* end or start of input line */
 			n_lb = f_hpos();
+		if (c == '\n' && n_it && --n_itn == 0)
+			trap_exec(n_it);
 		if (c == '\n' && !wb_part(wb))
 			n_ce = MAX(0, n_ce - 1);
 		if (c != ' ') {

@@ -481,6 +481,16 @@ static void tr_bd(char **args)
 	dev_setbd(dev_pos(args[1]), args[2] ? eval(args[2], 'u') : 0);
 }
 
+static void tr_it(char **args)
+{
+	if (args[2]) {
+		n_it = map(args[2]);
+		n_itn = eval(args[1], 0);
+	} else {
+		n_it = 0;
+	}
+}
+
 static char *arg_regname(char *s, int len)
 {
 	char *e = n_cp ? s + 2 : s + len;
@@ -687,6 +697,7 @@ static struct cmd {
 	{"if", tr_if, mkargs_null},
 	{"ig", tr_ig},
 	{"in", tr_in},
+	{"it", tr_it},
 	{"kn", tr_kn},
 	{"lg", tr_lg},
 	{"ll", tr_ll},

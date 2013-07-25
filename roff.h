@@ -332,6 +332,8 @@ int clr_get(char *s);
 #define n_f		(*nreg(REG('.', 'f')))
 #define n_h		(*nreg(REG('.', 'h')))
 #define n_i		(*nreg(REG('.', 'i')))
+#define n_it		(*nreg(map(".it")))	/* .it trap macro */
+#define n_itn		(*nreg(map(".itn")))	/* .it lines left */
 #define n_j		(*nreg(REG('.', 'j')))
 #define n_l		(*nreg(REG('.', 'l')))
 #define n_L		(*nreg(REG('.', 'L')))
