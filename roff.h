@@ -190,6 +190,7 @@ struct wb {
 	char prev_c[GNLEN];	/* previous character added via wb_put() */
 	int prev_h;		/* wb->h after wb_put() calls */
 	int prev_l;		/* sbuf_len(&wb->sbuf) after wb_put() calls */
+	int eos;		/* nonzero if wb ends a sentence (.?!) */
 };
 
 void wb_init(struct wb *wb);
@@ -212,6 +213,7 @@ void wb_cat(struct wb *wb, struct wb *src);
 int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2, int flg);
 int wb_wid(struct wb *wb);
 int wb_empty(struct wb *wb);
+int wb_eos(struct wb *wb);
 void wb_wconf(struct wb *wb, int *ct, int *st, int *sb);
 int wb_lig(struct wb *wb, char *c);
 int wb_kern(struct wb *wb, char *c);

@@ -112,6 +112,10 @@ void wb_put(struct wb *wb, char *c)
 		wb->prev_h = wb->h;
 		wb->h += charwid(R_F(wb), R_S(wb), g ? g->wid : SC_DW);
 		wb->ct |= g ? g->type : 0;
+		if (c[1])
+			wb->eos = 0;
+		else if (strchr("'\")]*", c[0]) == NULL)
+			wb->eos = strchr(".?!", c[0]) != NULL;
 		wb_stsb(wb);
 	}
 }
@@ -268,6 +272,11 @@ int wb_wid(struct wb *wb)
 int wb_empty(struct wb *wb)
 {
 	return sbuf_empty(&wb->sbuf);
+}
+
+int wb_eos(struct wb *wb)
+{
+	return wb->eos;
 }
 
 void wb_wconf(struct wb *wb, int *ct, int *st, int *sb)

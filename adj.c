@@ -214,6 +214,11 @@ static void adj_word(struct adj *adj, struct wb *wb)
 	wb_cat(&adj->wbs[i], wb);
 }
 
+static int adj_eos(struct adj *adj)
+{
+	return adj->nwords && wb_eos(&adj->wbs[adj->nwords - 1]);
+}
+
 /* insert wb into the adjustment buffer */
 void adj_wb(struct adj *adj, struct wb *wb)
 {
@@ -222,7 +227,7 @@ void adj_wb(struct adj *adj, struct wb *wb)
 	if (!adj->nwords)	/* apply the new .l and .i */
 		adj_confupdate(adj);
 	if (adj->nls && !adj->gap && adj->nwords >= 1)
-		adj->gap = adj->swid;
+		adj->gap = adj_eos(adj) ? adj->swid * 2 : adj->swid;
 	adj_word(adj, wb);
 	adj->nls = 0;
 	adj->gap = 0;
