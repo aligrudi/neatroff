@@ -253,7 +253,6 @@ void ren_vline(struct wb *wb, char *arg);	/* vertical line */
 void ren_bracket(struct wb *wb, char *arg);	/* \b */
 void ren_over(struct wb *wb, char *arg);	/* \o */
 void ren_draw(struct wb *wb, char *arg);	/* \D */
-void ren_putc(struct wb *wb, char *c);		/* handling .cs and .bd */
 
 /* out.c */
 void out_line(char *s);				/* output rendered line */
@@ -337,6 +336,11 @@ int clr_get(char *s);
 #define n_l		(*nreg(REG('.', 'l')))
 #define n_L		(*nreg(REG('.', 'L')))
 #define n_n		(*nreg(REG('.', 'n')))
+#define n_nI		(*nreg(map(".nI")))	/* i for .nm */
+#define n_nm		(*nreg(map(".nm")))	/* .nm enabled */
+#define n_nM		(*nreg(map(".nM")))	/* m for .nm */
+#define n_nn		(*nreg(map(".nn")))	/* remaining .nn */
+#define n_nS		(*nreg(map(".nS")))	/* s for .nm */
 #define n_m		(*nreg(REG('.', 'm')))
 #define n_o		(*nreg(REG('.', 'o')))
 #define n_p		(*nreg(REG('.', 'p')))
@@ -346,6 +350,7 @@ int clr_get(char *s);
 #define n_ct		(*nreg(REG('c', 't')))
 #define n_dl		(*nreg(REG('d', 'l')))
 #define n_dn		(*nreg(REG('d', 'n')))
+#define n_ln		(*nreg(REG('l', 'n')))
 #define n_nl		(*nreg(REG('n', 'l')))
 #define n_sb		(*nreg(REG('s', 'b')))
 #define n_st		(*nreg(REG('s', 't')))

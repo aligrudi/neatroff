@@ -452,6 +452,28 @@ static void tr_cs(char **args)
 	dev_setcs(dev_pos(args[1]), args[2] ? eval(args[2], 0) : 0);
 }
 
+static void tr_nm(char **args)
+{
+	if (!args[1]) {
+		n_nm = 0;
+		return;
+	}
+	n_nm = 1;
+	n_ln = eval_re(args[1], n_ln, 0);
+	n_ln = MAX(0, n_ln);
+	if (args[2] && isdigit(args[2][0]))
+		n_nM = MAX(1, eval(args[2], 0));
+	if (args[3] && isdigit(args[3][0]))
+		n_nS = MAX(0, eval(args[3], 0));
+	if (args[4] && isdigit(args[4][0]))
+		n_nI = MAX(0, eval(args[4], 0));
+}
+
+static void tr_nn(char **args)
+{
+	n_nn = args[1] ? eval(args[1], 0) : 1;
+}
+
 static void tr_bd(char **args)
 {
 	if (!args[1] || !strcmp("S", args[1]))
@@ -675,6 +697,8 @@ static struct cmd {
 	{"ne", tr_ne},
 	{"nf", tr_nf},
 	{"nh", tr_nh},
+	{"nm", tr_nm},
+	{"nn", tr_nn},
 	{"nr", tr_nr, mkargs_reg1},
 	{"ns", tr_ns},
 	{"nx", tr_nx},

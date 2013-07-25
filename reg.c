@@ -23,31 +23,15 @@ static void *sregs_dat[NREGS2];	/* builtin function data */
 static struct env *envs[NREGS2];/* environments */
 static struct env *env;		/* current enviroment */
 static int env_id;		/* current environment id */
-static int eregs_idx[NREGS];	/* register environment index in eregs[] */
+static int eregs_idx[NREGS2];	/* register environment index in eregs[] */
 
-static int eregs[] = {		/* environment-specific number registers */
-	REG('.', 'f'),
-	REG('.', 'i'),
-	REG('.', 'j'),
-	REG('.', 'l'),
-	REG('.', 'L'),
-	REG('.', 'm'),
-	REG('.', 's'),
-	REG('.', 'u'),
-	REG('.', 'v'),
-	REG(0, 'c'),
-	REG(0, 'f'),
-	REG(0, 'h'),
-	REG(0, 'i'),
-	REG(0, 'l'),
-	REG(0, 'L'),
-	REG(0, 'n'),
-	REG(0, 'm'),
-	REG(0, 'p'),
-	REG(0, 's'),
-	REG(0, 't'),
-	REG(0, 'T'),
-	REG(0, 'v'),
+static char *eregs[] = {	/* environment-specific number registers */
+	"ln", ".f", ".i", ".j", ".l",
+	".L", ".nI", ".nm", ".nM", ".nn",
+	".nS", ".m", ".s", ".u", ".v",
+	"\0c", "\0f", "\0h", "\0i", "\0l",
+	"\0L", "\0n", "\0m", "\0p", "\0s",
+	"\0t", "\0T", "\0v",
 };
 
 /* return the address of a number register */
@@ -200,6 +184,8 @@ static void env_set(int id)
 		n_lt = SC_IN * 65 / 10;
 		n_hy = 1;
 		n_ss = 12;
+		n_nM = 1;
+		n_nS = 1;
 		strcpy(env->hc, "\\%");
 		adj_ll(env->adj, n_l);
 		adj_in(env->adj, n_i);
@@ -223,7 +209,7 @@ void env_init(void)
 	int i;
 	init_time();
 	for (i = 0; i < LEN(eregs); i++)
-		eregs_idx[eregs[i]] = i + 1;
+		eregs_idx[map(eregs[i])] = i + 1;
 	env_set(0);
 }
 

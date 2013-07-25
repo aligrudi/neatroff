@@ -220,8 +220,8 @@ static void down(int n)
 	}
 }
 
-/* flush the given line and send it to out.c */
-static void ren_line(char *s, int w, int ad, int ll, int li, int lt)
+/* line adjustment */
+static void ren_ljust(struct sbuf *spre, int w, int ad, int ll, int li, int lt)
 {
 	int ljust = lt >= 0 ? lt : li;
 	int llen = ll - ljust;
@@ -230,16 +230,25 @@ static void ren_line(char *s, int w, int ad, int ll, int li, int lt)
 		ljust += llen > w ? (llen - w) / 2 : 0;
 	if (ad == AD_R)
 		ljust += llen - w;
+	if (ljust)
+		sbuf_printf(spre, "%ch'%du'", c_ec, ljust);
+	if (cdiv && cdiv->dl < w)
+		cdiv->dl = w;
+}
+
+/* append the line to the current diversion or send it to out.c */
+static void ren_line(struct sbuf *spre, struct sbuf *sbuf)
+{
 	if (cdiv) {
-		if (cdiv->dl < w)
-			cdiv->dl = w;
-		if (ljust)
-			sbuf_printf(&cdiv->sbuf, "%ch'%du'", c_ec, ljust);
-		sbuf_append(&cdiv->sbuf, s);
+		if (!sbuf_empty(spre))
+			sbuf_append(&cdiv->sbuf, sbuf_buf(spre));
+		sbuf_append(&cdiv->sbuf, sbuf_buf(sbuf));
 	} else {
-		out("H%d\n", n_o + ljust);
+		out("H%d\n", n_o);
 		out("V%d\n", n_d);
-		out_line(s);
+		if (!sbuf_empty(spre))
+			out_line(sbuf_buf(spre));
+		out_line(sbuf_buf(sbuf));
 	}
 }
 
@@ -251,16 +260,49 @@ static void ren_transparent(char *s)
 		out("%s\n", s);
 }
 
+static int zwid(void)
+{
+	struct glyph *g = dev_glyph("0", n_f);
+	return charwid(n_f, n_s, g ? g->wid : SC_DW);
+}
+
+/* append the line number to the output line */
+static void ren_lnum(struct sbuf *spre)
+{
+	char num[16] = "";
+	char dig[16] = "";
+	struct wb wb;
+	int i = 0;
+	wb_init(&wb);
+	if (n_nn <= 0 && (n_ln % n_nM) == 0)
+		sprintf(num, "%d", n_ln);
+	wb_hmov(&wb, n_nI * zwid());
+	if (strlen(num) < 3)
+		wb_hmov(&wb, (3 - strlen(num)) * zwid());
+	while (num[i]) {
+		dig[0] = num[i++];
+		wb_put(&wb, dig);
+	}
+	wb_hmov(&wb, n_nS * zwid());
+	sbuf_append(spre, sbuf_buf(&wb.sbuf));
+	wb_done(&wb);
+	if (n_nn > 0)
+		n_nn--;
+	else
+		n_ln++;
+}
+
 /* return 1 if triggered a trap */
-static int ren_bradj(struct adj *adj, int fill, int ad)
+static int ren_bradj(struct adj *adj, int fill, int ad, int body)
 {
 	char cmd[16];
-	struct sbuf sbuf;
+	struct sbuf sbuf, spre;
 	int ll, li, lt, els_neg, els_pos;
 	int w, prev_d, lspc;
 	ren_first();
 	if (!adj_empty(adj, fill)) {
 		sbuf_init(&sbuf);
+		sbuf_init(&spre);
 		w = adj_fill(adj, ad == AD_B, fill, n_hy, &sbuf,
 				&ll, &li, &lt, &els_neg, &els_pos);
 		prev_d = n_d;
@@ -268,9 +310,13 @@ static int ren_bradj(struct adj *adj, int fill, int ad)
 			ren_sp(-els_neg, 1);
 		if (!n_ns || !sbuf_empty(&sbuf) || els_neg || els_pos) {
 			ren_sp(0, 0);
-			ren_line(sbuf_buf(&sbuf), w, ad, ll, li, lt);
+			if (!sbuf_empty(&sbuf) && n_nm && body)
+				ren_lnum(&spre);
+			ren_ljust(&spre, w, ad, ll, li, lt);
+			ren_line(&spre, &sbuf);
 			n_ns = 0;
 		}
+		sbuf_done(&spre);
 		sbuf_done(&sbuf);
 		if (els_pos)
 			ren_sp(els_pos, 1);
@@ -293,8 +339,12 @@ static int ren_bradj(struct adj *adj, int fill, int ad)
 /* return 1 if triggered a trap */
 static int ren_br(int force)
 {
-	return ren_bradj(cadj, !force && !n_ce && n_u,
-			n_ce ? AD_C : (n_u && !n_na && (n_j != AD_B || !force) ? n_j : AD_L));
+	int ad = n_j;
+	if (!n_u || n_na || (n_j == AD_B && force))
+		ad = AD_L;
+	if (n_ce)
+		ad = AD_C;
+	return ren_bradj(cadj, !force && !n_ce && n_u, ad, 1);
 }
 
 void tr_br(char **args)
@@ -575,7 +625,6 @@ static int nextchar(char *s, int (*next)(void))
 
 static void ren_cmd(struct wb *wb, int c, char *arg)
 {
-	struct glyph *g;
 	switch (c) {
 	case ' ':
 		wb_hmov(wb, spacewid(n_f, n_s));
@@ -636,8 +685,7 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 		wb_els(wb, eval(arg, 'v'));
 		break;
 	case '0':
-		g = dev_glyph("0", n_f);
-		wb_hmov(wb, charwid(n_f, n_s, g ? g->wid : SC_DW));
+		wb_hmov(wb, zwid());
 		break;
 	case '|':
 		wb_hmov(wb, SC_EM / 6);
@@ -802,7 +850,7 @@ void ren_tl(int (*next)(void), void (*back)(int))
 	adj_ll(adj, n_lt);
 	adj_wb(adj, &wb);
 	adj_nl(adj);
-	ren_bradj(adj, 0, AD_L);
+	ren_bradj(adj, 0, AD_L, 0);
 	adj_free(adj);
 	wb_done(&wb2);
 	wb_done(&wb);
