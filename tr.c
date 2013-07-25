@@ -491,6 +491,17 @@ static void tr_it(char **args)
 	}
 }
 
+static void tr_mc(char **args)
+{
+	if (args[1]) {
+		n_mc = 1;
+		strcpy(c_mc, args[1]);
+		n_mcn = args[2] ? eval(args[2], 'm') : SC_EM;
+	} else {
+		n_mc = 0;
+	}
+}
+
 static char *arg_regname(char *s, int len)
 {
 	char *e = n_cp ? s + 2 : s + len;
@@ -703,6 +714,7 @@ static struct cmd {
 	{"ll", tr_ll},
 	{"ls", tr_ls},
 	{"lt", tr_lt},
+	{"mc", tr_mc},
 	{"mk", tr_mk},
 	{"na", tr_na},
 	{"ne", tr_ne},

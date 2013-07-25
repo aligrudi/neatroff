@@ -41,6 +41,7 @@ extern int c_cc;	/* basic control character (.) */
 extern int c_c2;	/* no-break control character (') */
 #define c_ni	4	/* non-interpreted copy mode escape */
 #define c_hc	env_hc()/* hyphenation character */
+#define c_mc	env_mc()/* margin character (.mc) */
 
 /* number registers */
 int num_get(int id, int inc);
@@ -72,6 +73,7 @@ void env_init(void);
 void env_done(void);
 struct adj *env_adj(void);
 char *env_hc(void);
+char *env_mc(void);
 int tab_next(int pos);
 
 /* device related variables */
@@ -344,6 +346,8 @@ int clr_get(char *s);
 #define n_nn		(*nreg(map(".nn")))	/* remaining .nn */
 #define n_nS		(*nreg(map(".nS")))	/* s for .nm */
 #define n_m		(*nreg(REG('.', 'm')))
+#define n_mc		(*nreg(map(".mc")))	/* .mc enabled */
+#define n_mcn		(*nreg(map(".mcn")))	/* .mc distance */
 #define n_o		(*nreg(REG('.', 'o')))
 #define n_p		(*nreg(REG('.', 'p')))
 #define n_s		(*nreg(REG('.', 's')))

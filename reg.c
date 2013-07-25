@@ -6,13 +6,14 @@
 #include <time.h>
 #include "roff.h"
 
-#define NENVS		32	/* number of environment registers */
+#define NENVS		64	/* number of environment registers */
 
 struct env {
 	int eregs[NENVS];	/* environment-specific number registers */
 	int tabs[NTABS];	/* tab stops */
 	struct adj *adj;	/* per environment line buffer */
 	char hc[GNLEN];		/* hyphenation character */
+	char mc[GNLEN];		/* margin character (.mc) */
 };
 
 static int nregs[NREGS2];	/* global number registers */
@@ -29,7 +30,7 @@ static char *eregs[] = {	/* environment-specific number registers */
 	"ln", ".f", ".i", ".j", ".l",
 	".L", ".nI", ".nm", ".nM", ".nn",
 	".nS", ".m", ".s", ".u", ".v",
-	".it", ".itn",
+	".it", ".itn", ".mc", ".mcn",
 	"\0c", "\0f", "\0h", "\0i", "\0l",
 	"\0L", "\0n", "\0m", "\0p", "\0s",
 	"\0t", "\0T", "\0v",
@@ -247,6 +248,11 @@ struct adj *env_adj(void)
 char *env_hc(void)
 {
 	return env->hc;
+}
+
+char *env_mc(void)
+{
+	return env->mc;
 }
 
 /* saving and restoring registers around diverted lines */

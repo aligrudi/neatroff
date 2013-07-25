@@ -292,6 +292,18 @@ static void ren_lnum(struct sbuf *spre)
 		n_ln++;
 }
 
+/* append margin character */
+static void ren_mc(struct sbuf *sbuf, int w)
+{
+	struct wb wb;
+	wb_init(&wb);
+	if (w < n_l + n_mcn)
+		wb_hmov(&wb, n_l + n_mcn - w);
+	wb_put(&wb, c_mc);
+	sbuf_append(sbuf, sbuf_buf(&wb.sbuf));
+	wb_done(&wb);
+}
+
 /* return 1 if triggered a trap */
 static int ren_bradj(struct adj *adj, int fill, int ad, int body)
 {
@@ -312,6 +324,8 @@ static int ren_bradj(struct adj *adj, int fill, int ad, int body)
 			ren_sp(0, 0);
 			if (!sbuf_empty(&sbuf) && n_nm && body)
 				ren_lnum(&spre);
+			if (!sbuf_empty(&sbuf) && body && n_mc)
+				ren_mc(&sbuf, w);
 			ren_ljust(&spre, w, ad, ll, li, lt);
 			ren_line(&spre, &sbuf);
 			n_ns = 0;
