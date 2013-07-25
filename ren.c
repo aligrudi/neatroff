@@ -221,7 +221,7 @@ static void down(int n)
 }
 
 /* line adjustment */
-static void ren_ljust(struct sbuf *spre, int w, int ad, int ll, int li, int lt)
+static int ren_ljust(struct sbuf *spre, int w, int ad, int ll, int li, int lt)
 {
 	int ljust = lt >= 0 ? lt : li;
 	int llen = ll - ljust;
@@ -234,6 +234,7 @@ static void ren_ljust(struct sbuf *spre, int w, int ad, int ll, int li, int lt)
 		sbuf_printf(spre, "%ch'%du'", c_ec, ljust);
 	if (cdiv && cdiv->dl < w)
 		cdiv->dl = w;
+	return ljust;
 }
 
 /* append the line to the current diversion or send it to out.c */
@@ -293,12 +294,12 @@ static void ren_lnum(struct sbuf *spre)
 }
 
 /* append margin character */
-static void ren_mc(struct sbuf *sbuf, int w)
+static void ren_mc(struct sbuf *sbuf, int w, int ljust)
 {
 	struct wb wb;
 	wb_init(&wb);
-	if (w < n_l + n_mcn)
-		wb_hmov(&wb, n_l + n_mcn - w);
+	if (w + ljust < n_l + n_mcn)
+		wb_hmov(&wb, n_l + n_mcn - w - ljust);
 	wb_put(&wb, c_mc);
 	sbuf_append(sbuf, sbuf_buf(&wb.sbuf));
 	wb_done(&wb);
@@ -310,7 +311,7 @@ static int ren_bradj(struct adj *adj, int fill, int ad, int body)
 	char cmd[16];
 	struct sbuf sbuf, spre;
 	int ll, li, lt, els_neg, els_pos;
-	int w, prev_d, lspc;
+	int w, prev_d, lspc, ljust;
 	ren_first();
 	if (!adj_empty(adj, fill)) {
 		sbuf_init(&sbuf);
@@ -324,9 +325,9 @@ static int ren_bradj(struct adj *adj, int fill, int ad, int body)
 			ren_sp(0, 0);
 			if (!sbuf_empty(&sbuf) && n_nm && body)
 				ren_lnum(&spre);
+			ljust = ren_ljust(&spre, w, ad, ll, li, lt);
 			if (!sbuf_empty(&sbuf) && body && n_mc)
-				ren_mc(&sbuf, w);
-			ren_ljust(&spre, w, ad, ll, li, lt);
+				ren_mc(&sbuf, w, ljust);
 			ren_line(&spre, &sbuf);
 			n_ns = 0;
 		}
