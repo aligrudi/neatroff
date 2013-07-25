@@ -502,6 +502,11 @@ static void tr_mc(char **args)
 	}
 }
 
+static void tr_lf(char **args)
+{
+	in_lf(args[2], eval(args[1], 0));
+}
+
 static char *arg_regname(char *s, int len)
 {
 	char *e = n_cp ? s + 2 : s + len;
@@ -710,6 +715,7 @@ static struct cmd {
 	{"in", tr_in},
 	{"it", tr_it},
 	{"kn", tr_kn},
+	{"lf", tr_lf},
 	{"lg", tr_lg},
 	{"ll", tr_ll},
 	{"ls", tr_ls},

@@ -55,6 +55,9 @@ char *num_str(int id)
 	case REG('.', 'b'):
 		sprintf(numbuf, "%d", dev_getbd(n_f));
 		break;
+	case REG('.', 'c'):
+		sprintf(numbuf, "%d", in_lnum());
+		break;
 	case REG('.', 'k'):
 		sprintf(numbuf, "%d", f_hpos());
 		break;

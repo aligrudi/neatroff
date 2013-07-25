@@ -12,6 +12,7 @@ struct inbuf {
 	int un;			/* number of unread characters */
 	int pos;
 	int len;
+	int lnum;		/* file line number */
 	int nl;			/* read \n, if the previous char was not */
 	struct inbuf *prev;
 };
@@ -55,9 +56,20 @@ void in_so(char *path)
 	if (fin) {
 		in_new();
 		buf->fin = fin;
+		buf->lnum = 1;
 		if (path)
 			snprintf(buf->path, sizeof(buf->path) - 1, "%s", path);
 	}
+}
+
+void in_lf(char *path, int lnum)
+{
+	struct inbuf *cur = buf;
+	while (cur && !cur->fin)
+		cur = cur->prev;
+	if (path)
+		strcpy(cur->path, path);
+	cur->lnum = lnum;
 }
 
 void in_queue(char *path)
@@ -110,8 +122,11 @@ static int in_read(void)
 			return '\n';
 		if (buf->buf && buf->pos < buf->len)
 			break;
-		if (!buf->buf && (c = getc(buf->fin)) >= 0)
+		if (!buf->buf && (c = getc(buf->fin)) >= 0) {
+			if (c == '\n')
+				buf->lnum++;
 			return c;
+		}
 		in_pop();
 	}
 	return buf ? (unsigned char) buf->buf[buf->pos++] : -1;
@@ -166,6 +181,14 @@ char *in_filename(void)
 	while (cur && !cur->fin)
 		cur = cur->prev;
 	return cur && cur->path[0] ? cur->path : "-";
+}
+
+int in_lnum(void)
+{
+	struct inbuf *cur = buf;
+	while (cur && !cur->fin)
+		cur = cur->prev;
+	return cur->lnum;
 }
 
 static char **args_init(char **args)

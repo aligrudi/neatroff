@@ -145,12 +145,14 @@ void in_pushnl(char *s, char **args);
 void in_so(char *path);		/* .so request */
 void in_nx(char *path);		/* .nx request */
 void in_ex(void);		/* .nx request */
+void in_lf(char *path, int ln);	/* .lf request */
 void in_queue(char *path);	/* .ex request */
 char *in_arg(int i);		/* look up argument */
 int in_nargs(void);		/* number of arguments */
 void in_back(int c);		/* push back input character */
 int in_top(void);		/* the first pushed-back character */
 char *in_filename(void);	/* current filename */
+int in_lnum(void);		/* current line number */
 
 void cp_blk(int skip);		/* skip or read the next line or block */
 void cp_wid(int enable);	/* control inlining \w requests */
