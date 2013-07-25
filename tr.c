@@ -338,8 +338,7 @@ static void tr_so(char **args)
 
 static void tr_nx(char **args)
 {
-	if (args[1])
-		in_nx(args[1]);
+	in_nx(args[1]);
 }
 
 static void tr_ex(char **args)
