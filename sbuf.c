@@ -35,7 +35,6 @@ void sbuf_append(struct sbuf *sbuf, char *s)
 	if (sbuf->n + len + 1 >= sbuf->sz)
 		sbuf_extend(sbuf, sbuf->n + len + 1);
 	memcpy(sbuf->s + sbuf->n, s, len);
-	sbuf->prev_n = sbuf->n;
 	sbuf->n += len;
 }
 
@@ -71,11 +70,11 @@ int sbuf_len(struct sbuf *sbuf)
 	return sbuf->n;
 }
 
-/* undo last sbuf_append() */
-void sbuf_pop(struct sbuf *sbuf)
+/* shorten the sbuf */
+void sbuf_cut(struct sbuf *sbuf, int n)
 {
-	if (sbuf->prev_n < sbuf->n)
-		sbuf->n = sbuf->prev_n;
+	if (sbuf->n > n)
+		sbuf->n = n;
 }
 
 void sbuf_done(struct sbuf *sbuf)

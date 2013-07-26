@@ -76,9 +76,58 @@ void wb_etc(struct wb *wb, char *x)
 	sbuf_printf(&wb->sbuf, "%cX%s", c_ec, x);
 }
 
+/* make sure nothing is appended to wb after the last wb_put() */
+static void wb_prevcheck(struct wb *wb)
+{
+	if (wb->prev_ll != sbuf_len(&wb->sbuf))
+		wb->prev_n = 0;
+}
+
+/* mark wb->prev_c[] as valid */
+static void wb_prevok(struct wb *wb)
+{
+	wb->prev_ll = sbuf_len(&wb->sbuf);
+}
+
+/* append c to wb->prev_c[] */
+static void wb_prevput(struct wb *wb, char *c, int ll)
+{
+	if (wb->prev_n == LEN(wb->prev_c))
+		wb->prev_n--;
+	memmove(wb->prev_l + 1, wb->prev_l, wb->prev_n * sizeof(wb->prev_l[0]));
+	memmove(wb->prev_h + 1, wb->prev_h, wb->prev_n * sizeof(wb->prev_h[0]));
+	memmove(wb->prev_c + 1, wb->prev_c, wb->prev_n * sizeof(wb->prev_c[0]));
+	wb->prev_l[0] = ll;
+	wb->prev_h[0] = wb->h;
+	strcpy(wb->prev_c[0], c);
+	wb->prev_n++;
+	wb_prevok(wb);
+}
+
+/* strip the last i characters from wb */
+static void wb_prevpop(struct wb *wb, int i)
+{
+	int n = wb->prev_n - i;
+	sbuf_cut(&wb->sbuf, wb->prev_l[i - 1]);
+	wb->h = wb->prev_h[i - 1];
+	memmove(wb->prev_l, wb->prev_l + i, n * sizeof(wb->prev_l[0]));
+	memmove(wb->prev_h, wb->prev_h + i, n * sizeof(wb->prev_h[0]));
+	memmove(wb->prev_c, wb->prev_c + i, n * sizeof(wb->prev_c[0]));
+	wb->prev_n = n;
+	wb->prev_ll = sbuf_len(&wb->sbuf);
+}
+
+/* return the i-th last character inserted via wb_put() */
+static char *wb_prev(struct wb *wb, int i)
+{
+	wb_prevcheck(wb);
+	return i < wb->prev_n ? wb->prev_c[i] : NULL;
+}
+
 void wb_put(struct wb *wb, char *c)
 {
 	struct glyph *g;
+	int ll;
 	if (c[0] == '\n') {
 		wb->part = 0;
 		return;
@@ -94,6 +143,8 @@ void wb_put(struct wb *wb, char *c)
 	}
 	g = dev_glyph(c, R_F(wb));
 	wb_font(wb);
+	wb_prevcheck(wb);		/* make sure wb->prev_c[] is valid */
+	ll = sbuf_len(&wb->sbuf);	/* sbuf length before inserting c */
 	if (!c[1] || c[0] == c_ec || c[0] == c_ni ||
 			utf8len((unsigned char) c[0]) == strlen(c)) {
 		if (c[0] == c_ni && c[1] == c_ec)
@@ -107,15 +158,9 @@ void wb_put(struct wb *wb, char *c)
 			sbuf_printf(&wb->sbuf, "%cC'%s'", c_ec, c);
 	}
 	if (strcmp(c_hc, c)) {
-		strcpy(wb->prev_c, c);
-		wb->prev_l = sbuf_len(&wb->sbuf);
-		wb->prev_h = wb->h;
+		wb_prevput(wb, c, ll);
 		wb->h += charwid(R_F(wb), R_S(wb), g ? g->wid : SC_DW);
 		wb->ct |= g ? g->type : 0;
-		if (c[1])
-			wb->eos = 0;
-		else if (strchr("'\")]*", c[0]) == NULL)
-			wb->eos = strchr(".?!", c[0]) != NULL;
 		wb_stsb(wb);
 	}
 }
@@ -123,13 +168,19 @@ void wb_put(struct wb *wb, char *c)
 /* return zero if c formed a ligature with its previous character */
 int wb_lig(struct wb *wb, char *c)
 {
-	char lig[GNLEN * 2];
-	if (wb->prev_l != sbuf_len(&wb->sbuf) || !wb->prev_c[0])
-		return 1;
-	sprintf(lig, "%s%s", wb->prev_c, c);
-	if (font_lig(dev_font(R_F(wb)), lig)) {
-		wb->h = wb->prev_h;
-		sbuf_pop(&wb->sbuf);
+	char lig[GNLEN] = "";
+	char *cs[LIGLEN + 2];
+	int i = -1;
+	int ligpos;
+	cs[0] = c;
+	while (wb_prev(wb, ++i))
+		cs[i + 1] = wb_prev(wb, i);
+	ligpos = font_lig(dev_font(R_F(wb)), cs, i + 1);
+	if (ligpos > 0) {
+		for (i = 0; i < ligpos - 1; i++)
+			strcat(lig, wb_prev(wb, ligpos - i - 2));
+		strcat(lig, c);
+		wb_prevpop(wb, ligpos - 1);
 		wb_put(wb, lig);
 		return 0;
 	}
@@ -140,11 +191,12 @@ int wb_lig(struct wb *wb, char *c)
 int wb_kern(struct wb *wb, char *c)
 {
 	int val;
-	if (wb->prev_l != sbuf_len(&wb->sbuf) || !wb->prev_c[0])
+	if (!wb_prev(wb, 0))
 		return 1;
-	val = font_kern(dev_font(R_F(wb)), wb->prev_c, c);
+	val = font_kern(dev_font(R_F(wb)), wb_prev(wb, 0), c);
 	if (val)
 		wb_hmov(wb, charwid(R_F(wb), R_S(wb), val));
+	wb_prevok(wb);		/* kerning should not prevent ligatures */
 	return !val;
 }
 
@@ -274,9 +326,13 @@ int wb_empty(struct wb *wb)
 	return sbuf_empty(&wb->sbuf);
 }
 
+/* return 1 if wb ends a sentence (.?!) */
 int wb_eos(struct wb *wb)
 {
-	return wb->eos;
+	int i = 0;
+	while (wb_prev(wb, i) && strchr("'\")]*", wb_prev(wb, i)[0]))
+		i++;
+	return wb_prev(wb, i) && strchr(".?!", wb_prev(wb, i)[0]);
 }
 
 void wb_wconf(struct wb *wb, int *ct, int *st, int *sb)

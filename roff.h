@@ -26,6 +26,7 @@
 #define NTABS		16	/* number of tab stops */
 #define NFIELDS		32	/* number of fields */
 #define MAXFRAC		100000	/* maximum value of the fractional part */
+#define LIGLEN		4	/* length of ligatures */
 
 /* escape sequences */
 #define ESC_Q	"bCDhHlLNoSvwxX"	/* \X'ccc' quoted escape sequences */
@@ -125,7 +126,7 @@ struct font *font_open(char *path);
 void font_close(struct font *fn);
 struct glyph *font_glyph(struct font *fn, char *id);
 struct glyph *font_find(struct font *fn, char *name);
-int font_lig(struct font *fn, char *c);
+int font_lig(struct font *fn, char **c, int n);
 int font_kern(struct font *fn, char *c1, char *c2);
 
 /* glyph handling functions */
@@ -164,7 +165,6 @@ struct sbuf {
 	char *s;		/* allocated buffer */
 	int sz;			/* buffer size */
 	int n;			/* length of the string stored in s */
-	int prev_n;		/* n before the last sbuf_append() */
 };
 
 void sbuf_init(struct sbuf *sbuf);
@@ -174,7 +174,7 @@ void sbuf_add(struct sbuf *sbuf, int c);
 void sbuf_append(struct sbuf *sbuf, char *s);
 void sbuf_printf(struct sbuf *sbuf, char *s, ...);
 void sbuf_putnl(struct sbuf *sbuf);
-void sbuf_pop(struct sbuf *sbuf);
+void sbuf_cut(struct sbuf *sbuf, int n);
 int sbuf_len(struct sbuf *sbuf);
 int sbuf_empty(struct sbuf *sbuf);
 
@@ -187,10 +187,12 @@ struct wb {
 	int els_neg, els_pos;	/* extra line spacing */
 	int h, v;		/* buffer vertical and horizontal positions */
 	int ct, sb, st;		/* \w registers */
-	char prev_c[GNLEN];	/* previous character added via wb_put() */
-	int prev_h;		/* wb->h after wb_put() calls */
-	int prev_l;		/* sbuf_len(&wb->sbuf) after wb_put() calls */
-	int eos;		/* nonzero if wb ends a sentence (.?!) */
+	/* saving previous characters added via wb_put() */
+	char prev_c[LIGLEN][GNLEN];
+	int prev_l[LIGLEN];	/* sbuf_len(&wb->sbuf) before wb_put() calls */
+	int prev_h[LIGLEN];	/* wb->h before wb_put() calls */
+	int prev_n;		/* number of characters in prev_c[] */
+	int prev_ll;		/* sbuf_len(&wb->sbuf) after the last wb_put() */
 };
 
 void wb_init(struct wb *wb);

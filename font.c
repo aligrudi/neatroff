@@ -99,13 +99,32 @@ static int font_section(struct font *fn, FILE *fin, char *name)
 	return 1;
 }
 
-/* return 1 if lig is a ligature */
-int font_lig(struct font *fn, char *lig)
+/*
+ * Given a list of characters in the reverse order, font_lig()
+ * returns the number of characters from the beginning of this
+ * list that form a ligature in this font.  Zero naturally means
+ * no ligature was matched.
+ */
+int font_lig(struct font *fn, char **c, int n)
 {
 	int i;
-	for (i = 0; i < fn->nlig; i++)
-		if (!strcmp(lig, fn->lig[i]))
-			return font_find(fn, lig) != NULL;
+	/* concatenated characters in c[], in the correct order */
+	char s[GNLEN * 2] = "";
+	/* b[i] is the number of character of c[] in s + i */
+	int b[GNLEN * 2] = {0};
+	int len = 0;
+	for (i = 0; i < n; i++) {
+		char *cur = c[n - i - 1];
+		b[len] = n - i;
+		strcpy(s + len, cur);
+		len += strlen(cur);
+	}
+	for (i = 0; i < fn->nlig; i++) {
+		int l = strlen(fn->lig[i]);
+		if (b[len - l] && !strcmp(s + len - l, fn->lig[i]))
+			if (font_find(fn, fn->lig[i]))
+				return b[len - l];
+	}
 	return 0;
 }
 
