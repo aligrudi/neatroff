@@ -502,6 +502,16 @@ static void tr_mc(char **args)
 	}
 }
 
+static void tr_tc(char **args)
+{
+	strcpy(c_tc, args[1] ? args[1] : "");
+}
+
+static void tr_lc(char **args)
+{
+	strcpy(c_lc, args[1] ? args[1] : "");
+}
+
 static void tr_lf(char **args)
 {
 	if (args[1])
@@ -716,6 +726,7 @@ static struct cmd {
 	{"in", tr_in},
 	{"it", tr_it},
 	{"kn", tr_kn},
+	{"lc", tr_lc},
 	{"lf", tr_lf},
 	{"lg", tr_lg},
 	{"ll", tr_ll},
@@ -749,6 +760,7 @@ static struct cmd {
 	{"sv", tr_sv},
 	{"sy", tr_sy, mkargs_eol},
 	{"ta", tr_ta},
+	{"tc", tr_tc},
 	{"ti", tr_ti},
 	{"tl", tr_tl, mkargs_null},
 	{"tm", tr_tm, mkargs_eol},

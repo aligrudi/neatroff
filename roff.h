@@ -43,6 +43,8 @@ extern int c_c2;	/* no-break control character (') */
 #define c_ni	4	/* non-interpreted copy mode escape */
 #define c_hc	env_hc()/* hyphenation character */
 #define c_mc	env_mc()/* margin character (.mc) */
+#define c_tc	env_tc()
+#define c_lc	env_lc()
 
 /* number registers */
 int num_get(int id, int inc);
@@ -75,6 +77,8 @@ void env_done(void);
 struct adj *env_adj(void);
 char *env_hc(void);
 char *env_mc(void);
+char *env_tc(void);
+char *env_lc(void);
 int tab_next(int pos);
 
 /* device related variables */
@@ -256,11 +260,12 @@ int render(void);				/* the main loop */
 void ren_char(struct wb *wb, int (*next)(void), void (*back)(int));
 int ren_wid(int (*next)(void), void (*back)(int));
 void ren_tl(int (*next)(void), void (*back)(int));
-void ren_hline(struct wb *wb, char *arg);	/* horizontal line */
-void ren_vline(struct wb *wb, char *arg);	/* vertical line */
-void ren_bracket(struct wb *wb, char *arg);	/* \b */
-void ren_over(struct wb *wb, char *arg);	/* \o */
-void ren_draw(struct wb *wb, char *arg);	/* \D */
+void ren_hline(struct wb *wb, int l, char *c);	/* horizontal line */
+void ren_hlcmd(struct wb *wb, char *arg);	/* \l */
+void ren_vlcmd(struct wb *wb, char *arg);	/* \L */
+void ren_bcmd(struct wb *wb, char *arg);	/* \b */
+void ren_ocmd(struct wb *wb, char *arg);	/* \o */
+void ren_dcmd(struct wb *wb, char *arg);	/* \D */
 
 /* out.c */
 void out_line(char *s);				/* output rendered line */

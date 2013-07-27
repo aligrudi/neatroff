@@ -12,7 +12,9 @@ struct env {
 	int eregs[NENVS];	/* environment-specific number registers */
 	int tabs[NTABS];	/* tab stops */
 	struct adj *adj;	/* per environment line buffer */
-	char hc[GNLEN];		/* hyphenation character */
+	char tc[GNLEN];		/* tab character (.tc) */
+	char lc[GNLEN];		/* leader character (.lc) */
+	char hc[GNLEN];		/* hyphenation character (.hc) */
 	char mc[GNLEN];		/* margin character (.mc) */
 };
 
@@ -192,6 +194,7 @@ static void env_set(int id)
 		n_nM = 1;
 		n_nS = 1;
 		strcpy(env->hc, "\\%");
+		strcpy(env->lc, ".");
 		adj_ll(env->adj, n_l);
 		adj_in(env->adj, n_i);
 		for (i = 0; i < NTABS; i++)
@@ -256,6 +259,16 @@ char *env_hc(void)
 char *env_mc(void)
 {
 	return env->mc;
+}
+
+char *env_tc(void)
+{
+	return env->tc;
+}
+
+char *env_lc(void)
+{
+	return env->lc;
 }
 
 /* saving and restoring registers around diverted lines */

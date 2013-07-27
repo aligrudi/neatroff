@@ -275,7 +275,7 @@ static void wb_putc(struct wb *wb, int t, char *s)
 		wb_put(wb, s);
 		break;
 	case 'D':
-		ren_draw(wb, s);
+		ren_dcmd(wb, s);
 		break;
 	case 'f':
 		wb->r_f = atoi(s);

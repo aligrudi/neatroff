@@ -645,13 +645,13 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 		wb_hmov(wb, spacewid(n_f, n_s));
 		break;
 	case 'b':
-		ren_bracket(wb, arg);
+		ren_bcmd(wb, arg);
 		break;
 	case 'c':
 		wb_setpart(wb);
 		break;
 	case 'D':
-		ren_draw(wb, arg);
+		ren_dcmd(wb, arg);
 		break;
 	case 'd':
 		wb_vmov(wb, SC_EM / 2);
@@ -666,16 +666,16 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 		num_set(map(arg), RENWB(wb) ? f_hpos() - n_lb : wb_wid(wb));
 		break;
 	case 'L':
-		ren_vline(wb, arg);
+		ren_vlcmd(wb, arg);
 		break;
 	case 'l':
-		ren_hline(wb, arg);
+		ren_hlcmd(wb, arg);
 		break;
 	case 'm':
 		ren_m(arg);
 		break;
 	case 'o':
-		ren_over(wb, arg);
+		ren_ocmd(wb, arg);
 		break;
 	case 'p':
 		if (RENWB(wb))
@@ -725,7 +725,7 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 	char c[GNLEN * 4];
 	char arg[ILNLEN];
 	struct glyph *g;
-	char *s;
+	char *s, *tc;
 	int w, n, l;
 	nextchar(c, next);
 	if (c[0] == ' ' || c[0] == '\n') {
@@ -734,7 +734,11 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 	}
 	if (c[0] == '\t' || c[0] == '') {
 		n = RENWB(wb) ? f_hpos() : wb_wid(wb);
-		wb_hmov(wb, tab_next(n) - n);
+		tc = c[0] == '\t' ? c_tc : c_lc;
+		if (!tc[0])
+			wb_hmov(wb, tab_next(n) - n);
+		else
+			ren_hline(wb, tab_next(n) - n, tc);
 		return;
 	}
 	if (c[0] == c_fa) {

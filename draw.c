@@ -3,30 +3,6 @@
 #include <string.h>
 #include "roff.h"
 
-static char *ln_s;
-
-static int ln_next(void)
-{
-	return *ln_s ? (unsigned char) *ln_s++ : -1;
-}
-
-static void ln_back(int c)
-{
-	ln_s--;
-}
-
-static char *ln_push(char *s)
-{
-	char *old_s = ln_s;
-	ln_s = s;
-	return old_s;
-}
-
-static void ln_pop(char *s)
-{
-	ln_s = s;
-}
-
 static int cwid(char *c)
 {
 	struct glyph *g = dev_glyph(c, n_f);
@@ -50,18 +26,10 @@ static int vchar(char *c)
 	return (c[2] == 'b' && c[3] == 'v') || (c[2] == 'b' && c[3] == 'r');
 }
 
-void ren_hline(struct wb *wb, char *arg)
+void ren_hline(struct wb *wb, int l, char *c)
 {
-	char lc[GNLEN] = {c_ec, '(', 'r', 'u'};
-	int w, l, n, i, rem;
-	l = eval_up(&arg, 'm');
-	if (!l)
-		return;
-	if (arg[0] == c_ec && arg[1] == '&')	/* \& can be used as a separator */
-		arg += 2;
-	if (*arg)
-		strcpy(lc, arg);
-	w = cwid(lc);
+	int w, n, i, rem;
+	w = cwid(c);
 	/* negative length; moving backwards */
 	if (l < 0) {
 		wb_hmov(wb, l);
@@ -77,34 +45,26 @@ void ren_hline(struct wb *wb, char *arg)
 	}
 	/* the initial gap */
 	if (rem) {
-		if (hchar(lc)) {
-			wb_put(wb, lc);
+		if (hchar(c)) {
+			wb_put(wb, c);
 			wb_hmov(wb, rem - w);
 		} else {
 			wb_hmov(wb, rem);
 		}
 	}
 	for (i = 0; i < n; i++)
-		wb_put(wb, lc);
+		wb_put(wb, c);
 	/* moving back */
 	if (l < w)
 		wb_hmov(wb, -(w - l + 1) / 2);
 }
 
-void ren_vline(struct wb *wb, char *arg)
+static void ren_vline(struct wb *wb, int l, char *c)
 {
-	char lc[GNLEN] = {c_ec, '(', 'b', 'r'};
-	int w, l, n, i, rem, hw, neg;
-	l = eval_up(&arg, 'v');
-	if (!l)
-		return;
+	int w, n, i, rem, hw, neg;
 	neg = l < 0;
-	if (arg[0] == c_ec && arg[1] == '&')	/* \& can be used as a separator */
-		arg += 2;
-	if (*arg)
-		strcpy(lc, arg);
 	w = SC_HT;	/* character height */
-	hw = cwid(lc);		/* character width */
+	hw = cwid(c);	/* character width */
 	/* negative length; moving backwards */
 	if (l < 0) {
 		wb_vmov(wb, l);
@@ -120,9 +80,9 @@ void ren_vline(struct wb *wb, char *arg)
 	}
 	/* the initial gap */
 	if (rem) {
-		if (vchar(lc)) {
+		if (vchar(c)) {
 			wb_vmov(wb, w);
-			wb_put(wb, lc);
+			wb_put(wb, c);
 			wb_hmov(wb, -hw);
 			wb_vmov(wb, rem - w);
 		} else {
@@ -131,7 +91,7 @@ void ren_vline(struct wb *wb, char *arg)
 	}
 	for (i = 0; i < n; i++) {
 		wb_vmov(wb, w);
-		wb_put(wb, lc);
+		wb_put(wb, c);
 		wb_hmov(wb, -hw);
 	}
 	/* moving back */
@@ -142,59 +102,24 @@ void ren_vline(struct wb *wb, char *arg)
 	wb_hmov(wb, hw);
 }
 
-void ren_bracket(struct wb *wb, char *arg)
+void ren_hlcmd(struct wb *wb, char *arg)
 {
-	struct wb wb2;
-	int n = 0, w = 0;
-	int c, center;
-	char *ln_prev = ln_push(arg);
-	wb_init(&wb2);
-	c = ln_next();
-	while (c >= 0) {
-		ln_back(c);
-		ren_char(&wb2, ln_next, ln_back);
-		if (wb_wid(&wb2) > w)
-			w = wb_wid(&wb2);
-		wb_hmov(&wb2, -wb_wid(&wb2));
-		wb_vmov(&wb2, SC_HT);
-		n++;
-		c = ln_next();
-	}
-	ln_pop(ln_prev);
-	center = -(n * SC_HT + SC_EM) / 2;
-	wb_vmov(wb, center + SC_HT);
-	wb_cat(wb, &wb2);
-	wb_done(&wb2);
-	wb_vmov(wb, center);
-	wb_hmov(wb, w);
+	char lc[GNLEN] = {c_ec, '(', 'r', 'u'};
+	int l = eval_up(&arg, 'm');
+	if (arg[0] == c_ec && arg[1] == '&')	/* \& can be used as a separator */
+		arg += 2;
+	if (l)
+		ren_hline(wb, l, *arg ? arg : lc);
 }
 
-void ren_over(struct wb *wb, char *arg)
+void ren_vlcmd(struct wb *wb, char *arg)
 {
-	struct wb wb2, wb3;
-	int w = 0, wc;
-	int c;
-	char *ln_prev = ln_push(arg);
-	wb_init(&wb2);
-	wb_init(&wb3);
-	c = ln_next();
-	while (c >= 0) {
-		ln_back(c);
-		ren_char(&wb3, ln_next, ln_back);
-		wc = wb_wid(&wb3);
-		if (wc > w)
-			w = wc;
-		wb_hmov(&wb2, -wc / 2);
-		wb_cat(&wb2, &wb3);
-		wb_hmov(&wb2, -wc / 2);
-		c = ln_next();
-	}
-	ln_pop(ln_prev);
-	wb_hmov(wb, w / 2);
-	wb_cat(wb, &wb2);
-	wb_hmov(wb, w / 2);
-	wb_done(&wb3);
-	wb_done(&wb2);
+	char lc[GNLEN] = {c_ec, '(', 'b', 'r'};
+	int l = eval_up(&arg, 'v');
+	if (arg[0] == c_ec && arg[1] == '&')	/* \& can be used as a separator */
+		arg += 2;
+	if (l)
+		ren_vline(wb, l, *arg ? arg : lc);
 }
 
 static int tok_num(char **s, int scale)
@@ -209,7 +134,7 @@ static int tok_num(char **s, int scale)
 	return eval(tok, scale);
 }
 
-void ren_draw(struct wb *wb, char *s)
+void ren_dcmd(struct wb *wb, char *s)
 {
 	int h1, h2, v1, v2;
 	int c = *s++;
@@ -244,4 +169,92 @@ void ren_draw(struct wb *wb, char *s)
 		}
 		wb_drawxend(wb);
 	}
+}
+
+/*
+ * the implementation of \b and \o
+ *
+ * ren_bcmd() and ren_ocmd() call ren_char(), which requires
+ * next() and back() functions, similar to ren_next() and ren_back().
+ * ln_*() here provide such an interface for the given string,
+ * added via ln_push().  ln_*() may be called recursively to
+ * handle \o'\b"ab"c'.
+ */
+static char *ln_s;
+
+static int ln_next(void)
+{
+	return *ln_s ? (unsigned char) *ln_s++ : -1;
+}
+
+static void ln_back(int c)
+{
+	ln_s--;
+}
+
+static char *ln_push(char *s)
+{
+	char *old_s = ln_s;
+	ln_s = s;
+	return old_s;
+}
+
+static void ln_pop(char *s)
+{
+	ln_s = s;
+}
+
+void ren_bcmd(struct wb *wb, char *arg)
+{
+	struct wb wb2;
+	int n = 0, w = 0;
+	int c, center;
+	char *ln_prev = ln_push(arg);
+	wb_init(&wb2);
+	c = ln_next();
+	while (c >= 0) {
+		ln_back(c);
+		ren_char(&wb2, ln_next, ln_back);
+		if (wb_wid(&wb2) > w)
+			w = wb_wid(&wb2);
+		wb_hmov(&wb2, -wb_wid(&wb2));
+		wb_vmov(&wb2, SC_HT);
+		n++;
+		c = ln_next();
+	}
+	ln_pop(ln_prev);
+	center = -(n * SC_HT + SC_EM) / 2;
+	wb_vmov(wb, center + SC_HT);
+	wb_cat(wb, &wb2);
+	wb_done(&wb2);
+	wb_vmov(wb, center);
+	wb_hmov(wb, w);
+}
+
+void ren_ocmd(struct wb *wb, char *arg)
+{
+	struct wb wb2, wb3;
+	int w = 0, wc;
+	int c;
+	char *ln_prev = ln_push(arg);
+	wb_init(&wb2);
+	wb_init(&wb3);
+	c = ln_next();
+	while (c >= 0) {
+		ln_back(c);
+		ren_char(&wb3, ln_next, ln_back);
+		wc = wb_wid(&wb3);
+		if (wc > w)
+			w = wc;
+		wb_hmov(&wb2, -wc / 2);
+		wb_cat(&wb2, &wb3);
+		wb_hmov(&wb2, -wc / 2);
+		c = ln_next();
+	}
+	ln_pop(ln_prev);
+	wb_hmov(wb, w / 2);
+	wb_cat(wb, &wb2);
+	wb_hmov(wb, w / 2);
+	wb_done(&wb3);
+	wb_done(&wb2);
 }
