@@ -504,7 +504,8 @@ static void tr_mc(char **args)
 
 static void tr_lf(char **args)
 {
-	in_lf(args[2], eval(args[1], 0));
+	if (args[1])
+		in_lf(args[2], eval(args[1], 0));
 }
 
 static char *arg_regname(char *s, int len)
