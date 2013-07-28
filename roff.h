@@ -80,6 +80,7 @@ char *env_mc(void);
 char *env_tc(void);
 char *env_lc(void);
 int tab_next(int pos);
+int tab_type(int pos);
 
 /* device related variables */
 extern int dev_res;

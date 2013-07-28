@@ -11,6 +11,7 @@
 struct env {
 	int eregs[NENVS];	/* environment-specific number registers */
 	int tabs[NTABS];	/* tab stops */
+	char tabs_type[NTABS];	/* type of tabs: L, C, R */
 	struct adj *adj;	/* per environment line buffer */
 	char tc[GNLEN];		/* tab character (.tc) */
 	char lc[GNLEN];		/* leader character (.lc) */
@@ -306,17 +307,33 @@ void odiv_end(void)
 void tr_ta(char **args)
 {
 	int i;
-	for (i = 0; i < NARGS && args[i]; i++)
+	char *s;
+	for (i = 0; i < NARGS && args[i]; i++) {
 		env->tabs[i] = eval_re(args[i], i > 0 ? env->tabs[i - 1] : 0, 'm');
+		s = args[i][0] ? strchr(args[i], '\0') - 1 : "";
+		env->tabs_type[i] = strchr("LRC", *s) ? *s : 'L';
+	}
 }
 
-int tab_next(int pos)
+static int tab_idx(int pos)
 {
 	int i;
 	for (i = 0; i < LEN(env->tabs); i++)
 		if (env->tabs[i] > pos)
-			return env->tabs[i];
-	return pos;
+			return i;
+	return -1;
+}
+
+int tab_next(int pos)
+{
+	int i = tab_idx(pos);
+	return i >= 0 ? env->tabs[i] : pos;
+}
+
+int tab_type(int pos)
+{
+	int i = tab_idx(pos);
+	return i >= 0 && env->tabs_type[i] ? env->tabs_type[i] : 'L';
 }
 
 /* number register format (.af) */

@@ -718,6 +718,7 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 }
 
 static void ren_field(struct wb *wb, int (*next)(void), void (*back)(int));
+static void ren_tab(struct wb *wb, char *tc, int (*next)(void), void (*back)(int));
 
 /* read one character and place it inside wb buffer */
 void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
@@ -725,7 +726,7 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 	char c[GNLEN * 4];
 	char arg[ILNLEN];
 	struct glyph *g;
-	char *s, *tc;
+	char *s;
 	int w, n, l;
 	nextchar(c, next);
 	if (c[0] == ' ' || c[0] == '\n') {
@@ -733,12 +734,7 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 		return;
 	}
 	if (c[0] == '\t' || c[0] == '') {
-		n = RENWB(wb) ? f_hpos() : wb_wid(wb);
-		tc = c[0] == '\t' ? c_tc : c_lc;
-		if (!tc[0])
-			wb_hmov(wb, tab_next(n) - n);
-		else
-			ren_hline(wb, tab_next(n) - n, tc);
+		ren_tab(wb, c[0] == '\t' ? c_tc : c_lc, next, back);
 		return;
 	}
 	if (c[0] == c_fa) {
@@ -905,6 +901,35 @@ static void ren_field(struct wb *wb, int (*next)(void), void (*back)(int))
 		wb_cpy(wb, &wbs[i], cur_left);
 		wb_done(&wbs[i]);
 	}
+}
+
+static void ren_tab(struct wb *wb, char *tc, int (*next)(void), void (*back)(int))
+{
+	struct wb t;
+	int pos = RENWB(wb) ? f_hpos() : wb_wid(wb);
+	int ins = tab_next(pos);	/* insertion position */
+	int typ = tab_type(pos);	/* tab type */
+	int c;
+	wb_init(&t);
+	if (typ == 'R' || typ == 'C') {
+		c = next();
+		while (c >= 0 && c != '\n' && c != '\t' && c != '') {
+			back(c);
+			ren_char(&t, next, back);
+			c = next();
+		}
+		back(c);
+	}
+	if (typ == 'C')
+		ins -= wb_wid(&t) / 2;
+	if (typ == 'R')
+		ins -= wb_wid(&t);
+	if (!tc[0] || ins <= pos)
+		wb_hmov(wb, ins - pos);
+	else
+		ren_hline(wb, ins - pos, tc);
+	wb_cat(wb, &t);
+	wb_done(&t);
 }
 
 /* read characters from in.c and pass rendered lines to out.c */
