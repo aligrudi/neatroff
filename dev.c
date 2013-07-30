@@ -182,7 +182,8 @@ int dev_getcs(int fn)
 
 void dev_setcs(int fn, int cs)
 {
-	dev_font(fn)->cs = cs;
+	if (fn >= 0)
+		dev_font(fn)->cs = cs;
 }
 
 int dev_getbd(int fn)
@@ -192,5 +193,6 @@ int dev_getbd(int fn)
 
 void dev_setbd(int fn, int bd)
 {
-	dev_font(fn)->bd = bd;
+	if (fn >= 0)
+		dev_font(fn)->bd = bd;
 }

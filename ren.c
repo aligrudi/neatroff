@@ -519,7 +519,9 @@ void tr_ti(char **args)
 static void ren_ft(char *s)
 {
 	int fn = !s || !*s || !strcmp("P", s) ? n_f0 : dev_pos(s);
-	if (fn >= 0) {
+	if (fn < 0) {
+		errmsg("neatroff: failed to mount <%s>\n", s);
+	} else {
 		n_f0 = n_f;
 		n_f = fn;
 	}
@@ -535,7 +537,7 @@ void tr_fp(char **args)
 	if (!args[2])
 		return;
 	if (dev_mnt(atoi(args[1]), args[2], args[3] ? args[3] : args[2]) < 0)
-		errmsg("troff: failed to mount %s\n", args[2]);
+		errmsg("neatroff: failed to mount <%s>\n", args[2]);
 }
 
 void tr_nf(char **args)

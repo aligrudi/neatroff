@@ -161,11 +161,14 @@ static int font_section(struct font *fn, FILE *fin, char *name)
 
 struct font *font_open(char *path)
 {
-	struct font *fn = malloc(sizeof(*fn));
+	struct font *fn;
 	char tok[ILNLEN];
 	FILE *fin;
 	int i;
 	fin = fopen(path, "r");
+	if (!fin)
+		return NULL;
+	fn = malloc(sizeof(*fn));
 	memset(fn, 0, sizeof(*fn));
 	for (i = 0; i < LEN(fn->head); i++)
 		fn->head[i] = -1;
