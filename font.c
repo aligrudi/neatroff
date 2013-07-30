@@ -13,10 +13,12 @@ static void skipline(FILE* filp)
 
 struct glyph *font_find(struct font *fn, char *name)
 {
-	int i;
-	for (i = 0; i < fn->n; i++)
-		if (name[0] == fn->c[i][0] && !strcmp(name, fn->c[i]))
+	int i = fn->head[(unsigned char) name[0]];
+	while (i >= 0) {
+		if (!strcmp(name, fn->c[i]))
 			return fn->g[i];
+		i = fn->next[i];
+	}
 	return NULL;
 }
 
@@ -64,6 +66,8 @@ static void font_charset(struct font *fn, FILE *fin)
 		prev = glyph;
 		strcpy(fn->c[fn->n], name);
 		fn->g[fn->n] = glyph;
+		fn->next[fn->n] = fn->head[(unsigned char) name[0]];
+		fn->head[(unsigned char) name[0]] = fn->n;
 		fn->n++;
 	}
 }
@@ -143,8 +147,11 @@ struct font *font_open(char *path)
 	struct font *fn = malloc(sizeof(*fn));
 	char tok[ILNLEN];
 	FILE *fin;
+	int i;
 	fin = fopen(path, "r");
 	memset(fn, 0, sizeof(*fn));
+	for (i = 0; i < LEN(fn->head); i++)
+		fn->head[i] = -1;
 	while (fscanf(fin, "%s", tok) == 1) {
 		if (tok[0] == '#') {
 			skipline(fin);

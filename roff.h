@@ -113,6 +113,9 @@ struct font {
 	char kern_c1[NKERNS][GNLEN];
 	char kern_c2[NKERNS][GNLEN];
 	int nkern;
+	/* glyph list based on the first character of glyph names */
+	int head[256];			/* glyph list head */
+	int next[NGLYPHS];		/* next item in glyph list */
 };
 
 /* output device functions */
