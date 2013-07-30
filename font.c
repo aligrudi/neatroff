@@ -36,6 +36,52 @@ static int font_idx(struct font *fn, struct glyph *g)
 	return g ? g - fn->glyphs : -1;
 }
 
+/*
+ * Given a list of characters in the reverse order, font_lig()
+ * returns the number of characters from the beginning of this
+ * list that form a ligature in this font.  Zero naturally means
+ * no ligature was matched.
+ */
+int font_lig(struct font *fn, char **c, int n)
+{
+	int i;
+	/* concatenated characters in c[], in the correct order */
+	char s[GNLEN * 2] = "";
+	/* b[i] is the number of character of c[] in s + i */
+	int b[GNLEN * 2] = {0};
+	int len = 0;
+	for (i = 0; i < n; i++) {
+		char *cur = c[n - i - 1];
+		b[len] = n - i;
+		strcpy(s + len, cur);
+		len += strlen(cur);
+	}
+	for (i = 0; i < fn->nlig; i++) {
+		int l = strlen(fn->lig[i]);
+		if (b[len - l] && !strcmp(s + len - l, fn->lig[i]))
+			if (font_find(fn, fn->lig[i]))
+				return b[len - l];
+	}
+	return 0;
+}
+
+/* return pairwise kerning value between c1 and c2 */
+int font_kern(struct font *fn, char *c1, char *c2)
+{
+	int i1, i2, i;
+	i1 = font_idx(fn, font_find(fn, c1));
+	i2 = font_idx(fn, font_find(fn, c2));
+	if (i1 < 0 || i2 < 0)
+		return 0;
+	i = fn->knhead[i1];
+	while (i >= 0) {
+		if (fn->knpair[i] == i2)
+			return fn->knval[i];
+		i = fn->knnext[i];
+	}
+	return 0;
+}
+
 static int font_section(struct font *fn, FILE *fin, char *name);
 
 static void font_charset(struct font *fn, FILE *fin)
@@ -111,52 +157,6 @@ static int font_section(struct font *fn, FILE *fin, char *name)
 		return 0;
 	}
 	return 1;
-}
-
-/*
- * Given a list of characters in the reverse order, font_lig()
- * returns the number of characters from the beginning of this
- * list that form a ligature in this font.  Zero naturally means
- * no ligature was matched.
- */
-int font_lig(struct font *fn, char **c, int n)
-{
-	int i;
-	/* concatenated characters in c[], in the correct order */
-	char s[GNLEN * 2] = "";
-	/* b[i] is the number of character of c[] in s + i */
-	int b[GNLEN * 2] = {0};
-	int len = 0;
-	for (i = 0; i < n; i++) {
-		char *cur = c[n - i - 1];
-		b[len] = n - i;
-		strcpy(s + len, cur);
-		len += strlen(cur);
-	}
-	for (i = 0; i < fn->nlig; i++) {
-		int l = strlen(fn->lig[i]);
-		if (b[len - l] && !strcmp(s + len - l, fn->lig[i]))
-			if (font_find(fn, fn->lig[i]))
-				return b[len - l];
-	}
-	return 0;
-}
-
-/* return pairwise kerning value between c1 and c2 */
-int font_kern(struct font *fn, char *c1, char *c2)
-{
-	int i1, i2, i;
-	i1 = font_idx(fn, font_find(fn, c1));
-	i2 = font_idx(fn, font_find(fn, c2));
-	if (i1 < 0 || i2 < 0)
-		return 0;
-	i = fn->knhead[i1];
-	while (i >= 0) {
-		if (fn->knpair[i] == i2)
-			return fn->knval[i];
-		i = fn->knnext[i];
-	}
-	return 0;
 }
 
 struct font *font_open(char *path)
