@@ -9,10 +9,10 @@
 #define PATHLEN		1024	/* path length */
 #define NFILES		16	/* number of input files */
 #define NFONTS		32	/* number of fonts */
+#define NGLYPHS		1024	/* glyphs in fonts */
 #define NLIGS		32	/* number of font ligatures */
-#define NKERNS		128	/* number of font pairwise kerning pairs */
+#define NKERNS		512	/* number of font pairwise kerning pairs */
 #define FNLEN		32	/* font name length */
-#define NGLYPHS		512	/* glyphs in fonts */
 #define NMLEN		32	/* macro/register/environment/glyph name length */
 #define GNLEN		NMLEN	/* glyph name length */
 #define RNLEN		NMLEN	/* register/macro name */
@@ -107,15 +107,18 @@ struct font {
 	char c[NGLYPHS][GNLEN];		/* character names in charset */
 	struct glyph *g[NGLYPHS];	/* character glyphs in charset */
 	int n;				/* number of characters in charset */
-	char lig[NLIGS][GNLEN * 4];	/* font ligatures */
+	/* font ligatures */
+	char lig[NLIGS][LIGLEN * GNLEN];
 	int nlig;
-	int kern[NKERNS];		/* font pairwise kerning */
-	char kern_c1[NKERNS][GNLEN];
-	char kern_c2[NKERNS][GNLEN];
-	int nkern;
 	/* glyph list based on the first character of glyph names */
 	int head[256];			/* glyph list head */
 	int next[NGLYPHS];		/* next item in glyph list */
+	/* kerning pair list per glyph */
+	int knhead[NGLYPHS];		/* kerning pairs of glyphs[] */
+	int knnext[NKERNS];		/* next item in knhead[] list */
+	int knpair[NKERNS];		/* kerning pair 2nd glyphs */
+	int knval[NKERNS];		/* font pairwise kerning value */
+	int knn;			/* number of kerning pairs */
 };
 
 /* output device functions */
