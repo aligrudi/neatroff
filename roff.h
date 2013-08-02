@@ -19,7 +19,7 @@
 #define ILNLEN		1000	/* line limit of input files */
 #define LNLEN		4000	/* line buffer length (ren.c/out.c) */
 #define NWORDS		256	/* number of words in line buffer */
-#define NARGS		9	/* number of macro arguments */
+#define NARGS		16	/* number of macro arguments */
 #define NPREV		16	/* environment stack depth */
 #define NTRAPS		1024	/* number of traps per page */
 #define NIES		128	/* number of nested .ie commands */

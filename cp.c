@@ -6,26 +6,30 @@ static int cp_nblk;		/* input block depth (text in \{ and \}) */
 static int cp_sblk[NIES];	/* skip \} escape at this depth, if set */
 static int cp_widreq = 1;	/* inline \w requests */
 
+static void cparg(char *d)
+{
+	int c = cp_next();
+	int i = 0;
+	if (c == '(') {
+		d[i++] = cp_next();
+		d[i++] = cp_next();
+	} else if (!n_cp && c == '[') {
+		c = cp_next();
+		while (i < NMLEN - 1 && c >= 0 && c != ']') {
+			d[i++] = c;
+			c = cp_next();
+		}
+	} else {
+		d[i++] = c;
+	}
+	d[i] = '\0';
+}
+
 static int regid(void)
 {
-	char key[NMLEN];
-	int i = 0;
-	int c1;
-	int c2 = 0;
-	c1 = cp_next();
-	if (c1 == '(') {
-		c1 = cp_next();
-		c2 = cp_next();
-	} else if (!n_cp && c1 == '[') {
-		c1 = cp_next();
-		while (i < NMLEN - 1 && c1 >= 0 && c1 != ']') {
-			key[i++] = c1;
-			c1 = cp_next();
-		}
-		key[i] = '\0';
-		return map(key);
-	}
-	return REG(c1, c2);
+	char regname[NMLEN];
+	cparg(regname);
+	return map(regname);
 }
 
 static void cp_num(void)
@@ -55,11 +59,13 @@ static void cp_numfmt(void)
 
 static void cp_arg(void)
 {
-	int c;
+	char argname[NMLEN];
 	char *arg = NULL;
-	c = cp_next();
-	if (c >= '1' && c <= '9')
-		arg = in_arg(c - '0');
+	int argnum;
+	cparg(argname);
+	argnum = atoi(argname);
+	if (argnum > 0 && argnum < NARGS + 1)
+		arg = in_arg(argnum);
 	if (arg)
 		in_push(arg, NULL);
 }
