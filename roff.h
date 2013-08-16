@@ -24,6 +24,7 @@
 #define NTRAPS		1024	/* number of traps per page */
 #define NIES		128	/* number of nested .ie commands */
 #define NTABS		16	/* number of tab stops */
+#define NTR		512	/* number of character translations (.tr) */
 #define NFIELDS		32	/* number of fields */
 #define MAXFRAC		100000	/* maximum value of the fractional part */
 #define LIGLEN		4	/* length of ligatures */
@@ -170,6 +171,10 @@ void cp_blk(int skip);		/* skip or read the next line or block */
 void cp_wid(int enable);	/* control inlining \w requests */
 #define cp_back		in_back	/* cp.c is stateless */
 void tr_first(void);		/* read until the first non-command line */
+
+/* character translation (.tr) */
+void tr_add(char *c1, char *c2);
+char *tr_map(char *c);
 
 /* variable length string buffer */
 struct sbuf {

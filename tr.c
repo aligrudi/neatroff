@@ -518,6 +518,52 @@ static void tr_lf(char **args)
 		in_lf(args[2], eval(args[1], 0));
 }
 
+/* character translation */
+static char tr_src[NTR][GNLEN];
+static char tr_dst[NTR][GNLEN];
+static int tr_n;
+
+static int tr_find(char *c)
+{
+	int i;
+	for (i = 0; i < tr_n; i++)
+		if (!strcmp(c, tr_src[i]))
+			return i;
+	return -1;
+}
+
+void tr_add(char *c1, char *c2)
+{
+	int i = tr_find(c1);
+	if (i < 0 && tr_n < NTR)
+		i = tr_n++;
+	if (i >= 0) {
+		strcpy(tr_src[i], c1);
+		strcpy(tr_dst[i], c2);
+	}
+}
+
+char *tr_map(char *c)
+{
+	int i = tr_find(c);
+	return i >= 0 ? tr_dst[i] : c;
+}
+
+static void tr_tr(char **args)
+{
+	char *s = args[1];
+	char c1[GNLEN], c2[GNLEN];
+	if (!s)
+		return;
+	while (*s) {
+		utf8read(&s, c1);
+		strcpy(c2, " ");
+		if (*s)
+			utf8read(&s, c2);
+		tr_add(c1, c2);
+	}
+}
+
 static char *arg_regname(char *s, int len)
 {
 	char *e = n_cp ? s + 2 : s + len;
@@ -764,6 +810,7 @@ static struct cmd {
 	{"ti", tr_ti},
 	{"tl", tr_tl, mkargs_null},
 	{"tm", tr_tm, mkargs_eol},
+	{"tr", tr_tr, mkargs_eol},
 	{"vs", tr_vs},
 	{"wh", tr_wh},
 };
