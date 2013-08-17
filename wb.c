@@ -457,7 +457,10 @@ int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2, int flg)
 		return 1;
 	dp = dashpos(sbuf_buf(&wb->sbuf), w, w1, flg & HY_ANY);
 	hp = indicatorpos(sbuf_buf(&wb->sbuf), w, w1, flg & HY_ANY);
-	p = flg & HY_ANY ? MIN(dp, hp) : MAX(dp, hp);
+	if (hp && dp)
+		p = flg & HY_ANY ? MIN(dp, hp) : MAX(dp, hp);
+	else
+		p = dp ? dp : hp;
 	if (!p && flg & HY_MASK)
 		p = hyphpos(sbuf_buf(&wb->sbuf), w, w1, flg & HY_ANY);
 	if (p)
