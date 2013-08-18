@@ -34,34 +34,6 @@ void out(char *s, ...)
 	va_end(ap);
 }
 
-int utf8len(int c)
-{
-	if (c <= 0x7f)
-		return 1;
-	if (c >= 0xfc)
-		return 6;
-	if (c >= 0xf8)
-		return 5;
-	if (c >= 0xf0)
-		return 4;
-	if (c >= 0xe0)
-		return 3;
-	if (c >= 0xc0)
-		return 2;
-	return c != 0;
-}
-
-int utf8read(char **s, char *d)
-{
-	int l = utf8len((unsigned char) **s);
-	int i;
-	for (i = 0; i < l; i++)
-		d[i] = (*s)[i];
-	d[l] = '\0';
-	*s += l;
-	return l;
-}
-
 static int o_s = 10;
 static int o_f = 1;
 static int o_m = 0;
@@ -88,43 +60,6 @@ static void out_clr(int n)
 		o_m = n;
 		out("m%s\n", clr_str(o_m));
 	}
-}
-
-static void escarg(char **sp, char *d, int cmd)
-{
-	char *s = *sp;
-	int q;
-	if (strchr(ESC_P, cmd)) {
-		if (cmd == 's' && (*s == '-' || *s == '+'))
-			*d++ = *s++;
-		if (*s == '(') {
-			s++;
-			*d++ = *s++;
-			*d++ = *s++;
-		} else if (!n_cp && *s == '[') {
-			s++;
-			while (*s && *s != ']')
-				*d++ = *s++;
-			if (*s == ']')
-				s++;
-		} else {
-			*d++ = *s++;
-			if (cmd == 's' && s[-1] >= '1' && s[-1] <= '3')
-				if (isdigit(*s))
-					*d++ = *s++;
-		}
-	}
-	if (strchr(ESC_Q, cmd)) {
-		q = *s++;
-		while (*s && *s != q)
-			*d++ = *s++;
-		if (*s == q)
-			s++;
-	}
-	if (cmd == 'z')
-		*d++ = *s++;
-	*d = '\0';
-	*sp = s;
 }
 
 static int tok_num(char **s, int scale)
@@ -174,42 +109,6 @@ static void out_draw(char *s)
 	outnn("\n");
 }
 
-/*
- * read a glyph or output troff request
- *
- * This functions reads from s either an output troff request
- * (only the ones emitted by wb.c) or a glyph name and updates
- * s.  The return value is the name of the troff request (the
- * argument is copied into d) or zero for glyph names (it is
- * copied into d).  Returns -1 when the end of s is reached.
- */
-int out_readc(char **s, char *d)
-{
-	char *r = d;
-	if (!**s)
-		return -1;
-	utf8read(s, d);
-	if (d[0] == c_ec) {
-		utf8read(s, d + 1);
-		if (d[1] == '(') {
-			utf8read(s, d);
-			utf8read(s, d + strlen(d));
-		} else if (!n_cp && d[1] == '[') {
-			while (**s && **s != ']')
-				*r++ = *(*s)++;
-			if (**s == ']')
-				(*s)++;
-		} else if (strchr("CDfhmsvXx", d[1])) {
-			int c = d[1];
-			escarg(s, d, d[1]);
-			return c == 'C' ? 0 : c;
-		}
-	}
-	if (d[0] == c_ni)
-		utf8read(s, d + 1);
-	return 0;
-}
-
 static void outg(char *c)
 {
 	if (utf8len((unsigned char) c[0]) == strlen(c))
@@ -240,7 +139,7 @@ void out_line(char *s)
 {
 	char c[ILNLEN + GNLEN * 4];
 	int t;
-	while ((t = out_readc(&s, c)) >= 0) {
+	while ((t = escread(&s, c)) >= 0) {
 		if (!t) {
 			if (c[0] == c_ni || (c[0] == '\\' && c[1] == '\\')) {
 				c[0] = c[1];

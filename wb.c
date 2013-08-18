@@ -306,7 +306,7 @@ void wb_cat(struct wb *wb, struct wb *src)
 	char *s = sbuf_buf(&src->sbuf);
 	char d[ILNLEN];
 	int c, part;
-	while ((c = out_readc(&s, d)) >= 0)
+	while ((c = escread(&s, d)) >= 0)
 		wb_putc(wb, c, d);
 	part = src->part;
 	wb->r_s = -1;
@@ -349,7 +349,7 @@ static int skipreqs(char **s, struct wb *w1)
 	char *r = *s;
 	int c;
 	wb_reset(w1);
-	while ((c = out_readc(s, d)) > 0) {
+	while ((c = escread(s, d)) > 0) {
 		wb_putc(w1, c, d);
 		r = *s;
 	}
@@ -365,7 +365,7 @@ static char *dashpos(char *s, int w, struct wb *w1, int any)
 	char *r = NULL;
 	int c;
 	skipreqs(&s, w1);
-	while ((c = out_readc(&s, d)) >= 0) {
+	while ((c = escread(&s, d)) >= 0) {
 		wb_putc(w1, c, d);
 		if (wb_wid(w1) > w && (!any || r))
 			continue;
@@ -387,7 +387,7 @@ static char *indicatorpos(char *s, int w, struct wb *w1, int flg)
 	char *r = NULL;
 	int c;
 	skipreqs(&s, w1);
-	while ((c = out_readc(&s, d)) >= 0) {
+	while ((c = escread(&s, d)) >= 0) {
 		wb_putc(w1, c, d);
 		if (wb_wid(w1) + wb_dashwid(w1) > w && (!(flg & HY_ANY) || r))
 			continue;
@@ -410,7 +410,7 @@ static char *hyphpos(char *s, int w, struct wb *w1, int flg)
 	int beg, end;
 	int i, c;
 	skipreqs(&s, w1);
-	while ((c = out_readc(&s, d)) >= 0 && wp + strlen(d) + 1 < we) {
+	while ((c = escread(&s, d)) >= 0 && wp + strlen(d) + 1 < we) {
 		wb_putc(w1, c, d);
 		if (c == 0) {
 			strcpy(wp, d);
@@ -437,14 +437,14 @@ static void dohyph(char *s, char *pos, int dash, struct wb *w1, struct wb *w2)
 	int c = -1;
 	wb_reset(w1);
 	wb_reset(w2);
-	while (s != pos && (c = out_readc(&s, d)) >= 0)
+	while (s != pos && (c = escread(&s, d)) >= 0)
 		wb_putc(w1, c, d);
 	if (dash)
 		wb_putc(w1, 0, "hy");
 	w2->r_s = w1->r_s;
 	w2->r_f = w1->r_f;
 	w2->r_m = w1->r_m;
-	while ((c = out_readc(&s, d)) >= 0)
+	while ((c = escread(&s, d)) >= 0)
 		wb_putc(w2, c, d);
 }
 

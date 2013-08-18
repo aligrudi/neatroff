@@ -11,19 +11,19 @@ static int cwid(char *c)
 
 static int hchar(char *c)
 {
-	if (c[0] != c_ec)
-		return c[0] == '_';
-	if (c[1] != '(')
+	if (c[0] == c_ec)
 		return c[1] == '_' || c[1] == '-';
-	return (c[2] == 'r' && c[3] == 'u') || (c[2] == 'u' && c[3] == 'l') ||
-		(c[2] == 'r' && c[3] == 'n');
+	if (!c[1])
+		return c[0] == '_';
+	return (c[0] == 'r' && c[1] == 'u') || (c[0] == 'u' && c[1] == 'l') ||
+		(c[0] == 'r' && c[1] == 'n');
 }
 
 static int vchar(char *c)
 {
-	if (c[0] != c_ec || c[1] != '(')
+	if (!c[1])
 		return c[0] == '_';
-	return (c[2] == 'b' && c[3] == 'v') || (c[2] == 'b' && c[3] == 'r');
+	return (c[0] == 'b' && c[1] == 'v') || (c[0] == 'b' && c[1] == 'r');
 }
 
 void ren_hline(struct wb *wb, int l, char *c)
@@ -104,22 +104,26 @@ static void ren_vline(struct wb *wb, int l, char *c)
 
 void ren_hlcmd(struct wb *wb, char *arg)
 {
-	char lc[GNLEN] = {c_ec, '(', 'r', 'u'};
+	char lc[GNLEN];
 	int l = eval_up(&arg, 'm');
 	if (arg[0] == c_ec && arg[1] == '&')	/* \& can be used as a separator */
 		arg += 2;
+	if (!*arg || charread(&arg, lc) < 0)
+		strcpy(lc, "ru");
 	if (l)
-		ren_hline(wb, l, *arg ? arg : lc);
+		ren_hline(wb, l, lc);
 }
 
 void ren_vlcmd(struct wb *wb, char *arg)
 {
-	char lc[GNLEN] = {c_ec, '(', 'b', 'r'};
+	char lc[GNLEN];
 	int l = eval_up(&arg, 'v');
 	if (arg[0] == c_ec && arg[1] == '&')	/* \& can be used as a separator */
 		arg += 2;
+	if (!*arg || charread(&arg, lc) < 0)
+		strcpy(lc, "br");
 	if (l)
-		ren_vline(wb, l, *arg ? arg : lc);
+		ren_vline(wb, l, lc);
 }
 
 static int tok_num(char **s, int scale)
@@ -171,58 +175,25 @@ void ren_dcmd(struct wb *wb, char *s)
 	}
 }
 
-/*
- * the implementation of \b and \o
- *
- * ren_bcmd() and ren_ocmd() call ren_char(), which requires
- * next() and back() functions, similar to ren_next() and ren_back().
- * ln_*() here provide such an interface for the given string,
- * added via ln_push().  ln_*() may be called recursively to
- * handle \o'\b"ab"c'.
- */
-static char *ln_s;
-
-static int ln_next(void)
-{
-	return *ln_s ? (unsigned char) *ln_s++ : -1;
-}
-
-static void ln_back(int c)
-{
-	ln_s--;
-}
-
-static char *ln_push(char *s)
-{
-	char *old_s = ln_s;
-	ln_s = s;
-	return old_s;
-}
-
-static void ln_pop(char *s)
-{
-	ln_s = s;
-}
-
 void ren_bcmd(struct wb *wb, char *arg)
 {
 	struct wb wb2;
 	int n = 0, w = 0;
 	int c, center;
-	char *ln_prev = ln_push(arg);
+	sstr_push(arg);		/* using ren_char()'s interface */
 	wb_init(&wb2);
-	c = ln_next();
+	c = sstr_next();
 	while (c >= 0) {
-		ln_back(c);
-		ren_char(&wb2, ln_next, ln_back);
+		sstr_back(c);
+		ren_char(&wb2, sstr_next, sstr_back, NULL);
 		if (wb_wid(&wb2) > w)
 			w = wb_wid(&wb2);
 		wb_hmov(&wb2, -wb_wid(&wb2));
 		wb_vmov(&wb2, SC_HT);
 		n++;
-		c = ln_next();
+		c = sstr_next();
 	}
-	ln_pop(ln_prev);
+	sstr_pop();
 	center = -(n * SC_HT + SC_EM) / 2;
 	wb_vmov(wb, center + SC_HT);
 	wb_cat(wb, &wb2);
@@ -236,22 +207,22 @@ void ren_ocmd(struct wb *wb, char *arg)
 	struct wb wb2, wb3;
 	int w = 0, wc;
 	int c;
-	char *ln_prev = ln_push(arg);
+	sstr_push(arg);		/* using ren_char()'s interface */
 	wb_init(&wb2);
 	wb_init(&wb3);
-	c = ln_next();
+	c = sstr_next();
 	while (c >= 0) {
-		ln_back(c);
-		ren_char(&wb3, ln_next, ln_back);
+		sstr_back(c);
+		ren_char(&wb3, sstr_next, sstr_back, NULL);
 		wc = wb_wid(&wb3);
 		if (wc > w)
 			w = wc;
 		wb_hmov(&wb2, -wc / 2);
 		wb_cat(&wb2, &wb3);
 		wb_hmov(&wb2, -wc / 2);
-		c = ln_next();
+		c = sstr_next();
 	}
-	ln_pop(ln_prev);
+	sstr_pop();
 	wb_hmov(wb, w / 2);
 	wb_cat(wb, &wb2);
 	wb_hmov(wb, w / 2);

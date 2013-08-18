@@ -25,6 +25,7 @@
 #define NIES		128	/* number of nested .ie commands */
 #define NTABS		16	/* number of tab stops */
 #define NTR		512	/* number of character translations (.tr) */
+#define NSSTR		32	/* number of nested sstr_push() calls */
 #define NFIELDS		32	/* number of fields */
 #define MAXFRAC		100000	/* maximum value of the fractional part */
 #define LIGLEN		4	/* length of ligatures */
@@ -269,7 +270,7 @@ void adj_nonl(struct adj *adj);
 
 /* rendering */
 int render(void);				/* the main loop */
-void ren_char(struct wb *wb, int (*next)(void), void (*back)(int));
+int ren_char(struct wb *wb, int (*next)(void), void (*back)(int), char *delim);
 int ren_wid(int (*next)(void), void (*back)(int));
 void ren_tl(int (*next)(void), void (*back)(int));
 void ren_hline(struct wb *wb, int l, char *c);	/* horizontal line */
@@ -281,7 +282,6 @@ void ren_dcmd(struct wb *wb, char *arg);	/* \D */
 
 /* out.c */
 void out_line(char *s);				/* output rendered line */
-int out_readc(char **s, char *d);		/* read request or glyph */
 void out(char *s, ...);				/* output troff cmd */
 
 /* troff commands */
@@ -324,9 +324,20 @@ void tr_init(void);
 /* helpers */
 void errmsg(char *msg, ...);
 int utf8len(int c);
+int utf8next(char *s, int (*next)(void));
 int utf8read(char **s, char *d);
-void schar_read(char *d, int (*next)(void));
-int schar_jump(char *d, int (*next)(void), void (*back)(int));
+int charnext(char *c, int (*next)(void), void (*back)(int));
+int charread(char **s, char *c);
+int charnext_delim(char *c, int (*next)(void), void (*back)(int), char *delim);
+void charnext_str(char *d, char *c);
+void argnext(char *d, int cmd, int (*next)(void), void (*back)(int));
+void argread(char **sp, char *d, int cmd);
+int escread(char **s, char *d);
+/* string streams; nested next()/back() interface for string buffers */
+void sstr_push(char *s);
+char *sstr_pop(void);
+int sstr_next(void);
+void sstr_back(int c);
 
 /* internal commands */
 #define TR_DIVBEG	"\07<"	/* diversion begins */

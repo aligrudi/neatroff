@@ -585,61 +585,6 @@ void tr_ab(char **args)
 	ren_aborted = 1;
 }
 
-static void escarg_ren(char *d, int cmd, int (*next)(void), void (*back)(int))
-{
-	char delim[GNLEN];
-	int c;
-	if (strchr(ESC_P, cmd)) {
-		c = next();
-		if (cmd == 's' && (c == '-' || c == '+')) {
-			*d++ = c;
-			c = next();
-		}
-		if (c == '(') {
-			*d++ = next();
-			*d++ = next();
-		} else if (!n_cp && c == '[') {
-			c = next();
-			while (c > 0 && c != '\n' && c != ']') {
-				*d++ = c;
-				c = next();
-			}
-		} else {
-			*d++ = c;
-			if (cmd == 's' && c >= '1' && c <= '3') {
-				c = next();
-				if (isdigit(c))
-					*d++ = c;
-				else
-					back(c);
-			}
-		}
-	}
-	if (strchr(ESC_Q, cmd)) {
-		schar_read(delim, next);
-		while (schar_jump(delim, next, back)) {
-			if ((c = next()) < 0)
-				break;
-			*d++ = c;
-		}
-	}
-	*d = '\0';
-}
-
-static int nextchar(char *s, int (*next)(void))
-{
-	int c = next();
-	int l = utf8len(c);
-	int i;
-	if (c < 0)
-		return 0;
-	s[0] = c;
-	for (i = 1; i < l; i++)
-		s[i] = next();
-	s[l] = '\0';
-	return l;
-}
-
 static void ren_cmd(struct wb *wb, int c, char *arg)
 {
 	switch (c) {
@@ -722,49 +667,38 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 static void ren_field(struct wb *wb, int (*next)(void), void (*back)(int));
 static void ren_tab(struct wb *wb, char *tc, int (*next)(void), void (*back)(int));
 
-/* read one character and place it inside wb buffer */
-void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
+/* read one character and place it inside wb buffer; return 1 if read delim */
+int ren_char(struct wb *wb, int (*next)(void), void (*back)(int), char *delim)
 {
 	char c[GNLEN * 4];
 	char arg[ILNLEN];
 	struct glyph *g;
 	char *s;
-	int w, n, l;
-	nextchar(c, next);
+	int w, n;
+	if (charnext(c, next, back) < 0)
+		return -1;
+	if (delim && !strcmp(c, delim))
+		return 1;
 	if (c[0] == ' ' || c[0] == '\n') {
 		wb_put(wb, c);
-		return;
+		return 0;
 	}
 	if (c[0] == '\t' || c[0] == '') {
 		ren_tab(wb, c[0] == '\t' ? c_tc : c_lc, next, back);
-		return;
+		return 0;
 	}
 	if (c[0] == c_fa) {
 		ren_field(wb, next, back);
-		return;
+		return 0;
 	}
-	if (c[0] == c_ni)
-		nextchar(c + 1, next);
 	if (c[0] == c_ec) {
-		nextchar(c + 1, next);
-		if (c[1] == '(') {
-			l = nextchar(c + 2, next);
-			l += nextchar(c + 2 + l, next);
-			c[2 + l] = '\0';
-		} else if (!n_cp && c[1] == '[') {
-			l = 0;
-			n = next();
-			while (n >= 0 && n != '\n' && n != ']' && l < GNLEN - 1) {
-				c[l++] = n;
-				n = next();
-			}
-			c[l] = '\0';
-		} else if (c[1] == 'z') {
+		if (c[1] == 'z') {
 			w = wb_wid(wb);
-			ren_char(wb, next, back);
+			ren_char(wb, next, back, NULL);
 			wb_hmov(wb, w - wb_wid(wb));
-			return;
-		} else if (c[1] == '!') {
+			return 0;
+		}
+		if (c[1] == '!') {
 			if (ren_nl && next == ren_next) {
 				s = arg;
 				n = next();
@@ -775,21 +709,18 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 				*s = '\0';
 				ren_transparent(arg);
 			}
-			return;
-		} else if (strchr(" bCcDdfHhkLlmNoprSsuvXxz0^|{}&", c[1])) {
-			escarg_ren(arg, c[1], next, back);
-			if (c[1] == 'N') {
-				g = dev_glyph_byid(arg, n_f);
-				c[1] = 'C';
-				strcpy(arg, g ? g->name : "cnull");
-			}
+			return 0;
+		}
+		if (strchr(" bCcDdfHhkLlmNoprSsuvXxz0^|{}&", c[1])) {
+			argnext(arg, c[1], next, back);
 			if (c[1] == 'S' || c[1] == 'H')
-				return;			/* not implemented */
-			if (c[1] != 'C') {
+				return 0;			/* not implemented */
+			if (c[1] != 'N') {
 				ren_cmd(wb, c[1], arg);
-				return;
+				return 0;
 			}
-			strcpy(c, arg);
+			g = dev_glyph_byid(arg, n_f);
+			strcpy(c, g ? g->name : "cnull");
 		}
 	}
 	if (!n_lg || wb_lig(wb, c)) {
@@ -797,6 +728,7 @@ void ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 			wb_kern(wb, c);
 		wb_put(wb, c);
 	}
+	return 0;
 }
 
 /* read the argument of \w and push its width */
@@ -806,14 +738,13 @@ int ren_wid(int (*next)(void), void (*back)(int))
 	int c, n;
 	struct wb wb;
 	wb_init(&wb);
-	schar_read(delim, next);
+	charnext(delim, next, back);
 	odiv_beg();
 	c = next();
 	while (c >= 0 && c != '\n') {
 		back(c);
-		if (!schar_jump(delim, next, back))
+		if (ren_char(&wb, next, back, delim))
 			break;
-		ren_char(&wb, next, back);
 		c = next();
 	}
 	odiv_end();
@@ -831,9 +762,8 @@ static int ren_until(struct wb *wb, char *delim, int ec,
 	c = next();
 	while (c >= 0 && c != '\n' && c != ec) {
 		back(c);
-		if (!schar_jump(delim, next, back))
+		if (ren_char(wb, next, back, delim))
 			break;
-		ren_char(wb, next, back);
 		c = next();
 	}
 	if (c == '\n')
@@ -855,7 +785,7 @@ void ren_tl(int (*next)(void), void (*back)(int))
 	adj = adj_alloc();
 	wb_init(&wb);
 	wb_init(&wb2);
-	schar_read(delim, next);
+	charnext(delim, next, back);
 	/* the left-adjusted string */
 	ren_until(&wb2, delim, '\n', next, back);
 	wb_cpy(&wb, &wb2, 0);
@@ -917,7 +847,7 @@ static void ren_tab(struct wb *wb, char *tc, int (*next)(void), void (*back)(int
 		c = next();
 		while (c >= 0 && c != '\n' && c != '\t' && c != '') {
 			back(c);
-			ren_char(&t, next, back);
+			ren_char(&t, next, back, NULL);
 			c = next();
 		}
 		back(c);
@@ -989,7 +919,7 @@ int render(void)
 			n_ce = MAX(0, n_ce - 1);
 		if (c != ' ') {
 			ren_back(c);
-			ren_char(wb, ren_next, ren_back);
+			ren_char(wb, ren_next, ren_back, NULL);
 			if (c != '\n' && wb_empty(wb))
 				adj_nonl(cadj);
 		}

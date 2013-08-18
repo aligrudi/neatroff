@@ -163,43 +163,10 @@ static void tr_ig(char **args)
 	macrobody(NULL, args[1] ? args[1] : ".");
 }
 
-void schar_read(char *d, int (*next)(void))
-{
-	d[0] = next();
-	d[1] = '\0';
-	if (d[0] == c_ni) {
-		d[1] = next();
-		d[2] = '\0';
-	}
-	if (d[0] == c_ec) {
-		d[1] = next();
-		d[2] = '\0';
-		if (d[1] == '(') {
-			d[2] = next();
-			d[3] = next();
-			d[4] = '\0';
-		}
-	}
-}
-
-int schar_jump(char *d, int (*next)(void), void (*back)(int))
-{
-	int c, i;
-	for (i = 0; d[i]; i++)
-		if ((c = next()) != d[i])
-			break;
-	if (d[i]) {
-		back(c);
-		while (i > 0)
-			back(d[--i]);
-		return 1;
-	}
-	return 0;
-}
-
 /* read into sbuf until stop; if stop is NULL, stop at whitespace */
 static int read_until(struct sbuf *sbuf, char *stop)
 {
+	char cs[GNLEN], cs2[GNLEN];
 	int c;
 	while ((c = cp_next()) >= 0) {
 		cp_back(c);
@@ -207,9 +174,11 @@ static int read_until(struct sbuf *sbuf, char *stop)
 			return 1;
 		if (!stop && (c == ' ' || c == '\t'))
 			return 0;
-		if (stop && !schar_jump(stop, cp_next, cp_back))
+		charnext(cs, cp_next, cp_back);
+		if (stop && !strcmp(stop, cs))
 			return 0;
-		sbuf_add(sbuf, cp_next());
+		charnext_str(cs2, cs);
+		sbuf_append(sbuf, cs2);
 	}
 	return 1;
 }
@@ -220,7 +189,7 @@ static int if_strcmp(void)
 	char delim[GNLEN];
 	struct sbuf s1, s2;
 	int ret;
-	schar_read(delim, cp_next);
+	charnext(delim, cp_next, cp_back);
 	sbuf_init(&s1);
 	sbuf_init(&s2);
 	read_until(&s1, delim);
@@ -408,7 +377,9 @@ static void tr_eo(char **args)
 
 static void tr_hc(char **args)
 {
-	strcpy(c_hc, args[1] ? args[1] : "\\%");
+	char *s = args[1];
+	if (!s || charread(&s, c_hc) < 0)
+		strcpy(c_hc, "\\%");
 }
 
 static void tr_nh(char **args)
@@ -493,9 +464,9 @@ static void tr_it(char **args)
 
 static void tr_mc(char **args)
 {
-	if (args[1]) {
+	char *s = args[1];
+	if (s && charread(&s, c_mc) >= 0) {
 		n_mc = 1;
-		strcpy(c_mc, args[1]);
 		n_mcn = args[2] ? eval(args[2], 'm') : SC_EM;
 	} else {
 		n_mc = 0;
@@ -504,12 +475,16 @@ static void tr_mc(char **args)
 
 static void tr_tc(char **args)
 {
-	strcpy(c_tc, args[1] ? args[1] : "");
+	char *s = args[1];
+	if (!s || charread(&s, c_tc) < 0)
+		strcpy(c_tc, "");
 }
 
 static void tr_lc(char **args)
 {
-	strcpy(c_lc, args[1] ? args[1] : "");
+	char *s = args[1];
+	if (!s || charread(&s, c_lc) < 0)
+		strcpy(c_lc, "");
 }
 
 static void tr_lf(char **args)
@@ -553,13 +528,9 @@ static void tr_tr(char **args)
 {
 	char *s = args[1];
 	char c1[GNLEN], c2[GNLEN];
-	if (!s)
-		return;
-	while (*s) {
-		utf8read(&s, c1);
-		strcpy(c2, " ");
-		if (*s)
-			utf8read(&s, c2);
+	while (s && charread(&s, c1) >= 0) {
+		if (charread(&s, c2) < 0)
+			strcpy(c2, " ");
 		tr_add(c1, c2);
 	}
 }
