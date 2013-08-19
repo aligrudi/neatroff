@@ -242,7 +242,7 @@ int escread(char **s, char *d)
  * for string buffers, the following functions can be used:
  *
  *   sstr_push(s);
- *   charnext(c, sstr_next, sstr_prev);
+ *   charnext(c, sstr_next, sstr_back);
  *   sstr_pop();
  *
  * The calls to sstr_push()/sstr_pop() may be nested.
