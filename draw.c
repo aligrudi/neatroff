@@ -185,7 +185,7 @@ void ren_bcmd(struct wb *wb, char *arg)
 	c = sstr_next();
 	while (c >= 0) {
 		sstr_back(c);
-		ren_char(&wb2, sstr_next, sstr_back, NULL);
+		ren_char(&wb2, sstr_next, sstr_back);
 		if (wb_wid(&wb2) > w)
 			w = wb_wid(&wb2);
 		wb_hmov(&wb2, -wb_wid(&wb2));
@@ -213,7 +213,7 @@ void ren_ocmd(struct wb *wb, char *arg)
 	c = sstr_next();
 	while (c >= 0) {
 		sstr_back(c);
-		ren_char(&wb3, sstr_next, sstr_back, NULL);
+		ren_char(&wb3, sstr_next, sstr_back);
 		wc = wb_wid(&wb3);
 		if (wc > w)
 			w = wc;

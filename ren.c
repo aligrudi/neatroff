@@ -38,7 +38,7 @@ static int bp_count;		/* number of pages so far */
 static int bp_ejected;		/* current ejected page */
 static int bp_final;		/* 1: executing em, 2: the final page, 3: the 2nd final page */
 
-static int c_fa;		/* field delimiter */
+static char c_fa[GNLEN];	/* field delimiter */
 static char c_fb[GNLEN];	/* field padding */
 
 static int ren_next(void)
@@ -563,11 +563,13 @@ void tr_ce(char **args)
 
 void tr_fc(char **args)
 {
-	if (args[1]) {
-		c_fa = args[1][0];
-		strcpy(c_fb, args[2] ? args[2] : " ");
+	char *fa = args[1];
+	char *fb = args[2];
+	if (fa && charread(&fa, c_fa) >= 0) {
+		if (!fb || charread(&fb, c_fb) < 0)
+			strcpy(c_fb, " ");
 	} else {
-		c_fa = -1;
+		c_fa[0] = '\0';
 		c_fb[0] = '\0';
 	}
 }
@@ -667,36 +669,31 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 static void ren_field(struct wb *wb, int (*next)(void), void (*back)(int));
 static void ren_tab(struct wb *wb, char *tc, int (*next)(void), void (*back)(int));
 
-/* read one character and place it inside wb buffer; return 1 if read delim */
-int ren_char(struct wb *wb, int (*next)(void), void (*back)(int), char *delim)
+/* insert a character, escape sequence, field or etc into wb */
+static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int))
 {
-	char c[GNLEN * 4];
 	char arg[ILNLEN];
 	struct glyph *g;
 	char *s;
 	int w, n;
-	if (charnext(c, next, back) < 0)
-		return -1;
-	if (delim && !strcmp(c, delim))
-		return 1;
 	if (c[0] == ' ' || c[0] == '\n') {
 		wb_put(wb, c);
-		return 0;
+		return;
 	}
 	if (c[0] == '\t' || c[0] == '') {
 		ren_tab(wb, c[0] == '\t' ? c_tc : c_lc, next, back);
-		return 0;
+		return;
 	}
-	if (c[0] == c_fa) {
+	if (c_fa[0] && !strcmp(c_fa, c)) {
 		ren_field(wb, next, back);
-		return 0;
+		return;
 	}
 	if (c[0] == c_ec) {
 		if (c[1] == 'z') {
 			w = wb_wid(wb);
-			ren_char(wb, next, back, NULL);
+			ren_char(wb, next, back);
 			wb_hmov(wb, w - wb_wid(wb));
-			return 0;
+			return;
 		}
 		if (c[1] == '!') {
 			if (ren_nl && next == ren_next) {
@@ -709,15 +706,15 @@ int ren_char(struct wb *wb, int (*next)(void), void (*back)(int), char *delim)
 				*s = '\0';
 				ren_transparent(arg);
 			}
-			return 0;
+			return;
 		}
 		if (strchr(" bCcDdfHhkLlmNoprSsuvXxz0^|{}&", c[1])) {
 			argnext(arg, c[1], next, back);
 			if (c[1] == 'S' || c[1] == 'H')
-				return 0;			/* not implemented */
+				return;			/* not implemented */
 			if (c[1] != 'N') {
 				ren_cmd(wb, c[1], arg);
-				return 0;
+				return;
 			}
 			g = dev_glyph_byid(arg, n_f);
 			strcpy(c, g ? g->name : "cnull");
@@ -728,6 +725,30 @@ int ren_char(struct wb *wb, int (*next)(void), void (*back)(int), char *delim)
 			wb_kern(wb, c);
 		wb_put(wb, c);
 	}
+}
+
+/* read one character and place it inside wb buffer */
+int ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
+{
+	char c[GNLEN * 4];
+	if (charnext(c, next, back) < 0)
+		return -1;
+	ren_put(wb, c, next, back);
+	return 0;
+}
+
+/* like ren_char(); return 1 if d1 was read and d2 if d2 was read */
+static int ren_chardel(struct wb *wb, int (*next)(void), void (*back)(int),
+			char *d1, char *d2)
+{
+	char c[GNLEN * 4];
+	if (charnext(c, next, back) < 0)
+		return -1;
+	if (d1 && !strcmp(d1, c))
+		return 1;
+	if (d2 && !strcmp(d2, c))
+		return 2;
+	ren_put(wb, c, next, back);
 	return 0;
 }
 
@@ -743,7 +764,7 @@ int ren_wid(int (*next)(void), void (*back)(int))
 	c = next();
 	while (c >= 0 && c != '\n') {
 		back(c);
-		if (ren_char(&wb, next, back, delim))
+		if (ren_chardel(&wb, next, back, delim, NULL))
 			break;
 		c = next();
 	}
@@ -754,21 +775,22 @@ int ren_wid(int (*next)(void), void (*back)(int))
 	return n;
 }
 
-/* return 1 if the ending character (ec) was read */
-static int ren_until(struct wb *wb, char *delim, int ec,
+/* return 1 if d1 was read and 2 if d2 was read */
+static int ren_until(struct wb *wb, char *d1, char *d2,
 			int (*next)(void), void (*back)(int))
 {
-	int c;
+	int c, ret;
 	c = next();
-	while (c >= 0 && c != '\n' && c != ec) {
+	while (c >= 0 && c != '\n') {
 		back(c);
-		if (ren_char(wb, next, back, delim))
-			break;
+		ret = ren_chardel(wb, next, back, d1, d2);
+		if (ret)
+			return ret;
 		c = next();
 	}
 	if (c == '\n')
 		back(c);
-	return c == ec;
+	return 0;
 }
 
 static void wb_cpy(struct wb *dst, struct wb *src, int left)
@@ -787,13 +809,13 @@ void ren_tl(int (*next)(void), void (*back)(int))
 	wb_init(&wb2);
 	charnext(delim, next, back);
 	/* the left-adjusted string */
-	ren_until(&wb2, delim, '\n', next, back);
+	ren_until(&wb2, delim, NULL, next, back);
 	wb_cpy(&wb, &wb2, 0);
 	/* the centered string */
-	ren_until(&wb2, delim, '\n', next, back);
+	ren_until(&wb2, delim, NULL, next, back);
 	wb_cpy(&wb, &wb2, (n_lt - wb_wid(&wb2)) / 2);
 	/* the right-adjusted string */
-	ren_until(&wb2, delim, '\n', next, back);
+	ren_until(&wb2, delim, NULL, next, back);
 	wb_cpy(&wb, &wb2, n_lt - wb_wid(&wb2));
 	/* flushing the line */
 	adj_ll(adj, n_lt);
@@ -814,7 +836,7 @@ static void ren_field(struct wb *wb, int (*next)(void), void (*back)(int))
 	int pad, rem;
 	while (n < LEN(wbs)) {
 		wb_init(&wbs[n]);
-		if (ren_until(&wbs[n++], c_fb, c_fa, next, back))
+		if (ren_until(&wbs[n++], c_fb, c_fa, next, back) != 1)
 			break;
 	}
 	left = RENWB(wb) ? f_hpos() : wb_wid(wb);
@@ -847,7 +869,7 @@ static void ren_tab(struct wb *wb, char *tc, int (*next)(void), void (*back)(int
 		c = next();
 		while (c >= 0 && c != '\n' && c != '\t' && c != '') {
 			back(c);
-			ren_char(&t, next, back, NULL);
+			ren_char(&t, next, back);
 			c = next();
 		}
 		back(c);
@@ -919,7 +941,7 @@ int render(void)
 			n_ce = MAX(0, n_ce - 1);
 		if (c != ' ') {
 			ren_back(c);
-			ren_char(wb, ren_next, ren_back, NULL);
+			ren_char(wb, ren_next, ren_back);
 			if (c != '\n' && wb_empty(wb))
 				adj_nonl(cadj);
 		}

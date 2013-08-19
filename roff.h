@@ -270,7 +270,7 @@ void adj_nonl(struct adj *adj);
 
 /* rendering */
 int render(void);				/* the main loop */
-int ren_char(struct wb *wb, int (*next)(void), void (*back)(int), char *delim);
+int ren_char(struct wb *wb, int (*next)(void), void (*back)(int));
 int ren_wid(int (*next)(void), void (*back)(int));
 void ren_tl(int (*next)(void), void (*back)(int));
 void ren_hline(struct wb *wb, int l, char *c);	/* horizontal line */
