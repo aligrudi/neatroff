@@ -78,7 +78,7 @@ static void out_draw(char *s)
 {
 	int c = *s++;
 	out("D%c", c);
-	switch (c) {
+	switch (tolower(c)) {
 	case 'l':
 		outnn(" %d", tok_num(&s, 'm'));
 		outnn(" %d", tok_num(&s, 'v'));
@@ -97,7 +97,8 @@ static void out_draw(char *s)
 		outnn(" %d", tok_num(&s, 'm'));
 		outnn(" %d", tok_num(&s, 'v'));
 		break;
-	default:
+	case '~':
+	case 'p':
 		outnn(" %d", tok_num(&s, 'm'));
 		outnn(" %d", tok_num(&s, 'v'));
 		while (*s) {

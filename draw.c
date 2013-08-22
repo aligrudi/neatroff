@@ -142,29 +142,30 @@ void ren_dcmd(struct wb *wb, char *s)
 {
 	int h1, h2, v1, v2;
 	int c = *s++;
-	switch (c) {
+	switch (tolower(c)) {
 	case 'l':
 		h1 = tok_num(&s, 'm');
 		v1 = tok_num(&s, 'v');
-		wb_drawl(wb, h1, v1);
+		wb_drawl(wb, c, h1, v1);
 		break;
 	case 'c':
 		h1 = tok_num(&s, 'm');
-		wb_drawc(wb, h1);
+		wb_drawc(wb, c, h1);
 		break;
 	case 'e':
 		h1 = tok_num(&s, 'm');
 		v1 = tok_num(&s, 'v');
-		wb_drawe(wb, h1, v1);
+		wb_drawe(wb, c, h1, v1);
 		break;
 	case 'a':
 		h1 = tok_num(&s, 'm');
 		v1 = tok_num(&s, 'v');
 		h2 = tok_num(&s, 'm');
 		v2 = tok_num(&s, 'v');
-		wb_drawa(wb, h1, v1, h2, v2);
+		wb_drawa(wb, c, h1, v1, h2, v2);
 		break;
-	default:
+	case '~':
+	case 'p':
 		wb_drawxbeg(wb, c);
 		while (*s) {
 			h1 = tok_num(&s, 'm');
@@ -172,6 +173,7 @@ void ren_dcmd(struct wb *wb, char *s)
 			wb_drawxdot(wb, h1, v1);
 		}
 		wb_drawxend(wb);
+		break;
 	}
 }
 

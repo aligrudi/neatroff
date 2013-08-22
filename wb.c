@@ -210,33 +210,33 @@ void wb_setpart(struct wb *wb)
 	wb->part = 1;
 }
 
-void wb_drawl(struct wb *wb, int h, int v)
+void wb_drawl(struct wb *wb, int c, int h, int v)
 {
 	wb_font(wb);
-	sbuf_printf(&wb->sbuf, "%cD'l %du %du'", c_ec, h, v);
+	sbuf_printf(&wb->sbuf, "%cD'%c %du %du'", c_ec, c, h, v);
 	wb->h += h;
 	wb->v += v;
 	wb_stsb(wb);
 }
 
-void wb_drawc(struct wb *wb, int r)
+void wb_drawc(struct wb *wb, int c, int r)
 {
 	wb_font(wb);
-	sbuf_printf(&wb->sbuf, "%cD'c %du'", c_ec, r);
+	sbuf_printf(&wb->sbuf, "%cD'%c %du'", c_ec, c, r);
 	wb->h += r;
 }
 
-void wb_drawe(struct wb *wb, int h, int v)
+void wb_drawe(struct wb *wb, int c, int h, int v)
 {
 	wb_font(wb);
-	sbuf_printf(&wb->sbuf, "%cD'e %du %du'", c_ec, h, v);
+	sbuf_printf(&wb->sbuf, "%cD'%c %du %du'", c_ec, c, h, v);
 	wb->h += h;
 }
 
-void wb_drawa(struct wb *wb, int h1, int v1, int h2, int v2)
+void wb_drawa(struct wb *wb, int c, int h1, int v1, int h2, int v2)
 {
 	wb_font(wb);
-	sbuf_printf(&wb->sbuf, "%cD'a %du %du %du %du'", c_ec, h1, v1, h2, v2);
+	sbuf_printf(&wb->sbuf, "%cD'%c %du %du %du %du'", c_ec, c, h1, v1, h2, v2);
 	wb->h += h1 + h2;
 	wb->v += v1 + v2;
 	wb_stsb(wb);
