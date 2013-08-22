@@ -176,7 +176,7 @@ int wb_lig(struct wb *wb, char *c)
 	while (wb_prev(wb, ++i))
 		cs[i + 1] = wb_prev(wb, i);
 	ligpos = font_lig(dev_font(R_F(wb)), cs, i + 1);
-	if (ligpos > 0) {
+	if (ligpos > 1) {
 		for (i = 0; i < ligpos - 1; i++)
 			strcat(lig, wb_prev(wb, ligpos - i - 2));
 		strcat(lig, c);

@@ -58,7 +58,7 @@ int font_lig(struct font *fn, char **c, int n)
 	}
 	for (i = 0; i < fn->nlig; i++) {
 		int l = strlen(fn->lig[i]);
-		if (b[len - l] && !strcmp(s + len - l, fn->lig[i]))
+		if (b[len - l] > 1 && !strcmp(s + len - l, fn->lig[i]))
 			if (font_find(fn, fn->lig[i]))
 				return b[len - l];
 	}
