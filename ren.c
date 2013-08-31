@@ -212,12 +212,13 @@ static int ren_pagelimit(int ne)
 	return 0;
 }
 
-static void down(int n)
+/* return 1 if triggered a trap */
+static int down(int n)
 {
-	if (!ren_traps(n_d, n_d + (n ? n : n_v), 1)) {
-		ren_sp(n, 0);
-		ren_pagelimit(0);
-	}
+	if (ren_traps(n_d, n_d + (n ? n : n_v), 1))
+		return 1;
+	ren_sp(n, 0);
+	return ren_pagelimit(0);
 }
 
 /* line adjustment */
@@ -311,12 +312,17 @@ static int ren_bradj(struct adj *adj, int fill, int ad, int body)
 	char cmd[16];
 	struct sbuf sbuf, spre;
 	int ll, li, lt, els_neg, els_pos;
-	int w, prev_d, lspc, ljust;
+	int w, hyph, prev_d, lspc, ljust;
 	ren_first();
 	if (!adj_empty(adj, fill)) {
 		sbuf_init(&sbuf);
 		sbuf_init(&spre);
-		w = adj_fill(adj, ad == AD_B, fill, n_hy, &sbuf,
+		hyph = n_hy;
+		lspc = MAX(1, n_L) * n_v;	/* line space, ignoreing \x */
+		if (n_hy & HY_LAST && (detect_traps(n_d, n_d + lspc) ||
+					detect_pagelimit(lspc)))
+			hyph = 0;		/* disable for last lines */
+		w = adj_fill(adj, ad == AD_B, fill, hyph, &sbuf,
 				&ll, &li, &lt, &els_neg, &els_pos);
 		prev_d = n_d;
 		if (els_neg)
@@ -336,17 +342,16 @@ static int ren_bradj(struct adj *adj, int fill, int ad, int body)
 		if (els_pos)
 			ren_sp(els_pos, 1);
 		n_a = els_pos;
-		lspc = MAX(1, n_L) * n_v - n_v;
-		if (detect_traps(prev_d, n_d) || detect_pagelimit(lspc)) {
+		if (detect_traps(prev_d, n_d) || detect_pagelimit(lspc - n_v)) {
 			sprintf(cmd, "%c&", c_ec);
-			if (!ren_cnl)	/* prevent unwanted newlines */
+			if (!ren_cnl)		/* prevent unwanted newlines */
 				in_push(cmd, NULL);
 			if (!ren_traps(prev_d, n_d, 0))
-				ren_pagelimit(lspc);
+				ren_pagelimit(lspc - n_v);
 			return 1;
 		}
-		if (lspc)
-			down(lspc);
+		if (lspc - n_v && down(lspc - n_v))
+			return 1;
 	}
 	return 0;
 }
