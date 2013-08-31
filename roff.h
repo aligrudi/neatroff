@@ -240,8 +240,8 @@ int wb_kern(struct wb *wb, char *c);
 /* hyphenation flags */
 #define HY_MASK		0x0f	/* enable hyphenation */
 #define HY_LAST		0x02	/* do not hyphenate last lines */
-#define HY_FINAL	0x04	/* do not hyphenate the final character */
-#define HY_FIRSTTWO	0x08	/* do not hyphenate the first two characters */
+#define HY_FINAL2	0x04	/* do not hyphenate the final two characters */
+#define HY_FIRST2	0x08	/* do not hyphenate the first two characters */
 #define HY_ANY		0x10	/* break at any possible position */
 
 void hyphenate(char *hyphs, char *word);

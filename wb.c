@@ -359,7 +359,7 @@ static int skipreqs(char **s, struct wb *w1)
 	return 0;
 }
 
-static char *dashpos(char *s, int w, struct wb *w1, int any)
+static char *dashpos(char *s, int w, struct wb *w1, int flg)
 {
 	char d[ILNLEN];
 	char *r = NULL;
@@ -367,7 +367,7 @@ static char *dashpos(char *s, int w, struct wb *w1, int any)
 	skipreqs(&s, w1);
 	while ((c = escread(&s, d)) >= 0) {
 		wb_putc(w1, c, d);
-		if (wb_wid(w1) > w && (!any || r))
+		if (wb_wid(w1) > w && (!(flg & HY_ANY) || r))
 			continue;
 		if (!c && (!strcmp("-", d) || (!strcmp("em", d) || !strcmp("hy", d))))
 			r = s;
@@ -423,8 +423,8 @@ static char *hyphpos(char *s, int w, struct wb *w1, int flg)
 	if (strlen(word) < 4)
 		return NULL;
 	hyphenate(hyph, word);
-	beg = flg & HY_FIRSTTWO ? 3 : 2;
-	end = strlen(word) - (flg & HY_FINAL ? 2 : 1);
+	beg = flg & HY_FIRST2 ? 3 : 2;
+	end = strlen(word) - (flg & HY_FINAL2 ? 2 : 1);
 	for (i = beg; i < end; i++)
 		if (map[i] && hyph[i] && (fits[i] || ((flg & HY_ANY) && !r)))
 			r = map[i];
@@ -455,14 +455,14 @@ int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2, int flg)
 	char *dp, *hp, *p;
 	if (skipreqs(&s, w1))
 		return 1;
-	dp = dashpos(sbuf_buf(&wb->sbuf), w, w1, flg & HY_ANY);
-	hp = indicatorpos(sbuf_buf(&wb->sbuf), w, w1, flg & HY_ANY);
+	dp = dashpos(sbuf_buf(&wb->sbuf), w, w1, flg);
+	hp = indicatorpos(sbuf_buf(&wb->sbuf), w, w1, flg);
 	if (hp && dp)
 		p = flg & HY_ANY ? MIN(dp, hp) : MAX(dp, hp);
 	else
 		p = dp ? dp : hp;
 	if (!p && flg & HY_MASK)
-		p = hyphpos(sbuf_buf(&wb->sbuf), w, w1, flg & HY_ANY);
+		p = hyphpos(sbuf_buf(&wb->sbuf), w, w1, flg);
 	if (p)
 		dohyph(sbuf_buf(&wb->sbuf), p, p != dp, w1, w2);
 	return !p;
