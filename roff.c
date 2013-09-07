@@ -68,7 +68,10 @@ int main(int argc, char **argv)
 			return 0;
 		}
 	}
-	dev_open(fontdir, dev);
+	if (dev_open(fontdir, dev)) {
+		fprintf(stderr, "neatroff: cannot open device %s\n", dev);
+		return 1;
+	}
 	env_init();
 	tr_init();
 	g_init();

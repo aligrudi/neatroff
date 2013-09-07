@@ -58,6 +58,8 @@ int dev_open(char *dir, char *dev)
 	strcpy(dev_dev, dev);
 	sprintf(path, "%s/dev%s/DESC", dir, dev);
 	desc = fopen(path, "r");
+	if (!desc)
+		return 1;
 	while (fscanf(desc, "%s", tok) == 1) {
 		if (tok[0] == '#') {
 			skipline(desc);
