@@ -26,30 +26,57 @@ void errmsg(char *fmt, ...)
 	va_end(ap);
 }
 
+static char *usage =
+	"Usage: neatcc [options] input\n"
+	"Options:\n"
+	"  -mx   \tinclude macro x\n"
+	"  -C    \tenable compatibility mode\n"
+	"  -Tdev \tset output device\n"
+	"  -Fdir \tset font directory (" TROFFFDIR ")\n"
+	"  -Mdir \tset macro directory (" TROFFMDIR ")\n";
+
 int main(int argc, char **argv)
 {
-	int i;
+	char fontdir[PATHLEN] = TROFFFDIR;
+	char macrodir[PATHLEN] = TROFFMDIR;
+	char dev[PATHLEN] = "utf";
 	char path[PATHLEN];
+	int i;
 	int ret;
-	dev_open(TROFFROOT "/font/devutf");
+	for (i = 1; i < argc; i++) {
+		if (argv[i][0] != '-' || !argv[i][1])
+			break;
+		switch (argv[i][1]) {
+		case 'C':
+			n_cp = 1;
+			break;
+		case 'm':
+			sprintf(path, "%s/tmac.%s", macrodir, argv[i] + 2);
+			in_queue(path);
+			break;
+		case 'F':
+			strcpy(fontdir, argv[i][2] ? argv[i] + 2 : argv[++i]);
+			break;
+		case 'M':
+			strcpy(macrodir, argv[i][2] ? argv[i] + 2 : argv[++i]);
+			break;
+		case 'T':
+			strcpy(dev, argv[i][2] ? argv[i] + 2 : argv[++i]);
+			break;
+		default:
+			printf("%s", usage);
+			return 0;
+		}
+	}
+	dev_open(fontdir, dev);
 	env_init();
 	tr_init();
 	g_init();
-	for (i = 1; i < argc; i++) {
-		if (argv[i][0] != '-' || !argv[i][0])
-			break;
-		if (argv[i][1] == 'C')
-			n_cp = 1;
-		if (argv[i][1] == 'm') {
-			sprintf(path, TROFFROOT "/tmac/tmac.%s", argv[i] + 2);
-			in_queue(path);
-		}
-	}
 	if (i == argc)
 		in_queue(NULL);	/* reading from standard input */
 	for (; i < argc; i++)
 		in_queue(!strcmp("-", argv[i]) ? NULL : argv[i]);
-	str_set(REG('.', 'P'), TROFFROOT);
+	str_set(REG('.', 'P'), macrodir);
 	out("s%d\n", n_s);
 	out("f%d\n", n_f);
 	ret = render();

@@ -1,5 +1,9 @@
+# neatroff's default font and macro directories
+FDIR=/root/troff/home/font
+MDIR=/root/troff/home/tmac
+
 CC = cc
-CFLAGS = -Wall -O2 -DTROFFROOT=\"/root/troff/home\"
+CFLAGS = -Wall -O2 "-DTROFFFDIR=\"$(FDIR)\"" "-DTROFFMDIR=\"$(MDIR)\""
 LDFLAGS =
 
 all: roff
