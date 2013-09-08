@@ -9,9 +9,13 @@ from the following addresses:
 * Neatroff: git://repo.or.cz/neatroff.git
 * Neatpost: git://repo.or.cz/neatpost.git
 
-For compiling neatroff and neatpost, modify CFLAGS in their
-Makefiles to point TROFFROOT to the directory containing
-output devices and macro packages; to use the devices and
-macro packages of Plan 9 troff, TROFFROOT can point to the
-home directory of the Linux port of Plan 9 troff
-(git://repo.or.cz/troff.git).
+For compiling neatroff and neatpost, modify FDIR and MDIR in their
+Makefiles to point the default fonts and macros directories.  You can
+use the macros that come with the Linux port of Plan 9 troff (MDIR
+should point to home/tmac directory of git://repo.or.cz/troff.git).
+For fonts, you can either use the fonts in the same port or use mktrfn
+program to generate the output device (the latter can be obtained from
+http://litcave.rudi.ir/ and supports AFM, OTF and TTF files).  FDIR
+should point to the directory containing dev* subdirectories (devutf
+is the default output device and hence FDIR/devutf should contain the
+default device description file and set of fonts).
