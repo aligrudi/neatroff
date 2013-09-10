@@ -10,8 +10,8 @@
 #define NFILES		16	/* number of input files */
 #define NFONTS		32	/* number of fonts */
 #define NGLYPHS		1024	/* glyphs in fonts */
-#define NLIGS		32	/* number of font ligatures */
-#define NKERNS		512	/* number of font pairwise kerning pairs */
+#define NLIGS		128	/* number of font ligatures */
+#define NKERNS		1024	/* number of font pairwise kerning pairs */
 #define FNLEN		32	/* font name length */
 #define NMLEN		32	/* macro/register/environment/glyph name length */
 #define GNLEN		NMLEN	/* glyph name length */
