@@ -99,11 +99,12 @@ int charnext_delim(char *c, int (*next)(void), void (*back)(int), char *delim)
 /* convert back the character read from nextchar() (e.g. xy -> \\(xy) */
 void charnext_str(char *d, char *c)
 {
-	if (c[0] == c_ec || c[0] == c_ni || !c[1] || utf8len(c[0]) == strlen(c)) {
+	int c0 = (unsigned char) c[0];
+	if (c0 == c_ec || c0 == c_ni || !c[1] || utf8len(c0) == strlen(c)) {
 		strcpy(d, c);
 		return;
 	}
-	if (!c[2] && utf8len(c[0]) == 1)
+	if (!c[2] && utf8len(c0) == 1)
 		sprintf(d, "%c(%s", c_ec, c);
 	else
 		sprintf(d, "%cC'%s'", c_ec, c);
