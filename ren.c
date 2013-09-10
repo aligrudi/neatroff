@@ -725,8 +725,8 @@ static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int)
 			strcpy(c, g ? g->name : "cnull");
 		}
 	}
-	if (!n_lg || wb_lig(wb, c)) {
-		if (n_kn)
+	if (!n_lg || ren_div || wb_lig(wb, c)) {
+		if (n_kn && !ren_div)
 			wb_kern(wb, c);
 		wb_put(wb, c);
 	}
