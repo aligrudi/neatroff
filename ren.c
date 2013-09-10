@@ -233,8 +233,8 @@ static int ren_ljust(struct sbuf *spre, int w, int ad, int ll, int li, int lt)
 		ljust += llen - w;
 	if (ljust)
 		sbuf_printf(spre, "%ch'%du'", c_ec, ljust);
-	if (cdiv && cdiv->dl < w)
-		cdiv->dl = w;
+	if (cdiv && cdiv->dl < w + ljust)
+		cdiv->dl = w + ljust;
 	return ljust;
 }
 
