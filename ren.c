@@ -579,11 +579,16 @@ void tr_fc(char **args)
 	}
 }
 
-static void ren_m(char *s)
+static void ren_cl(char *s)
 {
 	int m = !s || !*s ? n_m0 : clr_get(s);
 	n_m0 = n_m;
 	n_m = m;
+}
+
+void tr_cl(char **args)
+{
+	ren_cl(args[1]);
 }
 
 void tr_ab(char **args)
@@ -626,7 +631,7 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 		ren_hlcmd(wb, arg);
 		break;
 	case 'm':
-		ren_m(arg);
+		ren_cl(arg);
 		break;
 	case 'o':
 		ren_ocmd(wb, arg);

@@ -717,6 +717,7 @@ static struct cmd {
 	{"cc", tr_cc},
 	{"ce", tr_ce},
 	{"ch", tr_ch},
+	{"cl", tr_cl},
 	{"cp", tr_cp},
 	{"cs", tr_cs},
 	{"da", tr_di},
