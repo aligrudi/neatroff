@@ -399,35 +399,36 @@ static char *indicatorpos(char *s, int w, struct wb *w1, int flg)
 
 static char *hyphpos(char *s, int w, struct wb *w1, int flg)
 {
-	char *map[ILNLEN] = {NULL};	/* mapping from word to s */
-	int fits[ILNLEN] = {0};		/* fits[i] if word[0..i]- fits w */
-	char word[ILNLEN];
-	char hyph[ILNLEN];
+	char word[ILNLEN];	/* word to pass to hyphenate() */
+	char hyph[ILNLEN];	/* hyphenation points returned from hyphenate() */
+	char *iw[ILNLEN];	/* beginning of i-th char in word */
+	char *is[ILNLEN];	/* beginning of i-th char in s */
+	int fits[ILNLEN];	/* fits[i] is 1, if the first i chars fit w */
+	int n = 0;		/* the number of characters in word */
 	char d[ILNLEN];
 	char *prev_s = s;
 	char *r = NULL;
 	char *wp = word, *we = word + sizeof(word);
-	int beg, end;
 	int i, c;
 	skipreqs(&s, w1);
-	while ((c = escread(&s, d)) >= 0 && wp + strlen(d) + 1 < we) {
+	while ((c = escread(&s, d)) >= 0 && (c > 0 || strlen(d) + 1 < we - wp)) {
+		fits[n] = wb_wid(w1) + wb_dashwid(w1) <= w;
 		wb_putc(w1, c, d);
 		if (c == 0) {
+			iw[n] = wp;
+			is[n] = prev_s;
 			strcpy(wp, d);
-			map[wp - word] = prev_s;
 			wp = strchr(wp, '\0');
-			fits[wp - word] = wb_wid(w1) + wb_dashwid(w1) <= w;
+			n++;
 		}
 		prev_s = s;
 	}
-	if (strlen(word) < 4)
+	if (n < 4)
 		return NULL;
-	hyphenate(hyph, word);
-	beg = flg & HY_FIRST2 ? 3 : 2;
-	end = strlen(word) - (flg & HY_FINAL2 ? 2 : 1);
-	for (i = beg; i < end; i++)
-		if (map[i] && hyph[i] && (fits[i] || ((flg & HY_ANY) && !r)))
-			r = map[i];
+	hyphenate(hyph, word, flg);
+	for (i = 2; i < n - 1; i++)
+		if (hyph[iw[i] - word] && (fits[i] || ((flg & HY_ANY) && !r)))
+			r = is[i];
 	return r;
 }
 

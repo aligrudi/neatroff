@@ -244,7 +244,7 @@ int wb_kern(struct wb *wb, char *c);
 #define HY_FIRST2	0x08	/* do not hyphenate the first two characters */
 #define HY_ANY		0x10	/* break at any possible position */
 
-void hyphenate(char *hyphs, char *word);
+void hyphenate(char *hyphs, char *word, int flg);
 
 /* adjustment */
 #define AD_L		0

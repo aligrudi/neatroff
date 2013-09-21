@@ -21,7 +21,7 @@ static char *hyhash[32 * 32];
 
 static void hyph_initpatterns(void);
 static void hyph_initexceptions(void);
-static void hyfind(char *hyph, char *word);
+static void hyfind(char *hyph, char *word, int flg);
 
 static void hyexcept_add(char *s)
 {
@@ -66,7 +66,7 @@ static char *hyexcept_lookup(char *s)
 	return NULL;
 }
 
-void hyphenate(char *hyph, char *word)
+void hyphenate(char *hyph, char *word, int flg)
 {
 	char *r;
 	if (!hyinit) {
@@ -78,7 +78,7 @@ void hyphenate(char *hyph, char *word)
 	if (r)
 		memcpy(hyph, r, strlen(word) + 1);
 	else
-		hyfind(hyph, word);
+		hyfind(hyph, word, flg);
 }
 
 void tr_hw(char **args)
@@ -98,7 +98,7 @@ static int hyidx(int a, int b)
 	return (HYC_MAP(a) << 5) | HYC_MAP(b);
 }
 
-static void hyfind(char *hyph, char *word)
+static void hyfind(char *hyph, char *word, int flg)
 {
 	char n[ILNLEN] = {0};
 	char w[ILNLEN];
@@ -124,8 +124,11 @@ static void hyfind(char *hyph, char *word)
 				break;
 		}
 	}
-	for (i = 1; i < wlen - 1; i++)
-		hyph[i - 1] = i > 2 && i < wlen - 3 && n[i] % 2;
+	memset(hyph, 0, wlen * sizeof(hyph[0]));
+	for (i = 3; i < wlen - 2; i++)
+		if (n[i] % 2 && w[i - 1] != '.' && w[i - 2] != '.' && w[i + 1] != '.')
+			hyph[i - 1] = (~flg & HY_FINAL2 || w[i + 2] != '.') &&
+				(~flg & HY_FIRST2 || w[i - 3] != '.');
 }
 
 static void hyins(char *s)
