@@ -88,14 +88,21 @@ void tr_hw(char **args)
 		hyexcept_add(args[i]);
 }
 
-#define HYC_VALID(c)	((c) == '.' || ((c) >= 'a' && (c) <= 'z'))
 #define HYC_MAP(c)	((c) == '.' ? 0 : (c) - 'a' + 1)
 
 static int hyidx(int a, int b)
 {
-	if (!HYC_VALID(a) || !HYC_VALID(b))
-		return 0;
 	return (HYC_MAP(a) << 5) | HYC_MAP(b);
+}
+
+static void hyword(char *d, char *s)
+{
+	int c;
+	*d++ = '.';
+	while ((c = (unsigned char) *s++))
+		*d++ = isalpha(c) ? tolower(c) : '.';
+	*d++ = '.';
+	*d = '\0';
 }
 
 static void hyfind(char *hyph, char *word, int flg)
@@ -104,11 +111,8 @@ static void hyfind(char *hyph, char *word, int flg)
 	char w[ILNLEN];
 	char *p;
 	int i, j, wlen, plen;
-	w[0] = '.';
-	strcpy_lower(w + 1, word);
-	wlen = strlen(word) + 2;
-	w[wlen - 1] = '.';
-	w[wlen] = '\0';
+	hyword(w, word);
+	wlen = strlen(w);
 	for (i = 0; i < wlen - 1; i++) {
 		p = hyhash[hyidx(w[i], w[i + 1])];
 		while (p) {
