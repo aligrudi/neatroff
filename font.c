@@ -65,6 +65,16 @@ int font_lig(struct font *fn, char **c, int n)
 	return 0;
 }
 
+/* return nonzero if s is a ligature */
+int font_islig(struct font *fn, char *s)
+{
+	int i;
+	for (i = 0; i < fn->nlig; i++)
+		if (!strcmp(s, fn->lig[i]))
+			return 1;
+	return 0;
+}
+
 /* return pairwise kerning value between c1 and c2 */
 int font_kern(struct font *fn, char *c1, char *c2)
 {

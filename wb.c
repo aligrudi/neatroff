@@ -416,16 +416,19 @@ static char *hyphpos(char *s, int w, struct wb *w1, int flg)
 		if (c == 0) {
 			iw[n] = wp;
 			is[n] = prev_s;
+			/* ignore multi-char aliases except for ligatures */
+			if (!utf8one(d) && !font_islig(dev_font(R_F(w1)), d))
+				strcpy(d, ".");
 			strcpy(wp, d);
 			wp = strchr(wp, '\0');
 			n++;
 		}
 		prev_s = s;
 	}
-	if (n < 4)
+	if (n < 3)
 		return NULL;
 	hyphenate(hyph, word, flg);
-	for (i = 2; i < n - 1; i++)
+	for (i = 1; i < n - 1; i++)
 		if (hyph[iw[i] - word] && (fits[i] || ((flg & HY_ANY) && !r)))
 			r = is[i];
 	return r;

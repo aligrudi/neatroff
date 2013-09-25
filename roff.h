@@ -141,6 +141,7 @@ struct glyph *font_glyph(struct font *fn, char *id);
 struct glyph *font_find(struct font *fn, char *name);
 int font_lig(struct font *fn, char **c, int n);
 int font_kern(struct font *fn, char *c1, char *c2);
+int font_islig(struct font *fn, char *s);
 
 /* glyph handling functions */
 struct glyph *dev_glyph(char *c, int fn);
