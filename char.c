@@ -20,6 +20,12 @@ int utf8len(int c)
 	return c != 0;
 }
 
+/* return nonzero if s is a single utf-8 character */
+int utf8one(char *s)
+{
+	return !s[utf8len((unsigned char) *s)];
+}
+
 int utf8read(char **s, char *d)
 {
 	int l = utf8len((unsigned char) **s);
@@ -100,7 +106,7 @@ int charnext_delim(char *c, int (*next)(void), void (*back)(int), char *delim)
 void charnext_str(char *d, char *c)
 {
 	int c0 = (unsigned char) c[0];
-	if (c0 == c_ec || c0 == c_ni || !c[1] || utf8len(c0) == strlen(c)) {
+	if (c0 == c_ec || c0 == c_ni || !c[1] || utf8one(c)) {
 		strcpy(d, c);
 		return;
 	}

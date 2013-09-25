@@ -327,6 +327,7 @@ void errmsg(char *msg, ...);
 int utf8len(int c);
 int utf8next(char *s, int (*next)(void));
 int utf8read(char **s, char *d);
+int utf8one(char *s);
 int charnext(char *c, int (*next)(void), void (*back)(int));
 int charread(char **s, char *c);
 int charnext_delim(char *c, int (*next)(void), void (*back)(int), char *delim);

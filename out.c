@@ -112,7 +112,7 @@ static void out_draw(char *s)
 
 static void outg(char *c)
 {
-	if (utf8len((unsigned char) c[0]) == strlen(c))
+	if (utf8one(c))
 		outnn("c%s%s", c, c[1] ? "\n" : "");
 	else
 		out("C%s\n", c[0] == c_ec && c[1] == '(' ? c + 2 : c);

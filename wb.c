@@ -145,8 +145,7 @@ void wb_put(struct wb *wb, char *c)
 	wb_font(wb);
 	wb_prevcheck(wb);		/* make sure wb->prev_c[] is valid */
 	ll = sbuf_len(&wb->sbuf);	/* sbuf length before inserting c */
-	if (!c[1] || c[0] == c_ec || c[0] == c_ni ||
-			utf8len((unsigned char) c[0]) == strlen(c)) {
+	if (!c[1] || c[0] == c_ec || c[0] == c_ni || utf8one(c)) {
 		if (c[0] == c_ni && c[1] == c_ec)
 			sbuf_printf(&wb->sbuf, "%c%c", c_ec, c_ec);
 		else
