@@ -325,6 +325,7 @@ void tr_init(void);
 
 /* helpers */
 void errmsg(char *msg, ...);
+void errdie(char *msg);
 int utf8len(int c);
 int utf8next(char *s, int (*next)(void));
 int utf8read(char **s, char *d);
@@ -347,13 +348,12 @@ void sstr_back(int c);
 #define TR_DIVEND	"\07>"	/* diversion ends */
 #define TR_EJECT	"\07P"	/* page eject */
 
-/* mapping register, macro and environment names to numbers */
-#define NREGS		(1 << 16)
-#define NREGS2		(NREGS * 2)
-#define REG(c1, c2)	((c1) * 256 + (c2))
+/* mapping register, macro and environment names to indices */
+#define NREGS		4096	/* maximum number of mapped names */
+#define DOTMAP(c2)	(c2)	/* optimized mapping for ".x" names */
 
-int map(char *s);
-char *map_name(int id);
+int map(char *s);		/* map name s to an index */
+char *map_name(int id);		/* return the name mapped to id */
 
 /* colors */
 #define CLR_R(c)		(((c) >> 16) & 0xff)
@@ -365,59 +365,59 @@ char *clr_str(int c);
 int clr_get(char *s);
 
 /* builtin number registers; n_X for .X register */
-#define n_a		(*nreg(REG('.', 'a')))
-#define n_cp		(*nreg(REG('.', 'C')))
-#define n_d		(*nreg(REG('.', 'd')))
-#define n_f		(*nreg(REG('.', 'f')))
-#define n_h		(*nreg(REG('.', 'h')))
-#define n_i		(*nreg(REG('.', 'i')))
+#define n_a		(*nreg(DOTMAP('a')))
+#define n_cp		(*nreg(DOTMAP('C')))
+#define n_d		(*nreg(DOTMAP('d')))
+#define n_f		(*nreg(DOTMAP('f')))
+#define n_h		(*nreg(DOTMAP('h')))
+#define n_i		(*nreg(DOTMAP('i')))
 #define n_it		(*nreg(map(".it")))	/* .it trap macro */
 #define n_itn		(*nreg(map(".itn")))	/* .it lines left */
-#define n_j		(*nreg(REG('.', 'j')))
-#define n_l		(*nreg(REG('.', 'l')))
-#define n_L		(*nreg(REG('.', 'L')))
-#define n_n		(*nreg(REG('.', 'n')))
+#define n_j		(*nreg(DOTMAP('j')))
+#define n_l		(*nreg(DOTMAP('l')))
+#define n_L		(*nreg(DOTMAP('L')))
+#define n_n		(*nreg(DOTMAP('n')))
 #define n_nI		(*nreg(map(".nI")))	/* i for .nm */
 #define n_nm		(*nreg(map(".nm")))	/* .nm enabled */
 #define n_nM		(*nreg(map(".nM")))	/* m for .nm */
 #define n_nn		(*nreg(map(".nn")))	/* remaining .nn */
 #define n_nS		(*nreg(map(".nS")))	/* s for .nm */
-#define n_m		(*nreg(REG('.', 'm')))
+#define n_m		(*nreg(DOTMAP('m')))
 #define n_mc		(*nreg(map(".mc")))	/* .mc enabled */
 #define n_mcn		(*nreg(map(".mcn")))	/* .mc distance */
-#define n_o		(*nreg(REG('.', 'o')))
-#define n_p		(*nreg(REG('.', 'p')))
-#define n_s		(*nreg(REG('.', 's')))
-#define n_u		(*nreg(REG('.', 'u')))
-#define n_v		(*nreg(REG('.', 'v')))
-#define n_ct		(*nreg(REG('c', 't')))
-#define n_dl		(*nreg(REG('d', 'l')))
-#define n_dn		(*nreg(REG('d', 'n')))
-#define n_ln		(*nreg(REG('l', 'n')))
-#define n_nl		(*nreg(REG('n', 'l')))
-#define n_sb		(*nreg(REG('s', 'b')))
-#define n_st		(*nreg(REG('s', 't')))
-#define n_pg		(*nreg(REG('%', '\0')))	/* % */
-#define n_lb		(*nreg(REG(0, 'b')))	/* input line beg */
-#define n_ce		(*nreg(REG(0, 'c')))	/* .ce remaining */
-#define n_f0		(*nreg(REG(0, 'f')))	/* last .f */
-#define n_lg		(*nreg(REG(0, 'g')))	/* .lg mode */
-#define n_hy		(*nreg(REG(0, 'h')))	/* .hy mode */
-#define n_i0		(*nreg(REG(0, 'i')))	/* last .i */
-#define n_kn		(*nreg(REG(0, 'k')))	/* .kn mode */
-#define n_l0		(*nreg(REG(0, 'l')))	/* last .l */
-#define n_L0		(*nreg(REG(0, 'L')))	/* last .L */
-#define n_m0		(*nreg(REG(0, 'm')))	/* last .m */
-#define n_mk		(*nreg(REG(0, 'M')))	/* .mk internal register */
-#define n_na		(*nreg(REG(0, 'n')))	/* .na mode */
-#define n_ns		(*nreg(REG(0, 'N')))	/* .ns mode */
-#define n_o0		(*nreg(REG(0, 'o')))	/* last .o */
-#define n_ss		(*nreg(REG(0, 'p')))	/* .ss value */
-#define n_s0		(*nreg(REG(0, 's')))	/* last .s */
-#define n_sv		(*nreg(REG(0, 'S')))	/* .sv value */
-#define n_lt		(*nreg(REG(0, 't')))	/* .lt value */
-#define n_t0		(*nreg(REG(0, 'T')))	/* previous .lt value */
-#define n_v0		(*nreg(REG(0, 'v')))	/* last .v */
+#define n_o		(*nreg(DOTMAP('o')))
+#define n_p		(*nreg(DOTMAP('p')))
+#define n_s		(*nreg(DOTMAP('s')))
+#define n_u		(*nreg(DOTMAP('u')))
+#define n_v		(*nreg(DOTMAP('v')))
+#define n_ct		(*nreg(map("ct")))
+#define n_dl		(*nreg(map("dl")))
+#define n_dn		(*nreg(map("dn")))
+#define n_ln		(*nreg(map("ln")))
+#define n_nl		(*nreg(map("nl")))
+#define n_sb		(*nreg(map("sb")))
+#define n_st		(*nreg(map("st")))
+#define n_pg		(*nreg(map("%")))	/* % */
+#define n_lb		(*nreg(map(".b0")))	/* input line beg */
+#define n_ce		(*nreg(map(".ce")))	/* .ce remaining */
+#define n_f0		(*nreg(map(".f0")))	/* last .f */
+#define n_lg		(*nreg(map(".lg")))	/* .lg mode */
+#define n_hy		(*nreg(map(".hy")))	/* .hy mode */
+#define n_i0		(*nreg(map(".i0")))	/* last .i */
+#define n_kn		(*nreg(map(".kern")))	/* .kn mode */
+#define n_l0		(*nreg(map(".l0")))	/* last .l */
+#define n_L0		(*nreg(map(".L0")))	/* last .L */
+#define n_m0		(*nreg(map(".m0")))	/* last .m */
+#define n_mk		(*nreg(map(".mk")))	/* .mk internal register */
+#define n_na		(*nreg(map(".na")))	/* .na mode */
+#define n_ns		(*nreg(map(".ns")))	/* .ns mode */
+#define n_o0		(*nreg(map(".o0")))	/* last .o */
+#define n_ss		(*nreg(map(".ss")))	/* .ss value */
+#define n_s0		(*nreg(map(".s0")))	/* last .s */
+#define n_sv		(*nreg(map(".sv")))	/* .sv value */
+#define n_lt		(*nreg(map(".lt")))	/* .lt value */
+#define n_t0		(*nreg(map(".lt0")))	/* previous .lt value */
+#define n_v0		(*nreg(map(".v0")))	/* last .v */
 
 /* functions for implementing read-only registers */
 int f_nexttrap(void);	/* .t */

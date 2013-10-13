@@ -336,7 +336,7 @@ static int tl_next(void)
 {
 	int c = cp_next();
 	if (c >= 0 && c == c_pc) {
-		in_push(num_str(REG('%', '\0')), NULL);
+		in_push(num_str(map("%")), NULL);
 		c = cp_next();
 	}
 	return c;

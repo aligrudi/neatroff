@@ -19,24 +19,24 @@ struct env {
 	char mc[GNLEN];		/* margin character (.mc) */
 };
 
-static int nregs[NREGS2];	/* global number registers */
-static int nregs_inc[NREGS2];	/* number register auto-increment size */
-static int nregs_fmt[NREGS2];	/* number register format */
-static char *sregs[NREGS2];	/* global string registers */
-static void *sregs_dat[NREGS2];	/* builtin function data */
-static struct env *envs[NREGS2];/* environments */
+static int nregs[NREGS];	/* global number registers */
+static int nregs_inc[NREGS];	/* number register auto-increment size */
+static int nregs_fmt[NREGS];	/* number register format */
+static char *sregs[NREGS];	/* global string registers */
+static void *sregs_dat[NREGS];	/* builtin function data */
+static struct env *envs[NREGS];/* environments */
 static struct env *env;		/* current enviroment */
 static int env_id;		/* current environment id */
-static int eregs_idx[NREGS2];	/* register environment index in eregs[] */
+static int eregs_idx[NREGS];	/* register environment index in eregs[] */
 
 static char *eregs[] = {	/* environment-specific number registers */
 	"ln", ".f", ".i", ".j", ".l",
 	".L", ".nI", ".nm", ".nM", ".nn",
 	".nS", ".m", ".s", ".u", ".v",
 	".it", ".itn", ".mc", ".mcn",
-	"\0c", "\0f", "\0h", "\0i", "\0l",
-	"\0L", "\0n", "\0m", "\0p", "\0s",
-	"\0t", "\0T", "\0v",
+	".ce", ".f0", ".hy", ".i0", ".l0",
+	".L0", ".m0", ".n0", ".s0", ".ss",
+	".lt", ".lt0", ".v0",
 };
 
 /* return the address of a number register */
@@ -53,40 +53,43 @@ static int num_fmt(char *s, int n, int fmt);
 char *num_str(int id)
 {
 	static char numbuf[128];
+	char *s = map_name(id);
 	numbuf[0] = '\0';
-	switch (id) {
-	case REG('.', 'b'):
-		sprintf(numbuf, "%d", dev_getbd(n_f));
-		break;
-	case REG('.', 'c'):
-		sprintf(numbuf, "%d", in_lnum());
-		break;
-	case REG('.', 'k'):
-		sprintf(numbuf, "%d", f_hpos());
-		break;
-	case REG('.', 'm'):
-		sprintf(numbuf, "#%02x%02x%02x", CLR_R(n_m), CLR_G(n_m), CLR_B(n_m));
-		break;
-	case REG('.', 't'):
-		sprintf(numbuf, "%d", f_nexttrap());
-		break;
-	case REG('.', 'z'):
-		if (f_divreg() >= 0)
-			sprintf(numbuf, "%s", map_name(f_divreg()));
-		break;
-	case REG('.', 'F'):
-		sprintf(numbuf, "%s", in_filename());
-		break;
-	case REG('.', '$'):
-		sprintf(numbuf, "%d", in_nargs());
-		break;
-	case REG('y', 'r'):
-		sprintf(numbuf, "%02d", nregs[id]);
-		break;
-	default:
-		if (!nregs_fmt[id] || num_fmt(numbuf, *nreg(id), nregs_fmt[id]))
-			sprintf(numbuf, "%d", *nreg(id));
+	if (s[0] == '.' && !s[2]) {
+		switch (s[1]) {
+		case 'b':
+			sprintf(numbuf, "%d", dev_getbd(n_f));
+			return numbuf;
+		case 'c':
+			sprintf(numbuf, "%d", in_lnum());
+			return numbuf;
+		case 'k':
+			sprintf(numbuf, "%d", f_hpos());
+			return numbuf;
+		case 'm':
+			sprintf(numbuf, "#%02x%02x%02x", CLR_R(n_m), CLR_G(n_m), CLR_B(n_m));
+			return numbuf;
+		case 't':
+			sprintf(numbuf, "%d", f_nexttrap());
+			return numbuf;
+		case 'z':
+			if (f_divreg() >= 0)
+				sprintf(numbuf, "%s", map_name(f_divreg()));
+			return numbuf;
+		case 'F':
+			sprintf(numbuf, "%s", in_filename());
+			return numbuf;
+		case '$':
+			sprintf(numbuf, "%d", in_nargs());
+			return numbuf;
+		}
 	}
+	if (id == map("yr")) {
+		sprintf(numbuf, "%02d", nregs[id]);
+		return numbuf;
+	}
+	if (!nregs_fmt[id] || num_fmt(numbuf, *nreg(id), nregs_fmt[id]))
+		sprintf(numbuf, "%d", *nreg(id));
 	return numbuf;
 }
 
@@ -207,10 +210,10 @@ static void init_time(void)
 {
 	time_t t = time(NULL);
 	struct tm *tm = localtime(&t);
-	nregs[REG('d', 'w')] = tm->tm_wday + 1;
-	nregs[REG('d', 'y')] = tm->tm_mday;
-	nregs[REG('m', 'o')] = tm->tm_mon + 1;
-	nregs[REG('y', 'r')] = tm->tm_year % 100;
+	nregs[map("dw")] = tm->tm_wday + 1;
+	nregs[map("dy")] = tm->tm_mday;
+	nregs[map("mo")] = tm->tm_mon + 1;
+	nregs[map("yr")] = tm->tm_year % 100;
 }
 
 void env_init(void)

@@ -306,7 +306,7 @@ static void ren_mc(struct sbuf *sbuf, int w, int ljust)
 	wb_done(&wb);
 }
 
-/* return 1 if triggered a trap */
+/* output current line; returns 1 if triggered a trap */
 static int ren_bradj(struct adj *adj, int fill, int ad, int body)
 {
 	char cmd[16];
@@ -356,7 +356,7 @@ static int ren_bradj(struct adj *adj, int fill, int ad, int body)
 	return 0;
 }
 
-/* return 1 if triggered a trap */
+/* output current line; returns 1 if triggered a trap */
 static int ren_br(int force)
 {
 	int ad = n_j;
@@ -900,7 +900,6 @@ static void ren_tab(struct wb *wb, char *tc, int (*next)(void), void (*back)(int
 int render(void)
 {
 	struct wb *wb = &ren_wb;
-	int fillreq;
 	int c;
 	n_nl = -1;
 	wb_init(wb);
@@ -925,23 +924,24 @@ int render(void)
 			continue;
 		}
 		ren_cnl = c == '\n';
-		fillreq = 0;
 		/* add wb (the current word) to cadj */
 		if (c == ' ' || c == '\n') {
 			adj_swid(cadj, spacewid(n_f, n_s));
 			if (!wb_part(wb)) {	/* not after a \c */
 				adj_wb(cadj, wb);
-				fillreq = ren_fillreq;
-				ren_fillreq = 0;
 				if (c == '\n')
 					adj_nl(cadj);
 				else
 					adj_sp(cadj);
 			}
 		}
-		while ((fillreq && !n_ce && n_u) || adj_full(cadj, !n_ce && n_u)) {
-			ren_br(0);
-			fillreq = 0;
+		/* flush the line if necessary */
+		if (c == ' ' || c == '\n') {
+			while ((ren_fillreq && !wb_part(wb) && !n_ce && n_u) ||
+						adj_full(cadj, !n_ce && n_u)) {
+				ren_br(0);
+				ren_fillreq = 0;
+			}
 		}
 		if (c == '\n' || ren_nl)	/* end or start of input line */
 			n_lb = f_hpos();

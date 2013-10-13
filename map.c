@@ -2,7 +2,9 @@
 #include <string.h>
 #include "roff.h"
 
-/* register, macro, or environments names with more than two characters */
+#define MAPBEG		256	/* the entries reserved for .x names */
+
+/* register, macro, or environments names */
 static char keys[NREGS][GNLEN];
 static int nkeys = 1;
 /* per starting character name lists */
@@ -14,11 +16,15 @@ static int key_get(char *s)
 {
 	int head = (unsigned char) s[0];
 	int i = key_head[head];
+	if (*s == '\0')
+		return 0;
 	while (i > 0) {
-		if (!strcmp(keys[i], s))
+		if (keys[i][1] == s[1] && !strcmp(keys[i], s))
 			return i;
 		i = key_next[i];
 	}
+	if (nkeys >= NREGS - MAPBEG)
+		errdie("neatroff: out of register names (NREGS)\n");
 	i = nkeys++;
 	strcpy(keys[i], s);
 	key_next[i] = key_head[head];
@@ -26,22 +32,22 @@ static int key_get(char *s)
 	return i;
 }
 
-/* map register names to [0..NREGS * 2) */
+/* map register names to [0..NREGS] */
 int map(char *s)
 {
-	if (n_cp || !s[1] || !s[2])
-		return REG(s[0], s[1]);
-	return NREGS + key_get(s);
+	if (s[0] == '.' && s[1] && !s[2])	/* ".x" is mapped to 'x' */
+		return (unsigned char) s[1];
+	return MAPBEG + key_get(s);
 }
 
-/* returns a static buffer */
+/* return the name mapped to id; returns a static buffer */
 char *map_name(int id)
 {
 	static char map_buf[NMLEN];
-	if (id >= NREGS)
-		return keys[id - NREGS];
-	map_buf[0] = (id >> 8) & 0xff;
-	map_buf[1] = id & 0xff;
+	if (id >= MAPBEG)
+		return keys[id - MAPBEG];
+	map_buf[0] = '.';
+	map_buf[1] = id;
 	map_buf[2] = '\0';
 	return map_buf;
 }
