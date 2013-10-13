@@ -733,7 +733,10 @@ static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int)
 	if (!n_lg || ren_div || wb_lig(wb, c)) {
 		if (n_kn && !ren_div)
 			wb_kern(wb, c);
-		wb_putexpand(wb, c);
+		if (ren_div)
+			wb_put(wb, c);	/* disable .char for diverted text */
+		else
+			wb_putexpand(wb, c);
 	}
 }
 
