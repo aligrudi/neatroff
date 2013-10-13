@@ -301,7 +301,7 @@ static void ren_mc(struct sbuf *sbuf, int w, int ljust)
 	wb_init(&wb);
 	if (w + ljust < n_l + n_mcn)
 		wb_hmov(&wb, n_l + n_mcn - w - ljust);
-	wb_put(&wb, c_mc);
+	wb_putexpand(&wb, c_mc);
 	sbuf_append(sbuf, sbuf_buf(&wb.sbuf));
 	wb_done(&wb);
 }
@@ -733,7 +733,7 @@ static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int)
 	if (!n_lg || ren_div || wb_lig(wb, c)) {
 		if (n_kn && !ren_div)
 			wb_kern(wb, c);
-		wb_put(wb, c);
+		wb_putexpand(wb, c);
 	}
 }
 
@@ -894,6 +894,31 @@ static void ren_tab(struct wb *wb, char *tc, int (*next)(void), void (*back)(int
 		ren_hline(wb, ins - pos, tc);
 	wb_cat(wb, &t);
 	wb_done(&t);
+}
+
+static int ren_expanding;	/* expanding the definition of a character */
+
+/* expand the given defined character */
+int ren_expand(struct wb *wb, char *n)
+{
+	char *s = chdef_map(n);
+	int c;
+	if (!s || ren_expanding)
+		return 1;
+	ren_expanding = 1;
+	odiv_beg();
+	sstr_push(s);
+	c = sstr_next();
+	while (c >= 0) {
+		sstr_back(c);
+		if (ren_chardel(wb, sstr_next, sstr_back, NULL, NULL))
+			break;
+		c = sstr_next();
+	}
+	sstr_pop();
+	odiv_end();
+	ren_expanding = 0;
+	return 0;
 }
 
 /* read characters from in.c and pass rendered lines to out.c */

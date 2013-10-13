@@ -5,8 +5,13 @@
 
 static int cwid(char *c)
 {
-	struct glyph *g = dev_glyph(c, n_f);
-	return charwid(n_f, n_s, g ? g->wid : SC_DW);
+	struct wb wb;
+	int w;
+	wb_init(&wb);
+	wb_putexpand(&wb, c);
+	w = wb_wid(&wb);
+	wb_done(&wb);
+	return w;
 }
 
 static int hchar(char *c)
@@ -46,14 +51,14 @@ void ren_hline(struct wb *wb, int l, char *c)
 	/* the initial gap */
 	if (rem) {
 		if (hchar(c)) {
-			wb_put(wb, c);
+			wb_putexpand(wb, c);
 			wb_hmov(wb, rem - w);
 		} else {
 			wb_hmov(wb, rem);
 		}
 	}
 	for (i = 0; i < n; i++)
-		wb_put(wb, c);
+		wb_putexpand(wb, c);
 	/* moving back */
 	if (l < w)
 		wb_hmov(wb, -(w - l + 1) / 2);
@@ -82,7 +87,7 @@ static void ren_vline(struct wb *wb, int l, char *c)
 	if (rem) {
 		if (vchar(c)) {
 			wb_vmov(wb, w);
-			wb_put(wb, c);
+			wb_putexpand(wb, c);
 			wb_hmov(wb, -hw);
 			wb_vmov(wb, rem - w);
 		} else {
@@ -91,7 +96,7 @@ static void ren_vline(struct wb *wb, int l, char *c)
 	}
 	for (i = 0; i < n; i++) {
 		wb_vmov(wb, w);
-		wb_put(wb, c);
+		wb_putexpand(wb, c);
 		wb_hmov(wb, -hw);
 	}
 	/* moving back */

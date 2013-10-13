@@ -535,6 +535,60 @@ static void tr_tr(char **args)
 	}
 }
 
+/* character definitions */
+static char chdef_src[NCHDEF][GNLEN];
+static char *chdef_dst[NCHDEF];
+static int chdef_n;
+
+static int chdef_find(char *c)
+{
+	int i;
+	for (i = 0; i < chdef_n; i++)
+		if (!strcmp(chdef_src[i], c))
+			return i;
+	return -1;
+}
+
+/* return the definition of the given character */
+char *chdef_map(char *c)
+{
+	int i = chdef_find(c);
+	return i >= 0 ? chdef_dst[i] : NULL;
+}
+
+static void tr_char(char **args)
+{
+	char c[GNLEN];
+	char *s = args[1];
+	int i;
+	if (!args[2] || charread(&s, c) < 0)
+		return;
+	i = chdef_find(c);
+	if (i < 0 && chdef_n < NCHDEF)
+		i = chdef_n++;
+	if (i >= 0) {
+		strncpy(chdef_src[i], c, sizeof(chdef_src[i]) - 1);
+		chdef_dst[i] = malloc(strlen(args[2]) + 1);
+		strcpy(chdef_dst[i], args[2]);
+	}
+}
+
+static void tr_rchar(char **args)
+{
+	char c[GNLEN];
+	char *s;
+	int i;
+	for (i = 1; i <= NARGS; i++) {
+		s = args[i];
+		if (s && charread(&s, c) >= 0) {
+			if (chdef_find(c) >= 0) {
+				free(chdef_dst[chdef_find(c)]);
+				chdef_dst[chdef_find(c)] = NULL;
+			}
+		}
+	}
+}
+
 static char *arg_regname(char *s, int len)
 {
 	char *e = n_cp ? s + 2 : s + len;
@@ -717,6 +771,7 @@ static struct cmd {
 	{"cc", tr_cc},
 	{"ce", tr_ce},
 	{"ch", tr_ch},
+	{"char", tr_char, mkargs_ds},
 	{"cl", tr_cl},
 	{"cp", tr_cp},
 	{"cs", tr_cs},
@@ -767,6 +822,7 @@ static struct cmd {
 	{"pn", tr_pn},
 	{"po", tr_po},
 	{"ps", tr_ps},
+	{"rchar", tr_rchar, mkargs_ds},
 	{"rm", tr_rm},
 	{"rn", tr_rn},
 	{"rr", tr_rr},

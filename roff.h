@@ -29,6 +29,7 @@
 #define NFIELDS		32	/* number of fields */
 #define MAXFRAC		100000	/* maximum value of the fractional part */
 #define LIGLEN		4	/* length of ligatures */
+#define NCHDEF		128	/* number of character definitions (.char) */
 
 /* escape sequences */
 #define ESC_Q	"bCDhHlLNoSvwxX"	/* \X'ccc' quoted escape sequences */
@@ -177,6 +178,8 @@ void tr_first(void);		/* read until the first non-command line */
 /* character translation (.tr) */
 void tr_add(char *c1, char *c2);
 char *tr_map(char *c);
+/* character definition (.char) */
+char *chdef_map(char *c);
 
 /* variable length string buffer */
 struct sbuf {
@@ -220,6 +223,7 @@ void wb_vmov(struct wb *wb, int n);
 void wb_els(struct wb *wb, int els);
 void wb_etc(struct wb *wb, char *x);
 void wb_put(struct wb *wb, char *c);
+void wb_putexpand(struct wb *wb, char *c);
 int wb_part(struct wb *wb);
 void wb_setpart(struct wb *wb);
 void wb_drawl(struct wb *wb, int c, int h, int v);
@@ -280,6 +284,7 @@ void ren_vlcmd(struct wb *wb, char *arg);	/* \L */
 void ren_bcmd(struct wb *wb, char *arg);	/* \b */
 void ren_ocmd(struct wb *wb, char *arg);	/* \o */
 void ren_dcmd(struct wb *wb, char *arg);	/* \D */
+int ren_expand(struct wb *wb, char *c);		/* .char expansion */
 
 /* out.c */
 void out_line(char *s);				/* output rendered line */

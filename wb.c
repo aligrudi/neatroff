@@ -164,6 +164,13 @@ void wb_put(struct wb *wb, char *c)
 	}
 }
 
+/* just like wb_put(), but call chdef_expand() if c is defined */
+void wb_putexpand(struct wb *wb, char *c)
+{
+	if (ren_expand(wb, c))
+		wb_put(wb, c);
+}
+
 /* return zero if c formed a ligature with its previous character */
 int wb_lig(struct wb *wb, char *c)
 {
