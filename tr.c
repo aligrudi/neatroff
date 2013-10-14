@@ -493,35 +493,35 @@ static void tr_lf(char **args)
 		in_lf(args[2], eval(args[1], 0));
 }
 
-/* character translation */
-static char tr_src[NTR][GNLEN];
-static char tr_dst[NTR][GNLEN];
-static int tr_n;
+/* character translation (.tr) */
+static char cmap_src[NCMAPS][GNLEN];	/* source character */
+static char cmap_dst[NCMAPS][GNLEN];	/* character mapping */
+static int cmap_n;			/* number of translated character */
 
 static int tr_find(char *c)
 {
 	int i;
-	for (i = 0; i < tr_n; i++)
-		if (!strcmp(c, tr_src[i]))
+	for (i = 0; i < cmap_n; i++)
+		if (!strcmp(c, cmap_src[i]))
 			return i;
 	return -1;
 }
 
-void tr_add(char *c1, char *c2)
+void cmap_add(char *c1, char *c2)
 {
 	int i = tr_find(c1);
-	if (i < 0 && tr_n < NTR)
-		i = tr_n++;
+	if (i < 0 && cmap_n < NCMAPS)
+		i = cmap_n++;
 	if (i >= 0) {
-		strcpy(tr_src[i], c1);
-		strcpy(tr_dst[i], c2);
+		strcpy(cmap_src[i], c1);
+		strcpy(cmap_dst[i], c2);
 	}
 }
 
-char *tr_map(char *c)
+char *cmap_map(char *c)
 {
 	int i = tr_find(c);
-	return i >= 0 ? tr_dst[i] : c;
+	return i >= 0 ? cmap_dst[i] : c;
 }
 
 static void tr_tr(char **args)
@@ -531,29 +531,41 @@ static void tr_tr(char **args)
 	while (s && charread(&s, c1) >= 0) {
 		if (charread(&s, c2) < 0)
 			strcpy(c2, " ");
-		tr_add(c1, c2);
+		cmap_add(c1, c2);
 	}
 }
 
-/* character definitions */
-static char chdef_src[NCHDEF][GNLEN];
-static char *chdef_dst[NCHDEF];
-static int chdef_n;
+/* character definition (.char) */
+static char cdef_src[NCDEFS][GNLEN];	/* source character */
+static char *cdef_dst[NCDEFS];		/* character definition */
+static int cdef_n;			/* number of defined characters */
+static int cdef_expanding;		/* inside cdef_expand() call */
 
-static int chdef_find(char *c)
+static int cdef_find(char *c)
 {
 	int i;
-	for (i = 0; i < chdef_n; i++)
-		if (!strcmp(chdef_src[i], c))
+	for (i = 0; i < cdef_n; i++)
+		if (!strcmp(cdef_src[i], c))
 			return i;
 	return -1;
 }
 
 /* return the definition of the given character */
-char *chdef_map(char *c)
+char *cdef_map(char *c)
 {
-	int i = chdef_find(c);
-	return i >= 0 ? chdef_dst[i] : NULL;
+	int i = cdef_find(c);
+	return !cdef_expanding && i >= 0 ? cdef_dst[i] : NULL;
+}
+
+int cdef_expand(struct wb *wb, char *s)
+{
+	char *d = cdef_map(s);
+	if (!d)
+		return 1;
+	cdef_expanding = 1;
+	ren_parse(wb, d);
+	cdef_expanding = 0;
+	return 0;
 }
 
 static void tr_char(char **args)
@@ -563,13 +575,13 @@ static void tr_char(char **args)
 	int i;
 	if (!args[2] || charread(&s, c) < 0)
 		return;
-	i = chdef_find(c);
-	if (i < 0 && chdef_n < NCHDEF)
-		i = chdef_n++;
+	i = cdef_find(c);
+	if (i < 0 && cdef_n < NCDEFS)
+		i = cdef_n++;
 	if (i >= 0) {
-		strncpy(chdef_src[i], c, sizeof(chdef_src[i]) - 1);
-		chdef_dst[i] = malloc(strlen(args[2]) + 1);
-		strcpy(chdef_dst[i], args[2]);
+		strncpy(cdef_src[i], c, sizeof(cdef_src[i]) - 1);
+		cdef_dst[i] = malloc(strlen(args[2]) + 1);
+		strcpy(cdef_dst[i], args[2]);
 	}
 }
 
@@ -581,9 +593,9 @@ static void tr_rchar(char **args)
 	for (i = 1; i <= NARGS; i++) {
 		s = args[i];
 		if (s && charread(&s, c) >= 0) {
-			if (chdef_find(c) >= 0) {
-				free(chdef_dst[chdef_find(c)]);
-				chdef_dst[chdef_find(c)] = NULL;
+			if (cdef_find(c) >= 0) {
+				free(cdef_dst[cdef_find(c)]);
+				cdef_dst[cdef_find(c)] = NULL;
 			}
 		}
 	}

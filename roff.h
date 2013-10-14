@@ -24,12 +24,12 @@
 #define NTRAPS		1024	/* number of traps per page */
 #define NIES		128	/* number of nested .ie commands */
 #define NTABS		16	/* number of tab stops */
-#define NTR		512	/* number of character translations (.tr) */
+#define NCMAPS		512	/* number of character translations (.tr) */
 #define NSSTR		32	/* number of nested sstr_push() calls */
 #define NFIELDS		32	/* number of fields */
 #define MAXFRAC		100000	/* maximum value of the fractional part */
 #define LIGLEN		4	/* length of ligatures */
-#define NCHDEF		128	/* number of character definitions (.char) */
+#define NCDEFS		128	/* number of character definitions (.char) */
 
 /* escape sequences */
 #define ESC_Q	"bCDhHlLNoSvwxX"	/* \X'ccc' quoted escape sequences */
@@ -175,12 +175,6 @@ void cp_wid(int enable);	/* control inlining \w requests */
 #define cp_back		in_back	/* cp.c is stateless */
 void tr_first(void);		/* read until the first non-command line */
 
-/* character translation (.tr) */
-void tr_add(char *c1, char *c2);
-char *tr_map(char *c);
-/* character definition (.char) */
-char *chdef_map(char *c);
-
 /* variable length string buffer */
 struct sbuf {
 	char *s;		/* allocated buffer */
@@ -242,6 +236,13 @@ void wb_wconf(struct wb *wb, int *ct, int *st, int *sb);
 int wb_lig(struct wb *wb, char *c);
 int wb_kern(struct wb *wb, char *c);
 
+/* character translation (.tr) */
+void cmap_add(char *c1, char *c2);
+char *cmap_map(char *c);
+/* character definition (.char) */
+char *cdef_map(char *c);
+int cdef_expand(struct wb *wb, char *c);
+
 /* hyphenation flags */
 #define HY_MASK		0x0f	/* enable hyphenation */
 #define HY_LAST		0x02	/* do not hyphenate last lines */
@@ -275,6 +276,7 @@ void adj_nonl(struct adj *adj);
 
 /* rendering */
 int render(void);				/* the main loop */
+int ren_parse(struct wb *wb, char *c);
 int ren_char(struct wb *wb, int (*next)(void), void (*back)(int));
 int ren_wid(int (*next)(void), void (*back)(int));
 void ren_tl(int (*next)(void), void (*back)(int));
@@ -284,7 +286,6 @@ void ren_vlcmd(struct wb *wb, char *arg);	/* \L */
 void ren_bcmd(struct wb *wb, char *arg);	/* \b */
 void ren_ocmd(struct wb *wb, char *arg);	/* \o */
 void ren_dcmd(struct wb *wb, char *arg);	/* \D */
-int ren_expand(struct wb *wb, char *c);		/* .char expansion */
 
 /* out.c */
 void out_line(char *s);				/* output rendered line */

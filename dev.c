@@ -133,7 +133,7 @@ struct glyph *dev_glyph(char *c, int fn)
 		c++;
 	if (c[0] == c_ec && c[1] == '(')
 		c += 2;
-	c = tr_map(c);
+	c = cmap_map(c);
 	g = font_find(fn_font[fn], c);
 	if (g)
 		return g;

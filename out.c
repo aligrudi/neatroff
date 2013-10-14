@@ -148,7 +148,7 @@ void out_line(char *s)
 			}
 			if (c[0] == '\t' || c[0] == '' || !strcmp(c_hc, c))
 				continue;
-			outc(tr_map(c));
+			outc(cmap_map(c));
 			continue;
 		}
 		switch (t) {

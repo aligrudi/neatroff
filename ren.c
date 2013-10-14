@@ -730,13 +730,14 @@ static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int)
 			strcpy(c, g ? g->name : "cnull");
 		}
 	}
+	if (!ren_div && cdef_map(c)) {			/* .char characters */
+		wb_putexpand(wb, c);
+		return;
+	}
 	if (!n_lg || ren_div || wb_lig(wb, c)) {
 		if (n_kn && !ren_div)
 			wb_kern(wb, c);
-		if (ren_div)
-			wb_put(wb, c);	/* disable .char for diverted text */
-		else
-			wb_putexpand(wb, c);
+		wb_put(wb, c);
 	}
 }
 
@@ -899,28 +900,21 @@ static void ren_tab(struct wb *wb, char *tc, int (*next)(void), void (*back)(int
 	wb_done(&t);
 }
 
-static int ren_expanding;	/* expanding the definition of a character */
-
-/* expand the given defined character */
-int ren_expand(struct wb *wb, char *n)
+/* parse characters and troff requests of s and append them to wb */
+int ren_parse(struct wb *wb, char *s)
 {
-	char *s = chdef_map(n);
 	int c;
-	if (!s || ren_expanding)
-		return 1;
-	ren_expanding = 1;
 	odiv_beg();
 	sstr_push(s);
 	c = sstr_next();
 	while (c >= 0) {
 		sstr_back(c);
-		if (ren_chardel(wb, sstr_next, sstr_back, NULL, NULL))
+		if (ren_char(wb, sstr_next, sstr_back))
 			break;
 		c = sstr_next();
 	}
 	sstr_pop();
 	odiv_end();
-	ren_expanding = 0;
 	return 0;
 }
 
