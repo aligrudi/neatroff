@@ -58,7 +58,7 @@ void in_so(char *path)
 		buf->fin = fin;
 		buf->lnum = 1;
 		if (path)
-			snprintf(buf->path, sizeof(buf->path) - 1, "%s", path);
+			snprintf(buf->path, sizeof(buf->path), "%s", path);
 	}
 }
 
@@ -68,7 +68,7 @@ void in_lf(char *path, int lnum)
 	while (cur && !cur->fin)
 		cur = cur->prev;
 	if (path)
-		strcpy(cur->path, path);
+		snprintf(cur->path, sizeof(cur->path), "%s", path);
 	cur->lnum = lnum;
 }
 
@@ -84,7 +84,7 @@ static void in_pop(void)
 	buf = buf->prev;
 	if (old->args)
 		args_free(old->args);
-	if (old->fin && old->path[0])
+	if (old->fin && old->fin != stdin)
 		fclose(old->fin);
 	free(old->buf);
 	free(old);
