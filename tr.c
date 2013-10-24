@@ -820,6 +820,7 @@ static struct cmd {
 	{"fc", tr_fc},
 	{"fi", tr_fi},
 	{"fp", tr_fp},
+	{"fspecial", tr_fspecial},
 	{"ft", tr_ft},
 	{"hc", tr_hc},
 	{"hy", tr_hy},

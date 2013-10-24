@@ -16,6 +16,11 @@ static char fn_name[NFONTS][FNLEN];	/* font names */
 static struct font *fn_font[NFONTS];	/* font structs */
 static int fn_n;			/* number of mounted fonts */
 
+/* .fspecial request */
+static char fspecial_fn[NFONTS][FNLEN];	/* .fspecial first arguments */
+static char fspecial_sp[NFONTS][FNLEN];	/* .fspecial special fonts */
+static int fspecial_n;			/* number of fonts in fspecial_sp[] */
+
 static void skipline(FILE* filp)
 {
 	int c;
@@ -137,6 +142,10 @@ struct glyph *dev_glyph(char *c, int fn)
 	g = font_find(fn_font[fn], c);
 	if (g)
 		return g;
+	for (i = 0; i < fspecial_n; i++)
+		if (dev_pos(fspecial_fn[i]) == fn && dev_pos(fspecial_sp[i]) >= 0)
+			if ((g = font_find(dev_font(dev_pos(fspecial_sp[i])), c)))
+				return g;
 	for (i = 0; i < fn_n; i++)
 		if (fn_font[i] && fn_font[i]->special)
 			if ((g = font_find(fn_font[i], c)))
@@ -154,7 +163,7 @@ int dev_kernpair(char *c1, char *c2)
 	return 0;
 }
 
-/* return the mounted position of font */
+/* return the mounted position of a font */
 int dev_pos(char *id)
 {
 	int i;
@@ -172,6 +181,16 @@ int dev_pos(char *id)
 	if (!strcmp(fn_name[0], id))
 		return 0;
 	return dev_mnt(0, id, id);
+}
+
+/* return the mounted position of a font struct */
+int dev_fontpos(struct font *fn)
+{
+	int i;
+	for (i = 0; i < fn_n; i++)
+		if (fn_font[i] == fn)
+			return i;
+	return 0;
 }
 
 /* return the font struct at pos */
@@ -200,4 +219,21 @@ void dev_setbd(int fn, int bd)
 {
 	if (fn >= 0)
 		dev_font(fn)->bd = bd;
+}
+
+void tr_fspecial(char **args)
+{
+	char *fn = args[1];
+	int i;
+	if (!fn) {
+		fspecial_n = 0;
+		return;
+	}
+	for (i = 2; i < NARGS; i++) {
+		if (args[i] && fspecial_n < LEN(fspecial_fn)) {
+			strcpy(fspecial_fn[fspecial_n], fn);
+			strcpy(fspecial_sp[fspecial_n], args[i]);
+			fspecial_n++;
+		}
+	}
 }

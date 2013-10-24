@@ -110,12 +110,15 @@ static void out_draw(char *s)
 	outnn("\n");
 }
 
-static void outg(char *c)
+static void outg(char *c, int fn)
 {
+	int ofn = o_f;
+	out_ft(fn);
 	if (utf8one(c))
 		outnn("c%s%s", c, c[1] ? "\n" : "");
 	else
 		out("C%s\n", c[0] == c_ec && c[1] == '(' ? c + 2 : c);
+	out_ft(ofn);
 }
 
 static void outc(char *c)
@@ -125,10 +128,10 @@ static void outc(char *c)
 	int bwid = charwid_base(o_f, o_s, g ? g->wid : SC_DW);
 	if (dev_getcs(o_f))
 		outnn("h%d", (cwid - bwid) / 2);
-	outg(c);
+	outg(c, g ? dev_fontpos(g->font) : o_f);
 	if (dev_getbd(o_f)) {
 		outnn("h%d", dev_getbd(o_f) - 1);
-		outg(c);
+		outg(c, g ? dev_fontpos(g->font) : o_f);
 		outnn("h%d", -dev_getbd(o_f) + 1);
 	}
 	if (dev_getcs(o_f))
