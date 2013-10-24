@@ -730,7 +730,7 @@ static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int)
 			strcpy(c, g ? g->name : "cnull");
 		}
 	}
-	if (!ren_div && cdef_map(c)) {			/* .char characters */
+	if (!ren_div && cdef_map(c, n_f)) {		/* .char characters */
 		wb_putexpand(wb, c);
 		return;
 	}

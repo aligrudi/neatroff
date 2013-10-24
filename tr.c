@@ -556,28 +556,30 @@ static void tr_tr(char **args)
 /* character definition (.char) */
 static char cdef_src[NCDEFS][GNLEN];	/* source character */
 static char *cdef_dst[NCDEFS];		/* character definition */
+static char cdef_fn[NCDEFS][FNLEN];	/* owning font */
 static int cdef_n;			/* number of defined characters */
 static int cdef_expanding;		/* inside cdef_expand() call */
 
-static int cdef_find(char *c)
+static int cdef_find(char *c, int fn)
 {
 	int i;
 	for (i = 0; i < cdef_n; i++)
-		if (!strcmp(cdef_src[i], c))
+		if (!strcmp(cdef_src[i], c) &&
+				(!cdef_fn[i][0] || dev_pos(cdef_fn[i]) == fn))
 			return i;
 	return -1;
 }
 
 /* return the definition of the given character */
-char *cdef_map(char *c)
+char *cdef_map(char *c, int fn)
 {
-	int i = cdef_find(c);
+	int i = cdef_find(c, fn);
 	return !cdef_expanding && i >= 0 ? cdef_dst[i] : NULL;
 }
 
-int cdef_expand(struct wb *wb, char *s)
+int cdef_expand(struct wb *wb, char *s, int fn)
 {
-	char *d = cdef_map(s);
+	char *d = cdef_map(s, fn);
 	if (!d)
 		return 1;
 	cdef_expanding = 1;
@@ -586,37 +588,55 @@ int cdef_expand(struct wb *wb, char *s)
 	return 0;
 }
 
-static void tr_char(char **args)
+static void cdef_add(char *fn, char *cs, char *def)
 {
 	char c[GNLEN];
-	char *s = args[1];
 	int i;
-	if (!args[2] || charread(&s, c) < 0)
+	if (!def || charread(&cs, c) < 0)
 		return;
-	i = cdef_find(c);
+	i = cdef_find(c, -1);
 	if (i < 0 && cdef_n < NCDEFS)
 		i = cdef_n++;
 	if (i >= 0) {
 		strncpy(cdef_src[i], c, sizeof(cdef_src[i]) - 1);
-		cdef_dst[i] = malloc(strlen(args[2]) + 1);
-		strcpy(cdef_dst[i], args[2]);
+		cdef_dst[i] = malloc(strlen(def) + 1);
+		strcpy(cdef_dst[i], def);
+		strcpy(cdef_fn[i], fn ? fn : "");
 	}
+}
+
+static void cdef_remove(char *cs)
+{
+	char c[GNLEN];
+	int i;
+	if (!cs || charread(&cs, c) < 0)
+		return;
+	for (i = 0; i < cdef_n; i++) {
+		if (!strcmp(cdef_src[i], c)) {
+			free(cdef_dst[i]);
+			cdef_dst[i] = NULL;
+			cdef_src[i][0] = '\0';
+			cdef_fn[i][0] = '\0';
+		}
+	}
+}
+
+static void tr_char(char **args)
+{
+	cdef_add(NULL, args[1], args[2]);
 }
 
 static void tr_rchar(char **args)
 {
-	char c[GNLEN];
-	char *s;
 	int i;
-	for (i = 1; i <= NARGS; i++) {
-		s = args[i];
-		if (s && charread(&s, c) >= 0) {
-			if (cdef_find(c) >= 0) {
-				free(cdef_dst[cdef_find(c)]);
-				cdef_dst[cdef_find(c)] = NULL;
-			}
-		}
-	}
+	for (i = 1; i <= NARGS; i++)
+		if (args[i])
+			cdef_remove(args[i]);
+}
+
+static void tr_ochar(char **args)
+{
+	cdef_add(args[1], args[2], args[3]);
 }
 
 static char *arg_regname(char *s, int len)
@@ -799,6 +819,7 @@ static struct cmd {
 	{"br", tr_br},
 	{"c2", tr_c2},
 	{"cc", tr_cc},
+	{"ochar", tr_ochar},
 	{"ce", tr_ce},
 	{"ch", tr_ch},
 	{"char", tr_char, mkargs_ds},

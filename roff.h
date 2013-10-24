@@ -241,8 +241,8 @@ int wb_kern(struct wb *wb, char *c);
 void cmap_add(char *c1, char *c2);
 char *cmap_map(char *c);
 /* character definition (.char) */
-char *cdef_map(char *c);
-int cdef_expand(struct wb *wb, char *c);
+char *cdef_map(char *c, int fn);
+int cdef_expand(struct wb *wb, char *c, int fn);
 
 /* hyphenation flags */
 #define HY_MASK		0x0f	/* enable hyphenation */

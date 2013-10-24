@@ -167,7 +167,7 @@ void wb_put(struct wb *wb, char *c)
 /* just like wb_put(), but call cdef_expand() if c is defined */
 void wb_putexpand(struct wb *wb, char *c)
 {
-	if (cdef_expand(wb, c))
+	if (cdef_expand(wb, c, R_F(wb)))
 		wb_put(wb, c);
 }
 
