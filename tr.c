@@ -493,6 +493,24 @@ static void tr_lf(char **args)
 		in_lf(args[2], eval(args[1], 0));
 }
 
+static void tr_chop(char **args)
+{
+	struct sbuf sbuf;
+	int id;
+	if (args[1])
+		in_lf(args[2], eval(args[1], 0));
+	id = map(args[1]);
+	if (str_get(id)) {
+		sbuf_init(&sbuf);
+		sbuf_append(&sbuf, str_get(id));
+		if (!sbuf_empty(&sbuf)) {
+			sbuf_cut(&sbuf, sbuf_len(&sbuf) - 1);
+			str_set(id, sbuf_buf(&sbuf));
+		}
+		sbuf_done(&sbuf);
+	}
+}
+
 /* character translation (.tr) */
 static char cmap_src[NCMAPS][GNLEN];	/* source character */
 static char cmap_dst[NCMAPS][GNLEN];	/* character mapping */
@@ -784,6 +802,7 @@ static struct cmd {
 	{"ce", tr_ce},
 	{"ch", tr_ch},
 	{"char", tr_char, mkargs_ds},
+	{"chop", tr_chop, mkargs_reg1},
 	{"cl", tr_cl},
 	{"cp", tr_cp},
 	{"cs", tr_cs},
