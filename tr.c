@@ -556,7 +556,7 @@ static void tr_tr(char **args)
 /* character definition (.char) */
 static char cdef_src[NCDEFS][GNLEN];	/* source character */
 static char *cdef_dst[NCDEFS];		/* character definition */
-static char cdef_fn[NCDEFS][FNLEN];	/* owning font */
+static int cdef_fn[NCDEFS];		/* owning font */
 static int cdef_n;			/* number of defined characters */
 static int cdef_expanding;		/* inside cdef_expand() call */
 
@@ -564,8 +564,7 @@ static int cdef_find(char *c, int fn)
 {
 	int i;
 	for (i = 0; i < cdef_n; i++)
-		if (!strcmp(cdef_src[i], c) &&
-				(!cdef_fn[i][0] || dev_pos(cdef_fn[i]) == fn))
+		if (!strcmp(cdef_src[i], c) && (!cdef_fn[i] || cdef_fn[i] == fn))
 			return i;
 	return -1;
 }
@@ -601,7 +600,7 @@ static void cdef_add(char *fn, char *cs, char *def)
 		strncpy(cdef_src[i], c, sizeof(cdef_src[i]) - 1);
 		cdef_dst[i] = malloc(strlen(def) + 1);
 		strcpy(cdef_dst[i], def);
-		strcpy(cdef_fn[i], fn ? fn : "");
+		cdef_fn[i] = fn ? dev_pos(fn) : 0;
 	}
 }
 
@@ -616,7 +615,6 @@ static void cdef_remove(char *cs)
 			free(cdef_dst[i]);
 			cdef_dst[i] = NULL;
 			cdef_src[i][0] = '\0';
-			cdef_fn[i][0] = '\0';
 		}
 	}
 }
