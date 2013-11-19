@@ -1,17 +1,10 @@
-/* converting scales */
-#define SC_IN		(dev_res)	/* inch in units */
-#define SC_PT		(SC_IN / 72)	/* point in units */
-#define SC_EM		(n_s * SC_IN / 72)
-#define SC_DW		(SC_EM / 3)	/* default width */
-#define SC_HT		(n_s * SC_PT)	/* character height */
-
 /* predefined array limits */
 #define PATHLEN		1024	/* path length */
 #define NFILES		16	/* number of input files */
 #define NFONTS		32	/* number of fonts */
 #define NGLYPHS		1024	/* glyphs in fonts */
 #define NLIGS		128	/* number of font ligatures */
-#define NKERNS		1024	/* number of font pairwise kerning pairs */
+#define NKERNS		1024	/* number of font kerning pairs */
 #define FNLEN		32	/* font name length */
 #define NMLEN		32	/* macro/register/environment/glyph name length */
 #define GNLEN		NMLEN	/* glyph name length */
@@ -30,6 +23,13 @@
 #define MAXFRAC		100000	/* maximum value of the fractional part */
 #define LIGLEN		4	/* length of ligatures */
 #define NCDEFS		128	/* number of character definitions (.char) */
+
+/* converting scales */
+#define SC_IN		(dev_res)	/* inch in units */
+#define SC_PT		(SC_IN / 72)	/* point in units */
+#define SC_EM		(n_s * SC_IN / 72)
+#define SC_DW		(SC_EM / 3)	/* default width */
+#define SC_HT		(n_s * SC_PT)	/* character height */
 
 /* escape sequences */
 #define ESC_Q	"bCDhHlLNoSvwxX"	/* \X'ccc' quoted escape sequences */
@@ -92,8 +92,8 @@ extern int dev_hor;
 extern int dev_ver;
 
 struct glyph {
-	char name[GNLEN];	/* name of the glyph */
 	char id[GNLEN];		/* device-dependent glyph identifier */
+	char name[GNLEN];	/* the first character mapped to this glyph */
 	struct font *font;	/* glyph font */
 	int wid;		/* character width */
 	int type;		/* character type; ascender/descender */
@@ -107,16 +107,20 @@ struct font {
 	int spacewid;
 	int special;
 	int cs, bd;			/* for .cs and .bd requests */
+	/* charset section characters */
 	char c[NGLYPHS][GNLEN];		/* character names in charset */
 	struct glyph *g[NGLYPHS];	/* character glyphs in charset */
 	int n;				/* number of characters in charset */
-	/* font ligatures */
-	char lig[NLIGS][LIGLEN * GNLEN];
-	int nlig;
-	/* glyph list based on the first character of glyph names */
-	int head[256];			/* glyph list head */
-	int next[NGLYPHS];		/* next item in glyph list */
-	/* kerning pair list per glyph */
+	/* glyph table based on the first character of their id fields in glyphs[] */
+	int ghead[256];			/* glyph list heads */
+	int gnext[NGLYPHS];		/* next item in glyph lists */
+	/* character table based on the first character of glyph names in c[] */
+	int chead[256];			/* character list heads */
+	int cnext[NGLYPHS];		/* next item in character lists */
+	/* font ligatures (lg*) */
+	char lg[NLIGS][LIGLEN * GNLEN];	/* ligatures */
+	int lgn;			/* number of ligatures in lg[] */
+	/* kerning pair table per glyph (kn*) */
 	int knhead[NGLYPHS];		/* kerning pairs of glyphs[] */
 	int knnext[NKERNS];		/* next item in knhead[] list */
 	int knpair[NKERNS];		/* kerning pair 2nd glyphs */
