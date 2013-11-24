@@ -126,6 +126,8 @@ static void outc(char *c)
 	struct glyph *g = dev_glyph(c, o_f);
 	int cwid = charwid(o_f, o_s, g ? g->wid : SC_DW);
 	int bwid = charwid_base(o_f, o_s, g ? g->wid : SC_DW);
+	if (g && font_mapped(g->font, c))
+		c = g->name;
 	if (dev_getcs(o_f))
 		outnn("h%d", (cwid - bwid) / 2);
 	outg(c, g ? dev_fontpos(g->font) : o_f);

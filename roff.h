@@ -110,6 +110,7 @@ struct font {
 	/* charset section characters */
 	char c[NGLYPHS][GNLEN];		/* character names in charset */
 	struct glyph *g[NGLYPHS];	/* character glyphs in charset */
+	struct glyph *g_map[NGLYPHS];	/* character remapped via font_map() */
 	int n;				/* number of characters in charset */
 	/* glyph table based on the first character of their id fields in glyphs[] */
 	int ghead[256];			/* glyph list heads */
@@ -148,6 +149,8 @@ struct glyph *font_find(struct font *fn, char *name);
 int font_lig(struct font *fn, char **c, int n);
 int font_kern(struct font *fn, char *c1, char *c2);
 int font_islig(struct font *fn, char *s);
+int font_map(struct font *fn, char *name, struct glyph *gl);
+int font_mapped(struct font *fn, char *name);
 
 /* glyph handling functions */
 struct glyph *dev_glyph(char *c, int fn);

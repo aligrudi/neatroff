@@ -3,29 +3,39 @@
 #include <string.h>
 #include "roff.h"
 
-struct glyph *font_find(struct font *fn, char *name)
+/* look up a character in chead[]/cnext[] table */
+static int font_cidx(struct font *fn, char *name)
 {
 	int i = fn->chead[(unsigned char) name[0]];
-	while (i >= 0) {
-		if (!strcmp(name, fn->c[i]))
-			return fn->g[i];
+	while (i >= 0 && strcmp(name, fn->c[i]))
 		i = fn->cnext[i];
-	}
-	return NULL;
+	return i;
+}
+
+/* look up a character in ghead[]/gnext[] table */
+static int font_gidx(struct font *fn, char *id)
+{
+	int i = fn->ghead[(unsigned char) id[0]];
+	while (i >= 0 && strcmp(fn->glyphs[i].id, id))
+		i = fn->gnext[i];
+	return i;
+}
+
+struct glyph *font_find(struct font *fn, char *name)
+{
+	int i = font_cidx(fn, name);
+	if (i < 0)
+		return NULL;
+	return fn->g_map[i] ? fn->g_map[i] : fn->g[i];
 }
 
 struct glyph *font_glyph(struct font *fn, char *id)
 {
-	int i = fn->ghead[(unsigned char) id[0]];
-	while (i >= 0) {
-		if (!strcmp(fn->glyphs[i].id, id))
-			return &fn->glyphs[i];
-		i = fn->gnext[i];
-	}
-	return NULL;
+	int i = font_gidx(fn, id);
+	return i >= 0 ? &fn->glyphs[i] : NULL;
 }
 
-struct glyph *font_glyphput(struct font *fn, char *id, char *name, int wid, int type)
+static struct glyph *font_glyphput(struct font *fn, char *id, char *name, int wid, int type)
 {
 	int i = fn->nglyphs++;
 	struct glyph *g;
@@ -38,6 +48,31 @@ struct glyph *font_glyphput(struct font *fn, char *id, char *name, int wid, int 
 	fn->gnext[i] = fn->ghead[(unsigned char) id[0]];
 	fn->ghead[(unsigned char) id[0]] = i;
 	return g;
+}
+
+/* map character name to the given glyph */
+int font_map(struct font *fn, char *name, struct glyph *g)
+{
+	int i = font_cidx(fn, name);
+	if (g && g->font != fn)
+		return 1;
+	if (i < 0) {
+		if (fn->n >= NGLYPHS)
+			return 1;
+		i = fn->n++;
+		strcpy(fn->c[i], name);
+		fn->cnext[i] = fn->chead[(unsigned char) name[0]];
+		fn->chead[(unsigned char) name[0]] = i;
+	}
+	fn->g_map[i] = g;
+	return 0;
+}
+
+/* return nonzero if character name has been mapped with font_map() */
+int font_mapped(struct font *fn, char *name)
+{
+	int i = font_cidx(fn, name);
+	return i >= 0 && fn->g_map[i];
 }
 
 /* glyph index in fn->glyphs[] */
@@ -115,15 +150,15 @@ static int font_readchar(struct font *fn, FILE *fin)
 		return 1;
 	if (!strcmp("---", name))
 		sprintf(name, "c%04d", fn->n);
-	if (strcmp("\"", tok)) {
+	if (!strcmp("\"", tok)) {
+		glyph = fn->g[fn->n - 1];
+	} else {
 		wid = atoi(tok);
 		if (fscanf(fin, "%d %s", &type, id) != 2)
 			return 1;
 		glyph = font_glyph(fn, id);
 		if (!glyph)
 			glyph = font_glyphput(fn, id, name, wid, type);
-	} else {
-		glyph = fn->g[fn->n - 1];
 	}
 	strcpy(fn->c[fn->n], name);
 	fn->g[fn->n] = glyph;

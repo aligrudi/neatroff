@@ -637,6 +637,16 @@ static void tr_ochar(char **args)
 	cdef_add(args[1], args[2], args[3]);
 }
 
+static void tr_fmap(char **args)
+{
+	struct font *fn;
+	if (!args[2])
+		return;
+	fn = dev_font(dev_pos(args[1]));
+	if (fn)
+		font_map(fn, args[2], args[3] ? font_glyph(fn, args[3]) : NULL);
+}
+
 static char *arg_regname(char *s, int len)
 {
 	char *e = n_cp ? s + 2 : s + len;
@@ -838,6 +848,7 @@ static struct cmd {
 	{"ex", tr_ex},
 	{"fc", tr_fc},
 	{"fi", tr_fi},
+	{"fmap", tr_fmap},
 	{"fp", tr_fp},
 	{"fspecial", tr_fspecial},
 	{"ft", tr_ft},
