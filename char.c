@@ -3,6 +3,7 @@
 #include <string.h>
 #include "roff.h"
 
+/* return the length of a utf-8 character based on its first byte */
 int utf8len(int c)
 {
 	if (c > 0 && c <= 0x7f)
@@ -26,6 +27,7 @@ int utf8one(char *s)
 	return !s[utf8len((unsigned char) *s)];
 }
 
+/* read a utf-8 character from s and copy it to d */
 int utf8read(char **s, char *d)
 {
 	int l = utf8len((unsigned char) **s);
@@ -37,6 +39,7 @@ int utf8read(char **s, char *d)
 	return l;
 }
 
+/* read a utf-8 character with next() and copy it to s */
 int utf8next(char *s, int (*next)(void))
 {
 	int c = next();
@@ -208,7 +211,7 @@ void argread(char **sp, char *d, int cmd)
 /*
  * read a glyph or an escape sequence
  *
- * This functions reads from s either an output troff request
+ * This function reads from s either an output troff request
  * (only the ones emitted by wb.c) or a glyph name and updates
  * s.  The return value is the name of the troff request (the
  * argument is copied into d) or zero for glyph names (it is
