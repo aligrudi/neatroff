@@ -4,7 +4,7 @@
 #include <string.h>
 #include "roff.h"
 
-static int tr_nl = 1;
+static int tr_nl = 1;		/* just read a newline */
 static int c_pc = '%';		/* page number character */
 int c_ec = '\\';
 int c_cc = '.';
