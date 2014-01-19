@@ -1,23 +1,15 @@
 /*
  * neatroff troff clone
  *
- * Copyright (C) 2012-2013 Ali Gholami Rudi <ali at rudi dot ir>
+ * Copyright (C) 2012-2014 Ali Gholami Rudi <ali at rudi dot ir>
  *
- * This program is released under the modified BSD license.
+ * This program is released under the Modified BSD license.
  */
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include "roff.h"
-
-static void g_init(void)
-{
-	n_o = SC_IN;
-	n_p = SC_IN * 11;
-	n_lg = 1;
-	n_kn = 0;
-}
 
 void errmsg(char *fmt, ...)
 {
@@ -34,7 +26,7 @@ void errdie(char *msg)
 }
 
 static char *usage =
-	"Usage: neatcc [options] input\n"
+	"Usage: neatroff [options] input\n\n"
 	"Options:\n"
 	"  -mx   \tinclude macro x\n"
 	"  -C    \tenable compatibility mode\n"
@@ -81,7 +73,6 @@ int main(int argc, char **argv)
 	}
 	env_init();
 	tr_init();
-	g_init();
 	if (i == argc)
 		in_queue(NULL);	/* reading from standard input */
 	for (; i < argc; i++)

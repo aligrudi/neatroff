@@ -216,10 +216,19 @@ static void init_time(void)
 	nregs[map("yr")] = tm->tm_year % 100;
 }
 
+static void init_globals(void)
+{
+	n_o = SC_IN;
+	n_p = SC_IN * 11;
+	n_lg = 1;
+	n_kn = 0;
+}
+
 void env_init(void)
 {
 	int i;
 	init_time();
+	init_globals();
 	for (i = 0; i < LEN(eregs); i++)
 		eregs_idx[map(eregs[i])] = i + 1;
 	env_set(0);
