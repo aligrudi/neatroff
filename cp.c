@@ -1,3 +1,4 @@
+/* copy-mode character interpretation */
 #include <stdio.h>
 #include <stdlib.h>
 #include "roff.h"

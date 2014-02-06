@@ -1,3 +1,26 @@
+/*
+ * Most functions and variables in neatroff are prefixed with tokens
+ * that indicate their purpose, such as:
+ *
+ * + tr_xyz: the implementation of troff request .xyz (mostly tr.c)
+ * + in_xyz: input layer (in.c)
+ * + cp_xyz: copy-mode interpretation layer (cp.c)
+ * + ren_xyz: rendering characters into lines (ren.c)
+ * + out_xyz: output layer for generating troff output (out.c)
+ * + dev_xyz: output devices (dev.c)
+ * + num_xyz: number registers (reg.c)
+ * + str_xyz: string registers (reg.c)
+ * + env_xyz: environments (reg.c)
+ * + eval_xyz: integer expression evaluation (eval.c)
+ * + font_xyz: fonts (font.c)
+ * + sbuf_xyz: variable length string buffers (sbuf.c)
+ * + wb_xyz: word buffers (wb.c)
+ * + adj_xyz: line adjustment buffers (adj.c)
+ * + n_xyz: builtin number register xyz
+ * + c_xyz: characters for requests like hc and mc
+ *
+ */
+
 /* predefined array limits */
 #define PATHLEN		1024	/* path length */
 #define NFILES		16	/* number of input files */
@@ -43,7 +66,7 @@
 extern int c_ec;	/* escape character (\) */
 extern int c_cc;	/* basic control character (.) */
 extern int c_c2;	/* no-break control character (') */
-#define c_ni	4	/* non-interpreted copy mode escape */
+#define c_ni	4	/* non-interpreted copy-mode escape */
 #define c_hc	env_hc()/* hyphenation character */
 #define c_mc	env_mc()/* margin character (.mc) */
 #define c_tc	env_tc()
@@ -168,9 +191,9 @@ void in_push(char *s, char **args);
 void in_pushnl(char *s, char **args);
 void in_so(char *path);		/* .so request */
 void in_nx(char *path);		/* .nx request */
-void in_ex(void);		/* .nx request */
+void in_ex(void);		/* .ex request */
 void in_lf(char *path, int ln);	/* .lf request */
-void in_queue(char *path);	/* .ex request */
+void in_queue(char *path);	/* queue the given input file */
 char *in_arg(int i);		/* look up argument */
 int in_nargs(void);		/* number of arguments */
 void in_back(int c);		/* push back input character */

@@ -1,3 +1,4 @@
+/* evaluation of integer expressions */
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>

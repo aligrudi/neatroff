@@ -1,3 +1,4 @@
+/* mapping register/macro names to indices */
 #include <stdio.h>
 #include <string.h>
 #include "roff.h"

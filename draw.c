@@ -1,3 +1,4 @@
+/* helper for drawing commands in ren.c */
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>

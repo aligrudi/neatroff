@@ -1,3 +1,4 @@
+/* generating troff output */
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
