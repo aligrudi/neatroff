@@ -71,6 +71,7 @@ extern int c_c2;	/* no-break control character (') */
 #define c_mc	env_mc()/* margin character (.mc) */
 #define c_tc	env_tc()
 #define c_lc	env_lc()
+#define c_bp	"\\:"	/* zero-width word break point */
 
 /* number registers */
 int num_get(int id, int inc);

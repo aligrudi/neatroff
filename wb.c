@@ -157,7 +157,7 @@ void wb_put(struct wb *wb, char *c)
 		else
 			sbuf_printf(&wb->sbuf, "%cC'%s'", c_ec, c);
 	}
-	if (strcmp(c_hc, c)) {
+	if (strcmp(c_hc, c) && strcmp(c_bp, c)) {
 		wb_prevput(wb, c, ll);
 		wb->h += charwid(R_F(wb), R_S(wb), g ? g->wid : SC_DW);
 		wb->ct |= g ? g->type : 0;
@@ -366,7 +366,8 @@ static int skipreqs(char **s, struct wb *w1)
 	return 0;
 }
 
-static char *dashpos(char *s, int w, struct wb *w1, int flg)
+/* the position marked with hyphens or \: */
+static char *bp_pos(char *s, int w, struct wb *w1, int flg)
 {
 	char d[ILNLEN];
 	char *r = NULL;
@@ -376,7 +377,8 @@ static char *dashpos(char *s, int w, struct wb *w1, int flg)
 		wb_putc(w1, c, d);
 		if (wb_wid(w1) > w && (!(flg & HY_ANY) || r))
 			continue;
-		if (!c && (!strcmp("-", d) || (!strcmp("em", d) || !strcmp("hy", d))))
+		if (!c && (!strcmp("-", d) || (!strcmp("em", d) ||
+					!strcmp("hy", d)) || !strcmp(c_bp, d)))
 			r = s;
 	}
 	return r;
@@ -388,7 +390,8 @@ static int wb_dashwid(struct wb *wb)
 	return charwid(R_F(wb), R_S(wb), g ? g->wid : SC_DW);
 }
 
-static char *indicatorpos(char *s, int w, struct wb *w1, int flg)
+/* the position marked with \% */
+static char *hc_pos(char *s, int w, struct wb *w1, int flg)
 {
 	char d[ILNLEN];
 	char *r = NULL;
@@ -466,8 +469,8 @@ int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2, int flg)
 	char *dp, *hp, *p;
 	if (skipreqs(&s, w1))
 		return 1;
-	dp = dashpos(sbuf_buf(&wb->sbuf), w, w1, flg);
-	hp = indicatorpos(sbuf_buf(&wb->sbuf), w, w1, flg);
+	dp = bp_pos(sbuf_buf(&wb->sbuf), w, w1, flg);
+	hp = hc_pos(sbuf_buf(&wb->sbuf), w, w1, flg);
 	if (hp && dp)
 		p = flg & HY_ANY ? MIN(dp, hp) : MAX(dp, hp);
 	else
