@@ -18,6 +18,7 @@ void wb_init(struct wb *wb)
 	wb->r_f = -1;
 	wb->r_s = -1;
 	wb->r_m = -1;
+	wb->icleft_ll = -1;
 }
 
 void wb_done(struct wb *wb)
@@ -125,6 +126,11 @@ static char *wb_prev(struct wb *wb, int i)
 	return i < wb->prev_n ? wb->prev_c[i] : NULL;
 }
 
+static struct glyph *wb_prevglyph(struct wb *wb)
+{
+	return wb_prev(wb, 0) ? dev_glyph(wb_prev(wb, 0), R_F(wb)) : NULL;
+}
+
 void wb_put(struct wb *wb, char *c)
 {
 	struct glyph *g;
@@ -149,6 +155,9 @@ void wb_put(struct wb *wb, char *c)
 		g = dev_glyph(c, R_F(wb));
 	}
 	wb_font(wb);
+	if (g && !zerowidth && g->icleft && wb->icleft_ll == sbuf_len(&wb->sbuf))
+		wb_hmov(wb, charwid_base(R_F(wb), R_S(wb), g->icleft));
+	wb->icleft_ll = -1;
 	wb_prevcheck(wb);		/* make sure wb->prev_c[] is valid */
 	ll = sbuf_len(&wb->sbuf);	/* sbuf length before inserting c */
 	if (!c[1] || c[0] == c_ec || c[0] == c_ni || utf8one(c)) {
@@ -487,4 +496,17 @@ int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2, int flg)
 	if (p)
 		dohyph(sbuf_buf(&wb->sbuf), p, p != dp, w1, w2);
 	return !p;
+}
+
+void wb_italiccorrection(struct wb *wb)
+{
+	struct glyph *g = wb_prevglyph(wb);
+	if (g && g->ic)
+		wb_hmov(wb, charwid_base(R_F(wb), R_S(wb), g->ic));
+}
+
+void wb_italiccorrectionleft(struct wb *wb)
+{
+	wb_font(wb);
+	wb->icleft_ll = sbuf_len(&wb->sbuf);
 }

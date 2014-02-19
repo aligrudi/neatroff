@@ -36,14 +36,13 @@ struct glyph *font_glyph(struct font *fn, char *id)
 	return i >= 0 ? &fn->glyphs[i] : NULL;
 }
 
-static struct glyph *font_glyphput(struct font *fn, char *id, char *name, int wid, int type)
+static struct glyph *font_glyphput(struct font *fn, char *id, char *name, int type)
 {
 	int i = fn->nglyphs++;
 	struct glyph *g;
 	g = &fn->glyphs[i];
 	strcpy(g->id, id);
 	strcpy(g->name, name);
-	g->wid = wid;
 	g->type = type;
 	g->font = fn;
 	fn->gnext[i] = fn->ghead[(unsigned char) id[0]];
@@ -144,7 +143,8 @@ static int font_readchar(struct font *fn, FILE *fin)
 	char name[ILNLEN];
 	char id[ILNLEN];
 	struct glyph *glyph = NULL;
-	int wid, type;
+	int llx = 0, lly = 0, urx = 0, ury = 0;
+	int type;
 	if (fn->n >= NGLYPHS)
 		return 1;
 	if (fscanf(fin, "%s %s", name, tok) != 2)
@@ -154,12 +154,16 @@ static int font_readchar(struct font *fn, FILE *fin)
 	if (!strcmp("\"", tok)) {
 		glyph = fn->g[fn->n - 1];
 	} else {
-		wid = atoi(tok);
 		if (fscanf(fin, "%d %s", &type, id) != 2)
 			return 1;
 		glyph = font_glyph(fn, id);
-		if (!glyph)
-			glyph = font_glyphput(fn, id, name, wid, type);
+		if (!glyph) {
+			glyph = font_glyphput(fn, id, name, type);
+			sscanf(tok, "%d,%d,%d,%d,%d", &glyph->wid,
+				&llx, &lly, &urx, &ury);
+			glyph->ic = MAX(0, urx - glyph->wid);
+			glyph->icleft = MAX(0, -llx);
+		}
 	}
 	strcpy(fn->c[fn->n], name);
 	fn->g[fn->n] = glyph;

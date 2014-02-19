@@ -671,6 +671,12 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 	case '^':
 		wb_hmov(wb, SC_EM / 12);
 		break;
+	case '/':
+		wb_italiccorrection(wb);
+		break;
+	case ',':
+		wb_italiccorrectionleft(wb);
+		break;
 	case '{':
 	case '}':
 		break;
@@ -719,7 +725,7 @@ static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int)
 			}
 			return;
 		}
-		if (strchr(" bCcDdfHhkLlmNoprSsuvXxz0^|{}&", c[1])) {
+		if (strchr(" bCcDdfHhkLlmNoprSsuvXxz0^|{}&/,", c[1])) {
 			argnext(arg, c[1], next, back);
 			if (c[1] == 'S' || c[1] == 'H')
 				return;			/* not implemented */

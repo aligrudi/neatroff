@@ -121,6 +121,7 @@ struct glyph {
 	struct font *font;	/* glyph font */
 	int wid;		/* character width */
 	int type;		/* character type; ascender/descender */
+	int ic, icleft;		/* italic and left italic correction */
 };
 
 struct font {
@@ -234,6 +235,7 @@ struct wb {
 	int els_neg, els_pos;	/* extra line spacing */
 	int h, v;		/* buffer vertical and horizontal positions */
 	int ct, sb, st;		/* \w registers */
+	int icleft_ll;		/* len after the pending left italic correction */
 	/* saving previous characters added via wb_put() */
 	char prev_c[LIGLEN][GNLEN];
 	int prev_l[LIGLEN];	/* sbuf_len(&wb->sbuf) before wb_put() calls */
@@ -259,6 +261,8 @@ void wb_drawa(struct wb *wb, int c, int h1, int v1, int h2, int v2);
 void wb_drawxbeg(struct wb *wb, int c);
 void wb_drawxdot(struct wb *wb, int h, int v);
 void wb_drawxend(struct wb *wb);
+void wb_italiccorrection(struct wb *wb);
+void wb_italiccorrectionleft(struct wb *wb);
 void wb_cat(struct wb *wb, struct wb *src);
 int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2, int flg);
 int wb_wid(struct wb *wb);
