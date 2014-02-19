@@ -179,6 +179,7 @@ int wb_lig(struct wb *wb, char *c)
 	char *cs[LIGLEN + 2];
 	int i = -1;
 	int ligpos;
+	wb_font(wb);		/* apply font changes */
 	cs[0] = c;
 	while (wb_prev(wb, ++i))
 		cs[i + 1] = wb_prev(wb, i);
@@ -198,6 +199,7 @@ int wb_lig(struct wb *wb, char *c)
 int wb_kern(struct wb *wb, char *c)
 {
 	int val;
+	wb_font(wb);		/* apply font changes */
 	if (!wb_prev(wb, 0))
 		return 1;
 	val = font_kern(dev_font(R_F(wb)), wb_prev(wb, 0), c);
