@@ -128,7 +128,7 @@ static char *wb_prev(struct wb *wb, int i)
 void wb_put(struct wb *wb, char *c)
 {
 	struct glyph *g;
-	int ll;
+	int ll, zerowidth;
 	if (c[0] == '\n') {
 		wb->part = 0;
 		return;
@@ -143,6 +143,11 @@ void wb_put(struct wb *wb, char *c)
 		return;
 	}
 	g = dev_glyph(c, R_F(wb));
+	zerowidth = !strcmp(c_hc, c) || !strcmp(c_bp, c);
+	if (!g && c[0] == c_ec && !zerowidth) {	/* unknown escape */
+		memmove(c, c + 1, strlen(c));
+		g = dev_glyph(c, R_F(wb));
+	}
 	wb_font(wb);
 	wb_prevcheck(wb);		/* make sure wb->prev_c[] is valid */
 	ll = sbuf_len(&wb->sbuf);	/* sbuf length before inserting c */
@@ -157,7 +162,7 @@ void wb_put(struct wb *wb, char *c)
 		else
 			sbuf_printf(&wb->sbuf, "%cC'%s'", c_ec, c);
 	}
-	if (strcmp(c_hc, c) && strcmp(c_bp, c)) {
+	if (!zerowidth) {
 		wb_prevput(wb, c, ll);
 		wb->h += charwid(R_F(wb), R_S(wb), g ? g->wid : SC_DW);
 		wb->ct |= g ? g->type : 0;
