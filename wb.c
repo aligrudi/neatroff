@@ -51,6 +51,13 @@ static void wb_font(struct wb *wb)
 	wb_stsb(wb);
 }
 
+/* pending font, size or color changes */
+static int wb_pendingfont(struct wb *wb)
+{
+	return wb->f != R_F(wb) || wb->s != R_S(wb) ||
+			(!n_cp && wb->m != R_M(wb));
+}
+
 void wb_hmov(struct wb *wb, int n)
 {
 	wb->h += n;
@@ -128,7 +135,7 @@ static char *wb_prev(struct wb *wb, int i)
 
 static struct glyph *wb_prevglyph(struct wb *wb)
 {
-	return wb_prev(wb, 0) ? dev_glyph(wb_prev(wb, 0), R_F(wb)) : NULL;
+	return wb_prev(wb, 0) ? dev_glyph(wb_prev(wb, 0), wb->f) : NULL;
 }
 
 void wb_put(struct wb *wb, char *c)
@@ -154,10 +161,10 @@ void wb_put(struct wb *wb, char *c)
 		memmove(c, c + 1, strlen(c));
 		g = dev_glyph(c, R_F(wb));
 	}
-	wb_font(wb);
 	if (g && !zerowidth && g->icleft && wb->icleft_ll == sbuf_len(&wb->sbuf))
 		wb_hmov(wb, charwid_base(R_F(wb), R_S(wb), g->icleft));
 	wb->icleft_ll = -1;
+	wb_font(wb);
 	wb_prevcheck(wb);		/* make sure wb->prev_c[] is valid */
 	ll = sbuf_len(&wb->sbuf);	/* sbuf length before inserting c */
 	if (!c[1] || c[0] == c_ec || c[0] == c_ni || utf8one(c)) {
@@ -193,7 +200,8 @@ int wb_lig(struct wb *wb, char *c)
 	char *cs[LIGLEN + 2];
 	int i = -1;
 	int ligpos;
-	wb_font(wb);		/* apply font changes */
+	if (wb_pendingfont(wb))		/* font changes disable ligatures */
+		return 1;
 	cs[0] = c;
 	while (wb_prev(wb, ++i))
 		cs[i + 1] = wb_prev(wb, i);
@@ -213,8 +221,7 @@ int wb_lig(struct wb *wb, char *c)
 int wb_kern(struct wb *wb, char *c)
 {
 	int val;
-	wb_font(wb);		/* apply font changes */
-	if (!wb_prev(wb, 0))
+	if (wb_pendingfont(wb) || !wb_prev(wb, 0))
 		return 1;
 	val = font_kern(dev_font(R_F(wb)), wb_prev(wb, 0), c);
 	if (val)
@@ -502,11 +509,10 @@ void wb_italiccorrection(struct wb *wb)
 {
 	struct glyph *g = wb_prevglyph(wb);
 	if (g && g->ic)
-		wb_hmov(wb, charwid_base(R_F(wb), R_S(wb), g->ic));
+		wb_hmov(wb, charwid_base(wb->f, wb->s, g->ic));
 }
 
 void wb_italiccorrectionleft(struct wb *wb)
 {
-	wb_font(wb);
 	wb->icleft_ll = sbuf_len(&wb->sbuf);
 }
