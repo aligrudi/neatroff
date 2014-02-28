@@ -29,7 +29,7 @@ void wb_done(struct wb *wb)
 /* update wb->st and wb->sb */
 static void wb_stsb(struct wb *wb)
 {
-	wb->st = MIN(wb->st, wb->v - SC_HT);
+	wb->st = MIN(wb->st, wb->v - SC_EM);
 	wb->sb = MAX(wb->sb, wb->v);
 }
 

@@ -69,7 +69,7 @@ static void ren_vline(struct wb *wb, int l, char *c)
 {
 	int w, n, i, rem, hw, neg;
 	neg = l < 0;
-	w = SC_HT;	/* character height */
+	w = SC_EM;	/* character height */
 	hw = cwid(c);	/* character width */
 	/* negative length; moving backwards */
 	if (l < 0) {
@@ -197,13 +197,13 @@ void ren_bcmd(struct wb *wb, char *arg)
 		if (wb_wid(&wb2) > w)
 			w = wb_wid(&wb2);
 		wb_hmov(&wb2, -wb_wid(&wb2));
-		wb_vmov(&wb2, SC_HT);
+		wb_vmov(&wb2, SC_EM);
 		n++;
 		c = sstr_next();
 	}
 	sstr_pop();
-	center = -(n * SC_HT + SC_EM) / 2;
-	wb_vmov(wb, center + SC_HT);
+	center = -(n * SC_EM + SC_EM) / 2;
+	wb_vmov(wb, center + SC_EM);
 	wb_cat(wb, &wb2);
 	wb_done(&wb2);
 	wb_vmov(wb, center);
