@@ -181,7 +181,9 @@ struct glyph *dev_glyph(char *c, int fn);
 struct glyph *dev_glyph_byid(char *id, int fn);
 int charwid(int fn, int sz, int wid);
 int spacewid(int fn, int sz);
-int charwid_base(int fn, int sz, int wid);
+
+/* convert wid in device unitwidth size to size sz */
+#define DEVWID(sz, wid)		(((wid) * (sz) + (dev_uwid / 2)) / dev_uwid)
 
 /* different layers of neatroff */
 int in_next(void);		/* input layer */

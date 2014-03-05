@@ -162,7 +162,7 @@ void wb_put(struct wb *wb, char *c)
 		g = dev_glyph(c, R_F(wb));
 	}
 	if (g && !zerowidth && g->icleft && wb->icleft_ll == sbuf_len(&wb->sbuf))
-		wb_hmov(wb, charwid_base(R_F(wb), R_S(wb), g->icleft));
+		wb_hmov(wb, DEVWID(R_S(wb), g->icleft));
 	wb->icleft_ll = -1;
 	wb_font(wb);
 	wb_prevcheck(wb);		/* make sure wb->prev_c[] is valid */
@@ -509,7 +509,7 @@ void wb_italiccorrection(struct wb *wb)
 {
 	struct glyph *g = wb_prevglyph(wb);
 	if (g && g->ic)
-		wb_hmov(wb, charwid_base(wb->f, wb->s, g->ic));
+		wb_hmov(wb, DEVWID(wb->s, g->ic));
 }
 
 void wb_italiccorrectionleft(struct wb *wb)
