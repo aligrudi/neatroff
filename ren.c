@@ -784,7 +784,7 @@ int ren_wid(int (*next)(void), void (*back)(int))
 	}
 	odiv_end();
 	n = wb_wid(&wb);
-	wb_wconf(&wb, &n_ct, &n_st, &n_sb);
+	wb_wconf(&wb, &n_ct, &n_st, &n_sb, &n_llx, &n_lly, &n_urx, &n_ury);
 	wb_done(&wb);
 	return n;
 }

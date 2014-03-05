@@ -143,7 +143,6 @@ static int font_readchar(struct font *fn, FILE *fin)
 	char name[ILNLEN];
 	char id[ILNLEN];
 	struct glyph *glyph = NULL;
-	int llx = 0, lly = 0, urx = 0, ury = 0;
 	int type;
 	if (fn->n >= NGLYPHS)
 		return 1;
@@ -160,9 +159,7 @@ static int font_readchar(struct font *fn, FILE *fin)
 		if (!glyph) {
 			glyph = font_glyphput(fn, id, name, type);
 			sscanf(tok, "%d,%d,%d,%d,%d", &glyph->wid,
-				&llx, &lly, &urx, &ury);
-			glyph->ic = MAX(0, urx - glyph->wid);
-			glyph->icleft = MAX(0, -llx);
+				&glyph->llx, &glyph->lly, &glyph->urx, &glyph->ury);
 		}
 	}
 	strcpy(fn->c[fn->n], name);

@@ -120,7 +120,7 @@ struct glyph {
 	struct font *font;	/* glyph font */
 	int wid;		/* character width */
 	int type;		/* character type; ascender/descender */
-	int ic, icleft;		/* italic and left italic correction */
+	int llx, lly, urx, ury;	/* character bounding box */
 };
 
 struct font {
@@ -236,6 +236,7 @@ struct wb {
 	int els_neg, els_pos;	/* extra line spacing */
 	int h, v;		/* buffer vertical and horizontal positions */
 	int ct, sb, st;		/* \w registers */
+	int llx, lly, urx, ury;	/* bounding box */
 	int icleft_ll;		/* len after the pending left italic correction */
 	/* saving previous characters added via wb_put() */
 	char prev_c[LIGLEN][GNLEN];
@@ -269,7 +270,8 @@ int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2, int flg);
 int wb_wid(struct wb *wb);
 int wb_empty(struct wb *wb);
 int wb_eos(struct wb *wb);
-void wb_wconf(struct wb *wb, int *ct, int *st, int *sb);
+void wb_wconf(struct wb *wb, int *ct, int *st, int *sb,
+		int *llx, int *lly, int *urx, int *ury);
 int wb_lig(struct wb *wb, char *c);
 int wb_kern(struct wb *wb, char *c);
 
@@ -462,6 +464,10 @@ int clr_get(char *s);
 #define n_lt		(*nreg(map(".lt")))	/* .lt value */
 #define n_t0		(*nreg(map(".lt0")))	/* previous .lt value */
 #define n_v0		(*nreg(map(".v0")))	/* last .v */
+#define n_llx		(*nreg(map("bbllx")))	/* \w bounding box */
+#define n_lly		(*nreg(map("bblly")))	/* \w bounding box */
+#define n_urx		(*nreg(map("bburx")))	/* \w bounding box */
+#define n_ury		(*nreg(map("bbury")))	/* \w bounding box */
 
 /* functions for implementing read-only registers */
 int f_nexttrap(void);	/* .t */

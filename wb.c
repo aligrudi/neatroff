@@ -4,9 +4,18 @@
 #include <string.h>
 #include "roff.h"
 
+/* the current font, size and color */
 #define R_F(wb)		((wb)->r_f >= 0 ? (wb)->r_f : n_f)	/* current font */
 #define R_S(wb)		((wb)->r_s >= 0 ? (wb)->r_s : n_s)	/* current size */
 #define R_M(wb)		((wb)->r_m >= 0 ? (wb)->r_m : n_m)	/* current color */
+/* italic correction */
+#define glyph_ic(g)	(MAX(0, (g)->urx - (g)->wid))
+#define glyph_icleft(g)	(MAX(0, -(g)->llx))
+/* like DEVWID() but handles negative w */
+#define SDEVWID(sz, w)	((w) >= 0 ? DEVWID((sz), (w)) : -DEVWID((sz), -(w)))
+/* the maximum and minimum values of bounding box coordinates */
+#define BBMAX		(1 << 29)
+#define BBMIN		-BBMAX
 
 void wb_init(struct wb *wb)
 {
@@ -19,6 +28,10 @@ void wb_init(struct wb *wb)
 	wb->r_s = -1;
 	wb->r_m = -1;
 	wb->icleft_ll = -1;
+	wb->llx = BBMAX;
+	wb->lly = BBMAX;
+	wb->urx = BBMIN;
+	wb->ury = BBMIN;
 }
 
 void wb_done(struct wb *wb)
@@ -29,8 +42,17 @@ void wb_done(struct wb *wb)
 /* update wb->st and wb->sb */
 static void wb_stsb(struct wb *wb)
 {
-	wb->st = MIN(wb->st, wb->v - SC_EM);
+	wb->st = MIN(wb->st, wb->v - (wb->s * SC_IN / 72));
 	wb->sb = MAX(wb->sb, wb->v);
+}
+
+/* update bounding box */
+static void wb_bbox(struct wb *wb, int llx, int lly, int urx, int ury)
+{
+	wb->llx = MIN(wb->llx, wb->h + llx);
+	wb->lly = MIN(wb->lly, -wb->v + lly);
+	wb->urx = MAX(wb->urx, wb->h + urx);
+	wb->ury = MAX(wb->ury, -wb->v + ury);
 }
 
 /* append font and size to the buffer if needed */
@@ -161,8 +183,9 @@ void wb_put(struct wb *wb, char *c)
 		memmove(c, c + 1, strlen(c));
 		g = dev_glyph(c, R_F(wb));
 	}
-	if (g && !zerowidth && g->icleft && wb->icleft_ll == sbuf_len(&wb->sbuf))
-		wb_hmov(wb, DEVWID(R_S(wb), g->icleft));
+	if (g && !zerowidth && wb->icleft_ll == sbuf_len(&wb->sbuf))
+		if (glyph_icleft(g))
+			wb_hmov(wb, SDEVWID(R_S(wb), glyph_icleft(g)));
 	wb->icleft_ll = -1;
 	wb_font(wb);
 	wb_prevcheck(wb);		/* make sure wb->prev_c[] is valid */
@@ -180,7 +203,12 @@ void wb_put(struct wb *wb, char *c)
 	}
 	if (!zerowidth) {
 		wb_prevput(wb, c, ll);
-		wb->h += charwid(R_F(wb), R_S(wb), g ? g->wid : SC_DW);
+		if (!n_cp && g)
+			wb_bbox(wb, SDEVWID(wb->s, g->llx),
+				SDEVWID(wb->s, g->lly),
+				SDEVWID(wb->s, g->urx),
+				SDEVWID(wb->s, g->ury));
+		wb->h += charwid(wb->f, wb->s, g ? g->wid : SC_DW);
 		wb->ct |= g ? g->type : 0;
 		wb_stsb(wb);
 	}
@@ -365,11 +393,16 @@ int wb_eos(struct wb *wb)
 	return wb_prev(wb, i) && strchr(".?!", wb_prev(wb, i)[0]);
 }
 
-void wb_wconf(struct wb *wb, int *ct, int *st, int *sb)
+void wb_wconf(struct wb *wb, int *ct, int *st, int *sb,
+		int *llx, int *lly, int *urx, int *ury)
 {
 	*ct = wb->ct;
 	*st = -wb->st;
 	*sb = -wb->sb;
+	*llx = wb->llx < BBMAX ? wb->llx : 0;
+	*lly = wb->lly < BBMAX ? -wb->lly : 0;
+	*urx = wb->urx > BBMIN ? wb->urx : 0;
+	*ury = wb->ury > BBMIN ? -wb->ury : 0;
 }
 
 /* skip troff requests; return 1 if read c_hc */
@@ -508,8 +541,8 @@ int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2, int flg)
 void wb_italiccorrection(struct wb *wb)
 {
 	struct glyph *g = wb_prevglyph(wb);
-	if (g && g->ic)
-		wb_hmov(wb, DEVWID(wb->s, g->ic));
+	if (g && glyph_ic(g))
+		wb_hmov(wb, SDEVWID(wb->s, glyph_ic(g)));
 }
 
 void wb_italiccorrectionleft(struct wb *wb)
