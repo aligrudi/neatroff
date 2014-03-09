@@ -131,32 +131,37 @@ void dev_close(void)
 
 /* glyph handling functions */
 
-struct glyph *dev_glyph(char *c, int fn)
+static struct glyph *dev_find(char *c, int fn, int byid)
 {
+	struct glyph *(*find)(struct font *fn, char *name);
 	struct glyph *g;
 	int i;
-	if ((c[0] == c_ec || c[0] == c_ni) && c[1] == c_ec)
-		c++;
-	if (c[0] == c_ec && c[1] == '(')
-		c += 2;
-	c = cmap_map(c);
-	g = font_find(fn_font[fn], c);
-	if (g)
+	find = byid ? font_glyph : font_find;
+	if ((g = find(fn_font[fn], c)))
 		return g;
 	for (i = 0; i < fspecial_n; i++)
 		if (dev_pos(fspecial_fn[i]) == fn && dev_pos(fspecial_sp[i]) >= 0)
-			if ((g = font_find(dev_font(dev_pos(fspecial_sp[i])), c)))
+			if ((g = find(dev_font(dev_pos(fspecial_sp[i])), c)))
 				return g;
 	for (i = 0; i < fn_n; i++)
 		if (fn_font[i] && fn_font[i]->special)
-			if ((g = font_find(fn_font[i], c)))
+			if ((g = find(fn_font[i], c)))
 				return g;
 	return NULL;
 }
 
-struct glyph *dev_glyph_byid(char *id, int fn)
+struct glyph *dev_glyph(char *c, int fn)
 {
-	return font_glyph(fn_font[fn], id);
+	if ((c[0] == c_ec || c[0] == c_ni) && c[1] == c_ec)
+		c++;
+	if (c[0] == c_ec && c[1] == '(')
+		c += 2;
+	return dev_find(cmap_map(c), fn, 0);
+}
+
+struct glyph *dev_glyph_byid(char *c, int fn)
+{
+	return dev_find(c, fn, 1);
 }
 
 int dev_kernpair(char *c1, char *c2)
