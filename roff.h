@@ -51,7 +51,6 @@
 #define SC_IN		(dev_res)	/* inch in units */
 #define SC_PT		(SC_IN / 72)	/* point in units */
 #define SC_EM		(n_s * SC_IN / 72)
-#define SC_DW		(SC_EM / 3)	/* default width */
 
 /* escape sequences */
 #define ESC_Q	"bCDhHlLNoSvwxX"	/* \X'ccc' quoted escape sequences */

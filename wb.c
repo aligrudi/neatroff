@@ -208,7 +208,7 @@ void wb_put(struct wb *wb, char *c)
 				SDEVWID(wb->s, g->lly),
 				SDEVWID(wb->s, g->urx),
 				SDEVWID(wb->s, g->ury));
-		wb->h += charwid(wb->f, wb->s, g ? g->wid : SC_DW);
+		wb->h += charwid(wb->f, wb->s, g ? g->wid : 0);
 		wb->ct |= g ? g->type : 0;
 		wb_stsb(wb);
 	}
@@ -443,7 +443,7 @@ static char *bp_pos(char *s, int w, struct wb *w1, int flg)
 static int wb_dashwid(struct wb *wb)
 {
 	struct glyph *g = dev_glyph("hy", R_F(wb));
-	return charwid(R_F(wb), R_S(wb), g ? g->wid : SC_DW);
+	return charwid(R_F(wb), R_S(wb), g ? g->wid : 0);
 }
 
 /* the position marked with \% */

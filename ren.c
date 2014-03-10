@@ -259,7 +259,7 @@ static void ren_transparent(char *s)
 static int zwid(void)
 {
 	struct glyph *g = dev_glyph("0", n_f);
-	return charwid(n_f, n_s, g ? g->wid : SC_DW);
+	return charwid(n_f, n_s, g ? g->wid : 0);
 }
 
 /* append the line number to the output line */
