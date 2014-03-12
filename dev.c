@@ -15,7 +15,7 @@ int dev_ver;		/* minimum vertical movement */
 /* mounted fonts */
 static char fn_name[NFONTS][FNLEN];	/* font names */
 static struct font *fn_font[NFONTS];	/* font structs */
-static int fn_n;			/* number of mounted fonts */
+static int fn_n;			/* number of device fonts */
 
 /* .fspecial request */
 static char fspecial_fn[NFONTS][FNLEN];	/* .fspecial first arguments */
@@ -41,6 +41,8 @@ int dev_mnt(int pos, char *id, char *name)
 {
 	char path[PATHLEN];
 	struct font *fn;
+	if (pos >= NFONTS)
+		return -1;
 	sprintf(path, "%s/dev%s/%s", dev_dir, dev_dev, name);
 	fn = font_open(path);
 	if (!fn)
@@ -122,7 +124,7 @@ void dev_close(void)
 {
 	int i;
 	dev_epilogue();
-	for (i = 0; i < fn_n; i++) {
+	for (i = 0; i < NFONTS; i++) {
 		if (fn_font[i])
 			font_close(fn_font[i]);
 		fn_font[i] = NULL;
@@ -143,7 +145,7 @@ static struct glyph *dev_find(char *c, int fn, int byid)
 		if (dev_pos(fspecial_fn[i]) == fn && dev_pos(fspecial_sp[i]) >= 0)
 			if ((g = find(dev_font(dev_pos(fspecial_sp[i])), c)))
 				return g;
-	for (i = 0; i < fn_n; i++)
+	for (i = 0; i < NFONTS; i++)
 		if (fn_font[i] && fn_font[i]->special)
 			if ((g = find(fn_font[i], c)))
 				return g;
@@ -175,13 +177,13 @@ int dev_pos(char *id)
 	int i;
 	if (isdigit(id[0])) {
 		int num = atoi(id);
-		if (num < 0 || num >= fn_n || !fn_font[num]) {
+		if (num < 0 || num >= NFONTS || !fn_font[num]) {
 			errmsg("bad font position\n");
 			return -1;
 		}
 		return num;
 	}
-	for (i = 1; i < fn_n; i++)
+	for (i = 1; i < NFONTS; i++)
 		if (!strcmp(fn_name[i], id))
 			return i;
 	if (!strcmp(fn_name[0], id))
@@ -193,7 +195,7 @@ int dev_pos(char *id)
 int dev_fontpos(struct font *fn)
 {
 	int i;
-	for (i = 0; i < fn_n; i++)
+	for (i = 0; i < NFONTS; i++)
 		if (fn_font[i] == fn)
 			return i;
 	return 0;
@@ -202,7 +204,7 @@ int dev_fontpos(struct font *fn)
 /* return the font struct at pos */
 struct font *dev_font(int pos)
 {
-	return pos >= 0 && pos < fn_n ? fn_font[pos] : NULL;
+	return pos >= 0 && pos < NFONTS ? fn_font[pos] : NULL;
 }
 
 int dev_getcs(int fn)
