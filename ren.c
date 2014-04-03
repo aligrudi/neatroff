@@ -951,6 +951,9 @@ int render(void)
 			adj_swid(cadj, spacewid(n_f, n_s));
 			if (!wb_part(wb)) {	/* not after a \c */
 				adj_wb(cadj, wb);
+				/* wb contains only commands like \f */
+				if (!ren_nl && wb_empty(wb))
+					adj_nonl(cadj);
 				if (c == '\n')
 					adj_nl(cadj);
 				else
@@ -974,8 +977,6 @@ int render(void)
 		if (c != ' ') {
 			ren_back(c);
 			ren_char(wb, ren_next, ren_back);
-			if (c != '\n' && wb_empty(wb))
-				adj_nonl(cadj);
 		}
 		ren_nl = c == '\n';
 		c = ren_next();
