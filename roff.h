@@ -177,7 +177,6 @@ int font_mapped(struct font *fn, char *name);
 
 /* glyph handling functions */
 struct glyph *dev_glyph(char *c, int fn);
-struct glyph *dev_glyph_byid(char *id, int fn);
 int charwid(int fn, int sz, int wid);
 int spacewid(int fn, int sz);
 

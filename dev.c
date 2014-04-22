@@ -154,16 +154,15 @@ static struct glyph *dev_find(char *c, int fn, int byid)
 
 struct glyph *dev_glyph(char *c, int fn)
 {
+	struct glyph *g;
 	if ((c[0] == c_ec || c[0] == c_ni) && c[1] == c_ec)
 		c++;
 	if (c[0] == c_ec && c[1] == '(')
 		c += 2;
-	return dev_find(cmap_map(c), fn, 0);
-}
-
-struct glyph *dev_glyph_byid(char *c, int fn)
-{
-	return dev_find(c, fn, 1);
+	c = cmap_map(c);
+	if ((g = dev_find(c, fn, 0)))
+		return g;
+	return !strncmp("GID=", c, 4) ? dev_find(c + 4, fn, 1) : NULL;
 }
 
 int dev_kernpair(char *c1, char *c2)

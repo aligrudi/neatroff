@@ -683,7 +683,6 @@ static void ren_tab(struct wb *wb, char *tc, int (*next)(void), void (*back)(int
 static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int))
 {
 	char arg[ILNLEN];
-	struct glyph *g;
 	char *s;
 	int w, n;
 	if (c[0] == ' ' || c[0] == '\n') {
@@ -726,8 +725,7 @@ static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int)
 				ren_cmd(wb, c[1], arg);
 				return;
 			}
-			g = dev_glyph_byid(arg, n_f);
-			strcpy(c, g ? g->name : "cnull");
+			snprintf(c, GNLEN, "GID=%s", arg);
 		}
 	}
 	if (!ren_div && cdef_map(c, n_f)) {		/* .char characters */
