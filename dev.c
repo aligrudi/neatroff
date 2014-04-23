@@ -5,12 +5,12 @@
 #include <string.h>
 #include "roff.h"
 
-char dev_dir[PATHLEN];	/* device directory */
-char dev_dev[PATHLEN];	/* output device name */
-int dev_res;		/* device resolution */
-int dev_uwid;		/* device unitwidth */
-int dev_hor;		/* minimum horizontal movement */
-int dev_ver;		/* minimum vertical movement */
+static char dev_dir[PATHLEN];	/* device directory */
+static char dev_dev[PATHLEN];	/* output device name */
+int dev_res;			/* device resolution */
+int dev_uwid;			/* device unitwidth */
+int dev_hor;			/* minimum horizontal movement */
+int dev_ver;			/* minimum vertical movement */
 
 /* mounted fonts */
 static char fn_name[NFONTS][FNLEN];	/* font names */
@@ -154,20 +154,14 @@ static struct glyph *dev_find(char *c, int fn, int byid)
 
 struct glyph *dev_glyph(char *c, int fn)
 {
-	struct glyph *g;
 	if ((c[0] == c_ec || c[0] == c_ni) && c[1] == c_ec)
 		c++;
 	if (c[0] == c_ec && c[1] == '(')
 		c += 2;
 	c = cmap_map(c);
-	if ((g = dev_find(c, fn, 0)))
-		return g;
-	return !strncmp("GID=", c, 4) ? dev_find(c + 4, fn, 1) : NULL;
-}
-
-int dev_kernpair(char *c1, char *c2)
-{
-	return 0;
+	if (!strncmp("GID=", c, 4))
+		return dev_find(c + 4, fn, 1);
+	return dev_find(c, fn, 0);
 }
 
 /* return the mounted position of a font */
