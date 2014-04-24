@@ -298,14 +298,11 @@ void hyphenate(char *hyphs, char *word, int flg);
 struct adj *adj_alloc(void);
 void adj_free(struct adj *adj);
 int adj_fill(struct adj *adj, int ad_b, int fill, int hyph, struct sbuf *dst,
-		int *ll, int *in, int *ti, int *els_neg, int *els_pos);
+		int *li, int *ll, int *els_neg, int *els_pos);
 int adj_full(struct adj *adj, int fill);
 int adj_empty(struct adj *adj, int fill);
 int adj_wid(struct adj *adj);
 void adj_swid(struct adj *adj, int swid);
-void adj_ll(struct adj *adj, int ll);
-void adj_in(struct adj *adj, int in);
-void adj_ti(struct adj *adj, int ti);
 void adj_wb(struct adj *adj, struct wb *wb);
 void adj_nl(struct adj *adj);
 void adj_sp(struct adj *adj);
@@ -448,6 +445,7 @@ int clr_get(char *s);
 #define n_lg		(*nreg(map(".lg")))	/* .lg mode */
 #define n_hy		(*nreg(map(".hy")))	/* .hy mode */
 #define n_i0		(*nreg(map(".i0")))	/* last .i */
+#define n_ti		(*nreg(map(".ti")))	/* pending .ti */
 #define n_kn		(*nreg(map(".kern")))	/* .kn mode */
 #define n_l0		(*nreg(map(".l0")))	/* last .l */
 #define n_L0		(*nreg(map(".L0")))	/* last .L */

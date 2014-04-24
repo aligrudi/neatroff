@@ -37,7 +37,7 @@ static char *eregs[] = {	/* environment-specific number registers */
 	".it", ".itn", ".mc", ".mcn",
 	".ce", ".f0", ".hy", ".i0", ".l0",
 	".L0", ".m0", ".n0", ".s0", ".ss",
-	".lt", ".lt0", ".v0",
+	".ti", ".lt", ".lt0", ".v0",
 };
 
 /* return the address of a number register */
@@ -200,8 +200,6 @@ static void env_set(int id)
 		n_nS = 1;
 		strcpy(env->hc, "\\%");
 		strcpy(env->lc, ".");
-		adj_ll(env->adj, n_l);
-		adj_in(env->adj, n_i);
 		for (i = 0; i < NTABS; i++)
 			env->tabs[i] = i * SC_IN / 2;
 	}

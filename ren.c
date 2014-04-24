@@ -216,9 +216,9 @@ static int down(int n)
 }
 
 /* line adjustment */
-static int ren_ljust(struct sbuf *spre, int w, int ad, int ll, int li, int lt)
+static int ren_ljust(struct sbuf *spre, int w, int ad, int li, int ll)
 {
-	int ljust = lt >= 0 ? lt : li;
+	int ljust = li;
 	int llen = ll - ljust;
 	n_n = w;
 	if (ad == AD_C)
@@ -309,7 +309,7 @@ static int ren_lastline(void)
 
 /* process a line and print it with ren_out() */
 static int ren_line(char *line, int w, int ad, int body,
-		int ll, int li, int lt, int els_neg, int els_pos)
+		int li, int ll, int els_neg, int els_pos)
 {
 	char cmd[16];
 	struct sbuf sbeg, send;
@@ -325,7 +325,7 @@ static int ren_line(char *line, int w, int ad, int body,
 		ren_sp(0, 0);
 		if (line[0] && n_nm && body)
 			ren_lnum(&sbeg);
-		ljust = ren_ljust(&sbeg, w, ad, ll, li, lt);
+		ljust = ren_ljust(&sbeg, w, ad, li, ll);
 		if (line[0] && body && n_mc)
 			ren_mc(&send, w, ljust);
 		ren_out(sbuf_buf(&sbeg), line, sbuf_buf(&send));
@@ -353,7 +353,7 @@ static int ren_line(char *line, int w, int ad, int body,
 static int ren_bradj(struct adj *adj, int fill, int ad)
 {
 	struct sbuf sbuf;
-	int ll, li, lt, els_neg, els_pos;
+	int ll, li, els_neg, els_pos;
 	int w, hyph, ret;
 	ren_first();
 	if (adj_empty(adj, fill))
@@ -363,9 +363,8 @@ static int ren_bradj(struct adj *adj, int fill, int ad)
 	if ((n_hy & HY_LAST) && ren_lastline())
 		hyph = 0;	/* disable hyphenation final lines */
 	w = adj_fill(adj, ad == AD_B, fill, hyph, &sbuf,
-			&ll, &li, &lt, &els_neg, &els_pos);
-	ret = ren_line(sbuf_buf(&sbuf), w, ad, 1,
-			ll, li, lt, els_neg, els_pos);
+			&li, &ll, &els_neg, &els_pos);
+	ret = ren_line(sbuf_buf(&sbuf), w, ad, 1, li, ll, els_neg, els_pos);
 	sbuf_done(&sbuf);
 	return ret;
 }
@@ -513,7 +512,6 @@ void tr_ll(char **args)
 	int ll = args[1] ? eval_re(args[1], n_l, 'm') : n_l0;
 	n_l0 = n_l;
 	n_l = MAX(0, ll);
-	adj_ll(cadj, n_l);
 }
 
 void tr_in(char **args)
@@ -523,8 +521,7 @@ void tr_in(char **args)
 		ren_br(1);
 	n_i0 = n_i;
 	n_i = MAX(0, in);
-	adj_in(cadj, n_i);
-	adj_ti(cadj, -1);
+	n_ti = 0;
 }
 
 void tr_ti(char **args)
@@ -532,7 +529,7 @@ void tr_ti(char **args)
 	if (args[0][0] == c_cc)
 		ren_br(1);
 	if (args[1])
-		adj_ti(cadj, eval_re(args[1], n_i, 'm'));
+		n_ti = eval_re(args[1], n_i, 'm');
 }
 
 static void ren_ft(char *s)
@@ -849,7 +846,7 @@ void ren_tl(int (*next)(void), void (*back)(int))
 	wb_cpy(&wb, &wb2, n_lt - wb_wid(&wb2));
 	/* flushing the line */
 	ren_line(sbuf_buf(&wb.sbuf), wb_wid(&wb), AD_L, 0,
-			n_lt, 0, 0, wb.els_neg, wb.els_pos);
+			0, n_lt, wb.els_neg, wb.els_pos);
 	wb_done(&wb2);
 	wb_done(&wb);
 }

@@ -4,7 +4,7 @@
 #include <string.h>
 #include "roff.h"
 
-#define ADJ_LLEN(a)	MAX(0, (a)->ll - ((a)->lt >= 0 ? (a)->lt : (a)->li))
+#define ADJ_LLEN(a)	MAX(0, (a)->ll - (a)->li)
 
 struct adj {
 	struct wb wbs[NWORDS];	/* words in buf */
@@ -14,33 +14,16 @@ struct adj {
 	int swid;		/* current space width */
 	int gap;		/* space before the next word */
 	int nls;		/* newlines before the next word */
-	int l, i, t;		/* current .l, .i and ti */
-	int ll, li, lt;		/* current line's .l, .i and ti */
+	int li, ll;		/* current line indentation and length */
 	int filled;		/* filled all words in the last adj_fill() */
 };
-
-void adj_ll(struct adj *adj, int ll)
-{
-	adj->l = ll;
-}
-
-void adj_ti(struct adj *adj, int ti)
-{
-	adj->t = ti;
-}
-
-void adj_in(struct adj *adj, int in)
-{
-	adj->i = in;
-}
 
 /* .ll, .in and .ti are delayed until the partial line is output */
 static void adj_confupdate(struct adj *adj)
 {
-	adj->ll = adj->l;
-	adj->li = adj->i;
-	adj->lt = adj->t;
-	adj->t = -1;
+	adj->ll = n_l;
+	adj->li = n_ti > 0 ? n_ti : n_i;
+	n_ti = 0;
 }
 
 /* does the adjustment buffer need to be flushed without filling? */
@@ -151,15 +134,14 @@ static void adj_hyph(struct adj *a, int n, int w, int hyph)
 
 /* fill and copy a line into s */
 int adj_fill(struct adj *a, int ad_b, int fill, int hyph, struct sbuf *s,
-		int *ll, int *in, int *ti, int *els_neg, int *els_pos)
+		int *li, int *ll, int *els_neg, int *els_pos)
 {
 	int adj_div, adj_rem;
 	int w = 0;
 	int i, n;
 	int llen = ADJ_LLEN(a);
 	*ll = a->ll;
-	*in = a->li;
-	*ti = a->lt;
+	*li = a->li;
 	if (!fill || adj_fullnf(a)) {
 		a->filled = 0;
 		a->nls--;
