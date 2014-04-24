@@ -319,10 +319,15 @@ void wb_drawxend(struct wb *wb)
 	sbuf_printf(&wb->sbuf, "'");
 }
 
-static void wb_reset(struct wb *wb)
+void wb_reset(struct wb *wb)
 {
 	wb_done(wb);
 	wb_init(wb);
+}
+
+char *wb_buf(struct wb *wb)
+{
+	return sbuf_buf(&wb->sbuf);
 }
 
 static void wb_putc(struct wb *wb, int t, char *s)
@@ -519,22 +524,22 @@ static void dohyph(char *s, char *pos, int dash, struct wb *w1, struct wb *w2)
 }
 
 /* hyphenate wb into w1 and w2; return zero on success */
-int wb_hyph(struct wb *wb, int w, struct wb *w1, struct wb *w2, int flg)
+int wb_hyph(char *word, int w, struct wb *w1, struct wb *w2, int flg)
 {
-	char *s = sbuf_buf(&wb->sbuf);
+	char *s = word;
 	char *dp, *hp, *p;
 	if (skipreqs(&s, w1))
 		return 1;
-	dp = bp_pos(sbuf_buf(&wb->sbuf), w, w1, flg);
-	hp = hc_pos(sbuf_buf(&wb->sbuf), w, w1, flg);
+	dp = bp_pos(word, w, w1, flg);
+	hp = hc_pos(word, w, w1, flg);
 	if (hp && dp)
 		p = flg & HY_ANY ? MIN(dp, hp) : MAX(dp, hp);
 	else
 		p = dp ? dp : hp;
 	if (!p && flg & HY_MASK)
-		p = hyphpos(sbuf_buf(&wb->sbuf), w, w1, flg);
+		p = hyphpos(word, w, w1, flg);
 	if (p)
-		dohyph(sbuf_buf(&wb->sbuf), p, p != dp, w1, w2);
+		dohyph(word, p, p != dp, w1, w2);
 	return !p;
 }
 

@@ -961,6 +961,7 @@ int render(void)
 			adj_swid(cadj, spacewid(n_f, n_s));
 			if (!wb_part(wb)) {	/* not after a \c */
 				adj_wb(cadj, wb);
+				wb_reset(wb);
 				/* wb contains only commands like \f */
 				if (!ren_nl && wb_empty(wb))
 					adj_nonl(cadj);
