@@ -269,30 +269,32 @@ static void tr_na(char **args)
 	n_na = 1;
 }
 
-static void tr_ad(char **args)
+static int adjmode(int c, int def)
 {
-	n_na = 0;
-	if (!args[1])
-		return;
-	switch (args[1][0]) {
-	case '0' + AD_L:
+	switch (c) {
 	case 'l':
-		n_j = AD_L;
-		break;
-	case '0' + AD_R:
+		return AD_L;
 	case 'r':
-		n_j = AD_R;
-		break;
-	case '0' + AD_C:
+		return AD_R;
 	case 'c':
-		n_j = AD_C;
-		break;
-	case '0' + AD_B:
+		return AD_C;
 	case 'b':
 	case 'n':
-		n_j = AD_B;
-		break;
+		return AD_B;
 	}
+	return def;
+}
+
+static void tr_ad(char **args)
+{
+	char *s = args[1];
+	n_na = 0;
+	if (!s)
+		return;
+	if (isdigit(s[0]))
+		n_j = atoi(s) & 15;
+	else
+		n_j = s[0] == 'p' ? AD_P | adjmode(s[1], AD_B) : adjmode(s[0], n_j);
 }
 
 static void tr_tm(char **args)
@@ -817,7 +819,7 @@ static struct cmd {
 } cmds[] = {
 	{TR_DIVBEG, tr_divbeg},
 	{TR_DIVEND, tr_divend},
-	{TR_EJECT, tr_eject},
+	{TR_POPREN, tr_popren},
 	{"ab", tr_ab, mkargs_eol},
 	{"ad", tr_ad},
 	{"af", tr_af},
@@ -906,39 +908,50 @@ static struct cmd {
 	{"wh", tr_wh},
 };
 
-int tr_next(void)
+/* read the next troff request; return zero if a request was executed. */
+int tr_nextreq(void)
 {
-	int c = cp_next();
-	int nl = c == '\n';
 	char *args[NARGS + 3] = {NULL};
 	char cmd[RNLEN];
 	char buf[LNLEN];
 	struct cmd *req;
-	while (tr_nl && c >= 0 && (c == c_cc || c == c_c2)) {
-		nl = 1;
-		memset(args, 0, sizeof(args));
-		args[0] = cmd;
-		cmd[0] = c;
-		req = NULL;
-		arg_regname(cmd + 1, sizeof(cmd) - 1);
-		req = str_dget(map(cmd + 1));
-		if (req) {
-			if (req->args)
-				req->args(args + 1, buf, sizeof(buf));
-			else
-				mkargs_req(args + 1, buf, sizeof(buf));
-			req->f(args);
-		} else {
-			cp_wid(0);
-			mkargs(args + 1, buf, sizeof(buf));
-			cp_wid(1);
-			if (str_get(map(cmd + 1)))
-				in_push(str_get(map(cmd + 1)), args + 1);
-		}
-		c = cp_next();
-		nl = c == '\n';
+	int c;
+	if (!tr_nl)
+		return 1;
+	c = cp_next();
+	if (c < 0 || (c != c_cc && c != c_c2)) {
+		cp_back(c);
+		return 1;
 	}
-	tr_nl = c < 0 || nl;
+	memset(args, 0, sizeof(args));
+	args[0] = cmd;
+	cmd[0] = c;
+	req = NULL;
+	arg_regname(cmd + 1, sizeof(cmd) - 1);
+	req = str_dget(map(cmd + 1));
+	if (req) {
+		if (req->args)
+			req->args(args + 1, buf, sizeof(buf));
+		else
+			mkargs_req(args + 1, buf, sizeof(buf));
+		req->f(args);
+	} else {
+		cp_wid(0);
+		mkargs(args + 1, buf, sizeof(buf));
+		cp_wid(1);
+		if (str_get(map(cmd + 1)))
+			in_push(str_get(map(cmd + 1)), args + 1);
+	}
+	return 0;
+}
+
+int tr_next(void)
+{
+	int c;
+	while (!tr_nextreq())
+		;
+	c = cp_next();
+	tr_nl = c == '\n' || c < 0;
 	return c;
 }
 
@@ -947,10 +960,4 @@ void tr_init(void)
 	int i;
 	for (i = 0; i < LEN(cmds); i++)
 		str_dset(map(cmds[i].id), &cmds[i]);
-}
-
-void tr_first(void)
-{
-	cp_back(tr_next());
-	tr_nl = 1;
 }

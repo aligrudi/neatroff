@@ -5,7 +5,7 @@
 #include <string.h>
 #include "roff.h"
 
-#define cadj		env_adj()		/* line buffer */
+#define cfmt		env_fmt()		/* line buffer */
 #define RENWB(wb)	((wb) == &ren_wb)	/* is ren_wb */
 
 /* diversions */
@@ -38,6 +38,7 @@ static int bp_next = 1;		/* next page number */
 static int bp_count;		/* number of pages so far */
 static int bp_ejected;		/* current ejected page */
 static int bp_final;		/* 1: executing em, 2: the final page, 3: the 2nd final page */
+static int ren_level;		/* the depth of render_rec() calls */
 
 static char c_fa[GNLEN];	/* field delimiter */
 static char c_fb[GNLEN];	/* field padding */
@@ -105,7 +106,7 @@ int f_divreg(void)
 
 int f_hpos(void)
 {
-	return adj_wid(cadj) + wb_wid(&ren_wb);
+	return fmt_wid(cfmt) + wb_wid(&ren_wb);
 }
 
 void tr_divbeg(char **args)
@@ -166,10 +167,16 @@ static void ren_sp(int n, int nodiv)
 	}
 }
 
+static int render_rec(int level);
 static void trap_exec(int reg)
 {
-	if (str_get(reg))
+	char cmd[16];
+	if (str_get(reg)) {
+		sprintf(cmd, "%c%s %d\n", c_cc, TR_POPREN, ren_level);
+		in_pushnl(cmd, NULL);
 		in_pushnl(str_get(reg), NULL);
+		render_rec(++ren_level);
+	}
 }
 
 static int detect_traps(int beg, int end)
@@ -221,9 +228,9 @@ static int ren_ljust(struct sbuf *spre, int w, int ad, int li, int ll)
 	int ljust = li;
 	int llen = ll - ljust;
 	n_n = w;
-	if (ad == AD_C)
+	if ((ad & AD_B) == AD_C)
 		ljust += llen > w ? (llen - w) / 2 : 0;
-	if (ad == AD_R)
+	if ((ad & AD_B) == AD_R)
 		ljust += llen - w;
 	if (ljust)
 		sbuf_printf(spre, "%ch'%du'", c_ec, ljust);
@@ -300,13 +307,6 @@ static void ren_mc(struct sbuf *sbuf, int w, int ljust)
 	wb_done(&wb);
 }
 
-/* return one if the next line causes a trap or new page */
-static int ren_lastline(void)
-{
-	int lspc = MAX(1, n_L) * n_v;
-	return detect_traps(n_d, n_d + lspc) || detect_pagelimit(lspc);
-}
-
 /* process a line and print it with ren_out() */
 static int ren_line(char *line, int w, int ad, int body,
 		int li, int ll, int els_neg, int els_pos)
@@ -349,41 +349,40 @@ static int ren_line(char *line, int w, int ad, int body,
 	return 0;
 }
 
-/* output current line; returns 1 if triggered a trap */
-static int ren_bradj(struct adj *adj, int fill, int ad)
+/* read a line from fmt and send it to ren_line() */
+static int ren_passline(struct fmt *fmt)
 {
 	struct sbuf sbuf;
-	int ll, li, els_neg, els_pos;
-	int w, hyph, ret;
+	int ll, li, els_neg, els_pos, w, ret;
+	int ad = n_j;
 	ren_first();
-	if (adj_empty(adj, fill))
+	if (!fmt_morewords(fmt))
 		return 0;
 	sbuf_init(&sbuf);
-	hyph = n_hy;
-	if ((n_hy & HY_LAST) && ren_lastline())
-		hyph = 0;	/* disable hyphenation final lines */
-	w = adj_fill(adj, ad == AD_B, fill, hyph, &sbuf,
-			&li, &ll, &els_neg, &els_pos);
+	fmt_nextline(fmt, &sbuf, &w, &li, &ll, &els_neg, &els_pos);
+	if (!n_u || n_na)
+		ad = AD_L;
+	if (n_ce)
+		ad = AD_C;
 	ret = ren_line(sbuf_buf(&sbuf), w, ad, 1, li, ll, els_neg, els_pos);
 	sbuf_done(&sbuf);
 	return ret;
 }
 
 /* output current line; returns 1 if triggered a trap */
-static int ren_br(int force)
+static int ren_br(void)
 {
-	int ad = n_j;
-	if (!n_u || n_na || (n_j == AD_B && force))
-		ad = AD_L;
-	if (n_ce)
-		ad = AD_C;
-	return ren_bradj(cadj, !force && !n_ce && n_u, ad);
+	fmt_fill(cfmt, 0);
+	while (fmt_morelines(cfmt))
+		ren_passline(cfmt);
+	fmt_br(cfmt);
+	return ren_passline(cfmt);
 }
 
 void tr_br(char **args)
 {
 	if (args[0][0] == c_cc)
-		ren_br(1);
+		ren_br();
 }
 
 void tr_sp(char **args)
@@ -391,7 +390,7 @@ void tr_sp(char **args)
 	int traps = 0;
 	int n = args[1] ? eval(args[1], 'v') : n_v;
 	if (args[0][0] == c_cc)
-		traps = ren_br(1);
+		traps = ren_br();
 	if (n && !n_ns && !traps)
 		down(n);
 }
@@ -445,25 +444,13 @@ void tr_ne(char **args)
 		ren_pagelimit(n);
 }
 
-static void push_eject(void)
+static void ren_ejectpage(int br)
 {
-	char buf[32];
 	bp_ejected = bp_count;
-	sprintf(buf, "%c%s %d\n", c_cc, TR_EJECT, bp_ejected);
-	in_pushnl(buf, NULL);
-}
-
-static void push_br(void)
-{
-	char br[8] = {c_cc, 'b', 'r', '\n'};
-	in_pushnl(br, NULL);
-}
-
-static void ren_eject(int id)
-{
-	if (id == bp_ejected && id == bp_count && !cdiv) {
+	if (br)
+		ren_br();
+	while (bp_count == bp_ejected && !cdiv) {
 		if (detect_traps(n_d, n_p)) {
-			push_eject();
 			ren_traps(n_d, n_p, 1);
 		} else {
 			bp_ejected = 0;
@@ -472,20 +459,12 @@ static void ren_eject(int id)
 	}
 }
 
-void tr_eject(char **args)
-{
-	ren_eject(atoi(args[1]));
-}
-
 void tr_bp(char **args)
 {
 	if (!cdiv && (args[1] || !n_ns)) {
-		if (bp_ejected != bp_count)
-			push_eject();
-		if (args[0][0] == c_cc)
-			push_br();
 		if (args[1])
 			bp_next = eval_re(args[1], n_pg, 0);
+		ren_ejectpage(args[0][0] == c_cc);
 	}
 }
 
@@ -518,16 +497,16 @@ void tr_in(char **args)
 {
 	int in = args[1] ? eval_re(args[1], n_i, 'm') : n_i0;
 	if (args[0][0] == c_cc)
-		ren_br(1);
+		ren_br();
 	n_i0 = n_i;
 	n_i = MAX(0, in);
-	n_ti = 0;
+	n_ti = -1;
 }
 
 void tr_ti(char **args)
 {
 	if (args[0][0] == c_cc)
-		ren_br(1);
+		ren_br();
 	if (args[1])
 		n_ti = eval_re(args[1], n_i, 'm');
 }
@@ -559,21 +538,21 @@ void tr_fp(char **args)
 void tr_nf(char **args)
 {
 	if (args[0][0] == c_cc)
-		ren_br(1);
+		ren_br();
 	n_u = 0;
 }
 
 void tr_fi(char **args)
 {
 	if (args[0][0] == c_cc)
-		ren_br(1);
+		ren_br();
 	n_u = 1;
 }
 
 void tr_ce(char **args)
 {
 	if (args[0][0] == c_cc)
-		ren_br(1);
+		ren_br();
 	n_ce = args[1] ? atoi(args[1]) : 1;
 }
 
@@ -928,56 +907,61 @@ int ren_parse(struct wb *wb, char *s)
 	return 0;
 }
 
-/* read characters from in.c and pass rendered lines to out.c */
-int render(void)
+/* cause nested render_rec() to exit */
+void tr_popren(char **args)
+{
+	ren_level = args[1] ? atoi(args[1]) : 0;
+}
+
+/* read characters from tr.c and pass the rendered lines to out.c */
+static int render_rec(int level)
 {
 	struct wb *wb = &ren_wb;
 	int c;
-	n_nl = -1;
-	wb_init(wb);
-	tr_first();
-	ren_first();			/* transition to the first page */
-	c = ren_next();
-	while (1) {
+	while (ren_level >= level) {
+		while (!tr_nextreq())
+			if (ren_level < level)
+				break;
+		if (ren_level < level)
+			break;
 		if (ren_aborted)
 			return 1;
+		c = ren_next();
 		if (c < 0) {
 			if (bp_final >= 2)
 				break;
-			if (bp_final == 0 && trap_em >= 0) {
-				trap_exec(trap_em);
+			if (bp_final == 0) {
 				bp_final = 1;
+				fmt_fill(cfmt, 0);
+				if (trap_em >= 0)
+					trap_exec(trap_em);
 			} else {
 				bp_final = 2;
-				push_eject();
-				push_br();
+				ren_ejectpage(1);
 			}
-			c = ren_next();
-			continue;
 		}
-		ren_cnl = c == '\n';
-		/* add wb (the current word) to cadj */
+		if (c >= 0)
+			ren_cnl = c == '\n';
+		/* add wb (the current word) to cfmt */
 		if (c == ' ' || c == '\n') {
-			adj_swid(cadj, spacewid(n_f, n_s));
 			if (!wb_part(wb)) {	/* not after a \c */
-				adj_wb(cadj, wb);
-				wb_reset(wb);
-				/* wb contains only commands like \f */
-				if (!ren_nl && wb_empty(wb))
-					adj_nonl(cadj);
+				fmt_word(cfmt, wb);
 				if (c == '\n')
-					adj_nl(cadj);
+					fmt_newline(cfmt);
 				else
-					adj_sp(cadj);
+					fmt_space(cfmt);
+				if (!(n_j & AD_P))
+					fmt_fill(cfmt, 0);
+				wb_reset(wb);
 			}
 		}
 		/* flush the line if necessary */
-		if (c == ' ' || c == '\n') {
-			while ((ren_fillreq && !wb_part(wb) && !n_ce && n_u) ||
-						adj_full(cadj, !n_ce && n_u)) {
-				ren_br(0);
-				ren_fillreq = 0;
-			}
+		if (c == ' ' || c == '\n' || c < 0) {
+			if (ren_fillreq && !wb_part(wb))
+				fmt_fill(cfmt, 1);
+			while (fmt_morelines(cfmt))
+				ren_passline(cfmt);
+			ren_fillreq = 0;
 		}
 		if (c == '\n' || ren_nl)	/* end or start of input line */
 			n_lb = f_hpos();
@@ -985,17 +969,30 @@ int render(void)
 			trap_exec(n_it);
 		if (c == '\n' && !wb_part(wb))
 			n_ce = MAX(0, n_ce - 1);
-		if (c != ' ') {
+		if (c != ' ' && c >= 0) {
 			ren_back(c);
 			ren_char(wb, ren_next, ren_back);
 		}
-		ren_nl = c == '\n';
-		c = ren_next();
+		if (c >= 0)
+			ren_nl = c == '\n';
 	}
+	return 0;
+}
+
+/* render input words */
+int render(void)
+{
+	struct wb *wb = &ren_wb;
+	n_nl = -1;
+	wb_init(wb);
+	while (!tr_nextreq())
+		;
+	ren_first();			/* transition to the first page */
+	render_rec(0);
 	bp_final = 3;
-	if (!adj_empty(cadj, 0))
+	if (fmt_morewords(cfmt))
 		ren_page(bp_next, 1);
-	ren_br(1);
+	ren_br();
 	wb_done(wb);
 	return 0;
 }

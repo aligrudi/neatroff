@@ -15,7 +15,7 @@
  * + font_xyz: fonts (font.c)
  * + sbuf_xyz: variable length string buffers (sbuf.c)
  * + wb_xyz: word buffers (wb.c)
- * + adj_xyz: line adjustment buffers (adj.c)
+ * + fmt_xyz: line formatting buffers (fmt.c)
  * + n_xyz: builtin number register xyz
  * + c_xyz: characters for requests like hc and mc
  *
@@ -34,7 +34,8 @@
 #define RNLEN		NMLEN	/* register/macro name */
 #define ILNLEN		1000	/* line limit of input files */
 #define LNLEN		4000	/* line buffer length (ren.c/out.c) */
-#define NWORDS		256	/* number of words in line buffer */
+#define NWORDS		512	/* number of queued words in formatting buffer */
+#define NLINES		32	/* number of queued lines in formatting buffer */
 #define NARGS		16	/* number of macro arguments */
 #define NPREV		16	/* environment stack depth */
 #define NTRAPS		1024	/* number of traps per page */
@@ -99,7 +100,7 @@ void odiv_end(void);
 /* enviroments */
 void env_init(void);
 void env_done(void);
-struct adj *env_adj(void);
+struct fmt *env_fmt(void);
 char *env_hc(void);
 char *env_mc(void);
 char *env_tc(void);
@@ -205,7 +206,7 @@ int in_lnum(void);		/* current line number */
 void cp_blk(int skip);		/* skip or read the next line or block */
 void cp_wid(int enable);	/* control inlining \w requests */
 #define cp_back		in_back	/* cp.c is stateless */
-void tr_first(void);		/* read until the first non-command line */
+int tr_nextreq(void);		/* read the next troff request */
 
 /* variable length string buffer */
 struct sbuf {
@@ -291,24 +292,26 @@ int cdef_expand(struct wb *wb, char *c, int fn);
 
 void hyphenate(char *hyphs, char *word, int flg);
 
-/* adjustment */
-#define AD_L		0
-#define AD_B		1
-#define AD_C		3
-#define AD_R		5
+/* adjustment types */
+#define AD_C		0	/* center */
+#define AD_L		1	/* adjust left margin (flag) */
+#define AD_R		2	/* adjust right margin (flag) */
+#define AD_B		3	/* adjust both margin (mask) */
+#define AD_P		4	/* paragraph-at-once adjustment (flag) */
 
-struct adj *adj_alloc(void);
-void adj_free(struct adj *adj);
-int adj_fill(struct adj *adj, int ad_b, int fill, int hyph, struct sbuf *dst,
+/* line formatting */
+struct fmt *fmt_alloc(void);
+void fmt_free(struct fmt *fmt);
+int fmt_wid(struct fmt *fmt);
+void fmt_word(struct fmt *fmt, struct wb *wb);
+void fmt_newline(struct fmt *fmt);
+void fmt_space(struct fmt *fmt);
+void fmt_br(struct fmt *fmt);
+int fmt_fill(struct fmt *fmt, int all);
+int fmt_morelines(struct fmt *fmt);
+int fmt_morewords(struct fmt *fmt);
+int fmt_nextline(struct fmt *fmt, struct sbuf *sbuf, int *w,
 		int *li, int *ll, int *els_neg, int *els_pos);
-int adj_full(struct adj *adj, int fill);
-int adj_empty(struct adj *adj, int fill);
-int adj_wid(struct adj *adj);
-void adj_swid(struct adj *adj, int swid);
-void adj_wb(struct adj *adj, struct wb *wb);
-void adj_nl(struct adj *adj);
-void adj_sp(struct adj *adj);
-void adj_nonl(struct adj *adj);
 
 /* rendering */
 int render(void);				/* the main loop */
@@ -362,7 +365,7 @@ void tr_sv(char **args);
 void tr_ta(char **args);
 void tr_ti(char **args);
 void tr_wh(char **args);
-void tr_eject(char **args);
+void tr_popren(char **args);
 
 void tr_init(void);
 
@@ -389,7 +392,7 @@ void sstr_back(int c);
 /* internal commands */
 #define TR_DIVBEG	"\07<"	/* diversion begins */
 #define TR_DIVEND	"\07>"	/* diversion ends */
-#define TR_EJECT	"\07P"	/* page eject */
+#define TR_POPREN	"\07P"	/* exit render_rec() */
 
 /* mapping register, macro and environment names to indices */
 #define NREGS		4096	/* maximum number of mapped names */

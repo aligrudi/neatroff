@@ -13,7 +13,7 @@ struct env {
 	int eregs[NENVS];	/* environment-specific number registers */
 	int tabs[NTABS];	/* tab stops */
 	char tabs_type[NTABS];	/* type of tabs: L, C, R */
-	struct adj *adj;	/* per environment line buffer */
+	struct fmt *fmt;	/* per environment line formatting buffer */
 	char tc[GNLEN];		/* tab character (.tc) */
 	char lc[GNLEN];		/* leader character (.lc) */
 	char hc[GNLEN];		/* hyphenation character (.hc) */
@@ -167,13 +167,13 @@ static struct env *env_alloc(void)
 {
 	struct env *env = malloc(sizeof(*env));
 	memset(env, 0, sizeof(*env));
-	env->adj = adj_alloc();
+	env->fmt = fmt_alloc();
 	return env;
 }
 
 static void env_free(struct env *env)
 {
-	adj_free(env->adj);
+	fmt_free(env->fmt);
 	free(env);
 }
 
@@ -261,9 +261,9 @@ void tr_ev(char **args)
 	env_set(id);
 }
 
-struct adj *env_adj(void)
+struct fmt *env_fmt(void)
 {
-	return env->adj;
+	return env->fmt;
 }
 
 char *env_hc(void)
