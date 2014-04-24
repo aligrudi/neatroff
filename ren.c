@@ -233,18 +233,18 @@ static int ren_ljust(struct sbuf *spre, int w, int ad, int ll, int li, int lt)
 }
 
 /* append the line to the current diversion or send it to out.c */
-static void ren_line(struct sbuf *spre, struct sbuf *sbuf)
+static void ren_out(char *beg, char *mid, char *end)
 {
 	if (cdiv) {
-		if (!sbuf_empty(spre))
-			sbuf_append(&cdiv->sbuf, sbuf_buf(spre));
-		sbuf_append(&cdiv->sbuf, sbuf_buf(sbuf));
+		sbuf_append(&cdiv->sbuf, beg);
+		sbuf_append(&cdiv->sbuf, mid);
+		sbuf_append(&cdiv->sbuf, end);
 	} else {
 		out("H%d\n", n_o);
 		out("V%d\n", n_d);
-		if (!sbuf_empty(spre))
-			out_line(sbuf_buf(spre));
-		out_line(sbuf_buf(sbuf));
+		out_line(beg);
+		out_line(mid);
+		out_line(end);
 	}
 }
 
@@ -300,54 +300,74 @@ static void ren_mc(struct sbuf *sbuf, int w, int ljust)
 	wb_done(&wb);
 }
 
-/* output current line; returns 1 if triggered a trap */
-static int ren_bradj(struct adj *adj, int fill, int ad, int body)
+/* return one if the next line causes a trap or new page */
+static int ren_lastline(void)
+{
+	int lspc = MAX(1, n_L) * n_v;
+	return detect_traps(n_d, n_d + lspc) || detect_pagelimit(lspc);
+}
+
+/* process a line and print it with ren_out() */
+static int ren_line(char *line, int w, int ad, int body,
+		int ll, int li, int lt, int els_neg, int els_pos)
 {
 	char cmd[16];
-	struct sbuf sbuf, spre;
-	int ll, li, lt, els_neg, els_pos;
-	int w, hyph, prev_d, lspc, ljust;
+	struct sbuf sbeg, send;
+	int prev_d, lspc, ljust;
 	ren_first();
-	if (!adj_empty(adj, fill)) {
-		sbuf_init(&sbuf);
-		sbuf_init(&spre);
-		hyph = n_hy;
-		lspc = MAX(1, n_L) * n_v;	/* line space, ignoreing \x */
-		if (n_hy & HY_LAST && (detect_traps(n_d, n_d + lspc) ||
-					detect_pagelimit(lspc)))
-			hyph = 0;		/* disable for last lines */
-		w = adj_fill(adj, ad == AD_B, fill, hyph, &sbuf,
-				&ll, &li, &lt, &els_neg, &els_pos);
-		prev_d = n_d;
-		if (els_neg)
-			ren_sp(-els_neg, 1);
-		if (!n_ns || !sbuf_empty(&sbuf) || els_neg || els_pos) {
-			ren_sp(0, 0);
-			if (!sbuf_empty(&sbuf) && n_nm && body)
-				ren_lnum(&spre);
-			ljust = ren_ljust(&spre, w, ad, ll, li, lt);
-			if (!sbuf_empty(&sbuf) && body && n_mc)
-				ren_mc(&sbuf, w, ljust);
-			ren_line(&spre, &sbuf);
-			n_ns = 0;
-		}
-		sbuf_done(&spre);
-		sbuf_done(&sbuf);
-		if (els_pos)
-			ren_sp(els_pos, 1);
-		n_a = els_pos;
-		if (detect_traps(prev_d, n_d) || detect_pagelimit(lspc - n_v)) {
-			sprintf(cmd, "%c&", c_ec);
-			if (!ren_cnl)		/* prevent unwanted newlines */
-				in_push(cmd, NULL);
-			if (!ren_traps(prev_d, n_d, 0))
-				ren_pagelimit(lspc - n_v);
-			return 1;
-		}
-		if (lspc - n_v && down(lspc - n_v))
-			return 1;
+	sbuf_init(&sbeg);
+	sbuf_init(&send);
+	lspc = MAX(1, n_L) * n_v;	/* line space, ignoreing \x */
+	prev_d = n_d;
+	if (els_neg)
+		ren_sp(-els_neg, 1);
+	if (!n_ns || line[0] || els_neg || els_pos) {
+		ren_sp(0, 0);
+		if (line[0] && n_nm && body)
+			ren_lnum(&sbeg);
+		ljust = ren_ljust(&sbeg, w, ad, ll, li, lt);
+		if (line[0] && body && n_mc)
+			ren_mc(&send, w, ljust);
+		ren_out(sbuf_buf(&sbeg), line, sbuf_buf(&send));
+		n_ns = 0;
 	}
+	sbuf_done(&sbeg);
+	sbuf_done(&send);
+	if (els_pos)
+		ren_sp(els_pos, 1);
+	n_a = els_pos;
+	if (detect_traps(prev_d, n_d) || detect_pagelimit(lspc - n_v)) {
+		sprintf(cmd, "%c&", c_ec);
+		if (!ren_cnl)		/* prevent unwanted newlines */
+			in_push(cmd, NULL);
+		if (!ren_traps(prev_d, n_d, 0))
+			ren_pagelimit(lspc - n_v);
+		return 1;
+	}
+	if (lspc - n_v && down(lspc - n_v))
+		return 1;
 	return 0;
+}
+
+/* output current line; returns 1 if triggered a trap */
+static int ren_bradj(struct adj *adj, int fill, int ad)
+{
+	struct sbuf sbuf;
+	int ll, li, lt, els_neg, els_pos;
+	int w, hyph, ret;
+	ren_first();
+	if (adj_empty(adj, fill))
+		return 0;
+	sbuf_init(&sbuf);
+	hyph = n_hy;
+	if ((n_hy & HY_LAST) && ren_lastline())
+		hyph = 0;	/* disable hyphenation final lines */
+	w = adj_fill(adj, ad == AD_B, fill, hyph, &sbuf,
+			&ll, &li, &lt, &els_neg, &els_pos);
+	ret = ren_line(sbuf_buf(&sbuf), w, ad, 1,
+			ll, li, lt, els_neg, els_pos);
+	sbuf_done(&sbuf);
+	return ret;
 }
 
 /* output current line; returns 1 if triggered a trap */
@@ -358,7 +378,7 @@ static int ren_br(int force)
 		ad = AD_L;
 	if (n_ce)
 		ad = AD_C;
-	return ren_bradj(cadj, !force && !n_ce && n_u, ad, 1);
+	return ren_bradj(cadj, !force && !n_ce && n_u, ad);
 }
 
 void tr_br(char **args)
@@ -813,10 +833,8 @@ static void wb_cpy(struct wb *dst, struct wb *src, int left)
 
 void ren_tl(int (*next)(void), void (*back)(int))
 {
-	struct adj *adj;
 	struct wb wb, wb2;
 	char delim[GNLEN];
-	adj = adj_alloc();
 	wb_init(&wb);
 	wb_init(&wb2);
 	charnext(delim, next, back);
@@ -830,11 +848,8 @@ void ren_tl(int (*next)(void), void (*back)(int))
 	ren_until(&wb2, delim, NULL, next, back);
 	wb_cpy(&wb, &wb2, n_lt - wb_wid(&wb2));
 	/* flushing the line */
-	adj_ll(adj, n_lt);
-	adj_wb(adj, &wb);
-	adj_nl(adj);
-	ren_bradj(adj, 0, AD_L, 0);
-	adj_free(adj);
+	ren_line(sbuf_buf(&wb.sbuf), wb_wid(&wb), AD_L, 0,
+			n_lt, 0, 0, wb.els_neg, wb.els_pos);
 	wb_done(&wb2);
 	wb_done(&wb);
 }
