@@ -68,7 +68,8 @@ char *num_str(int id)
 			sprintf(numbuf, "%d", f_hpos());
 			return numbuf;
 		case 'm':
-			sprintf(numbuf, "#%02x%02x%02x", CLR_R(n_m), CLR_G(n_m), CLR_B(n_m));
+			sprintf(numbuf, "#%02x%02x%02x",
+				CLR_R(n_m), CLR_G(n_m), CLR_B(n_m));
 			return numbuf;
 		case 't':
 			sprintf(numbuf, "%d", f_nexttrap());
@@ -85,6 +86,8 @@ char *num_str(int id)
 			return numbuf;
 		}
 	}
+	if (s[0] == '.' && !strcmp(".neat", s))
+		return "1";
 	if (id == map("yr")) {
 		sprintf(numbuf, "%02d", nregs[id]);
 		return numbuf;
