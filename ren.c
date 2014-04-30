@@ -360,7 +360,7 @@ static int ren_passline(struct fmt *fmt)
 		return 0;
 	sbuf_init(&sbuf);
 	fmt_nextline(fmt, &sbuf, &w, &li, &ll, &els_neg, &els_pos);
-	if (!n_u || n_na)
+	if ((n_cp && !n_u) || n_na)
 		ad = AD_L;
 	if (n_ce)
 		ad = AD_C;
