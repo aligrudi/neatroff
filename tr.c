@@ -395,6 +395,11 @@ static void tr_hy(char **args)
 	n_hy = args[1] ? atoi(args[1]) : 1;
 }
 
+static void tr_hyp(char **args)
+{
+	n_hyp = args[1] ? atoi(args[1]) : 1;
+}
+
 static void tr_lg(char **args)
 {
 	if (args[1])
@@ -857,6 +862,7 @@ static struct cmd {
 	{"ft", tr_ft},
 	{"hc", tr_hc},
 	{"hy", tr_hy},
+	{"hyp", tr_hyp},
 	{"hw", tr_hw},
 	{"ie", tr_if, mkargs_null},
 	{"if", tr_if, mkargs_null},

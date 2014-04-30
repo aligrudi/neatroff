@@ -35,7 +35,7 @@ static char *eregs[] = {	/* environment-specific number registers */
 	".L", ".nI", ".nm", ".nM", ".nn",
 	".nS", ".m", ".s", ".u", ".v",
 	".it", ".itn", ".mc", ".mcn",
-	".ce", ".f0", ".hy", ".i0", ".l0",
+	".ce", ".f0", ".hy", ".hyp", ".i0", ".l0",
 	".L0", ".m0", ".n0", ".s0", ".ss",
 	".ti", ".lt", ".lt0", ".v0",
 };

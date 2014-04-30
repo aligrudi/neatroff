@@ -34,7 +34,7 @@
 #define RNLEN		NMLEN	/* register/macro name */
 #define ILNLEN		1000	/* line limit of input files */
 #define LNLEN		4000	/* line buffer length (ren.c/out.c) */
-#define NWORDS		512	/* number of queued words in formatting buffer */
+#define NWORDS		1024	/* number of queued words in formatting buffer */
 #define NLINES		32	/* number of queued lines in formatting buffer */
 #define NARGS		16	/* number of macro arguments */
 #define NPREV		16	/* environment stack depth */
@@ -47,6 +47,7 @@
 #define MAXFRAC		100000	/* maximum value of the fractional part */
 #define LIGLEN		4	/* length of ligatures */
 #define NCDEFS		128	/* number of character definitions (.char) */
+#define NHYPHS		8	/* maximum hyphenations per word */
 
 /* converting scales */
 #define SC_IN		(dev_res)	/* inch in units */
@@ -265,7 +266,7 @@ void wb_drawxend(struct wb *wb);
 void wb_italiccorrection(struct wb *wb);
 void wb_italiccorrectionleft(struct wb *wb);
 void wb_cat(struct wb *wb, struct wb *src);
-int wb_hyph(char *word, int w, struct wb *w1, struct wb *w2, int flg);
+int wb_hyph(char *word, int *hyidx, int *hywid, int *hydash, int flg);
 int wb_wid(struct wb *wb);
 int wb_empty(struct wb *wb);
 int wb_eos(struct wb *wb);
@@ -284,11 +285,9 @@ char *cdef_map(char *c, int fn);
 int cdef_expand(struct wb *wb, char *c, int fn);
 
 /* hyphenation flags */
-#define HY_MASK		0x0f	/* enable hyphenation */
 #define HY_LAST		0x02	/* do not hyphenate last lines */
 #define HY_FINAL2	0x04	/* do not hyphenate the final two characters */
 #define HY_FIRST2	0x08	/* do not hyphenate the first two characters */
-#define HY_ANY		0x10	/* break at any possible position */
 
 void hyphenate(char *hyphs, char *word, int flg);
 
@@ -449,6 +448,7 @@ int clr_get(char *s);
 #define n_f0		(*nreg(map(".f0")))	/* last .f */
 #define n_lg		(*nreg(map(".lg")))	/* .lg mode */
 #define n_hy		(*nreg(map(".hy")))	/* .hy mode */
+#define n_hyp		(*nreg(map(".hyp")))	/* hyphenation penalty  */
 #define n_i0		(*nreg(map(".i0")))	/* last .i */
 #define n_ti		(*nreg(map(".ti")))	/* pending .ti */
 #define n_kn		(*nreg(map(".kern")))	/* .kn mode */

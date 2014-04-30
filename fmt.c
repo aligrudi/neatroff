@@ -27,6 +27,8 @@ struct word {
 	int wid;	/* word's width */
 	int elsn, elsp;	/* els_neg and els_pos */
 	int gap;	/* the space before this word */
+	int hy;		/* hyphen width if inserted after this word */
+	int str;	/* does the spece before it stretch */
 };
 
 struct line {
@@ -92,6 +94,12 @@ static int fmt_wordscopy(struct fmt *f, int beg, int end,
 			*els_pos = wcur->elsp;
 		free(wcur->s);
 	}
+	if (beg < end) {
+		wcur = &f->words[end - 1];
+		if (wcur->hy)
+			sbuf_append(s, "\\(hy");
+		w += wcur->hy;
+	}
 	return w;
 }
 
@@ -101,57 +109,17 @@ static int fmt_wordslen(struct fmt *f, int beg, int end)
 	int i, w = 0;
 	for (i = beg; i < end; i++)
 		w += f->words[i].wid + f->words[i].gap;
-	return w;
+	return beg < end ? w + f->words[end - 1].hy : 0;
 }
 
-static char *fmt_strdup(char *s)
+/* the number stretchable spaces in f */
+static int fmt_spaces(struct fmt *f, int beg, int end)
 {
-	int l = strlen(s);
-	char *r = malloc(l + 1);
-	memcpy(r, s, l + 1);
-	return r;
-}
-
-/* copy word buffer wb in fmt->words[i] */
-static void fmt_insertword(struct fmt *f, int i, struct wb *wb, int gap)
-{
-	struct word *w = &f->words[i];
-	w->s = fmt_strdup(wb_buf(wb));
-	w->wid = wb_wid(wb);
-	w->elsn = wb->els_neg;
-	w->elsp = wb->els_pos;
-	w->gap = gap;
-}
-
-/* try to hyphenate the n-th word */
-static void fmt_hyph(struct fmt *f, int n, int w, int hyph)
-{
-	struct wb w1, w2;
-	int flg = hyph | (n ? 0 : HY_ANY);
-	wb_init(&w1);
-	wb_init(&w2);
-	if (!wb_hyph(f->words[n].s, w, &w1, &w2, flg)) {
-		fmt_movewords(f, n + 2, n + 1, f->nwords - n);
-		free(f->words[n].s);
-		fmt_insertword(f, n, &w1, f->words[n].gap);
-		fmt_insertword(f, n + 1, &w2, 0);
-		f->nwords++;
-	}
-	wb_done(&w1);
-	wb_done(&w2);
-}
-
-/* estimated number of lines until traps or the end of a page */
-static int ren_safelines(void)
-{
-	return f_nexttrap() / (MAX(1, n_L) * n_v);
-}
-
-static int fmt_nlines(struct fmt *f)
-{
-	if (f->l_tail <= f->l_head)
-		return f->l_head - f->l_tail;
-	return NLINES - f->l_tail + f->l_head;
+	int i, n = 0;
+	for (i = beg + 1; i < end; i++)
+		if (f->words[i].str)
+			n++;
+	return n;
 }
 
 /* return the next line in the buffer */
@@ -229,6 +197,38 @@ void fmt_newline(struct fmt *f)
 	}
 }
 
+/* copy word buffer wb in fmt->words[i] */
+static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
+{
+	int hyidx[NHYPHS];
+	int hywid[NHYPHS];
+	int hydash[NHYPHS];
+	struct word *w;
+	char *beg, *end;
+	char *src = wb_buf(wb);
+	int n, i;
+	n = wb_hyph(src, hyidx, hywid, hydash, n_hy);
+	for (i = 0; i <= n; i++) {
+		w = &f->words[f->nwords++];
+		beg = src + (i > 0 ? hyidx[i - 1] : 0);
+		end = src + (i < n ? hyidx[i] : strlen(src));
+		w->s = malloc(end - beg + 1);
+		memcpy(w->s, beg, end - beg);
+		w->s[end - beg] = '\0';
+		if (n) {
+			w->wid = (i < n ? hywid[i] : wb_wid(wb)) -
+				(i > 0 ? hywid[i - 1] : 0);
+		} else {
+			w->wid = wb_wid(wb);
+		}
+		w->elsn = wb->els_neg;
+		w->elsp = wb->els_pos;
+		w->hy = i < n ? hydash[i] : 0;
+		w->str = i == 0;
+		w->gap = i == 0 ? gap : 0;
+	}
+}
+
 /* insert wb into fmt */
 void fmt_word(struct fmt *f, struct wb *wb)
 {
@@ -242,32 +242,41 @@ void fmt_word(struct fmt *f, struct wb *wb)
 		fmt_confupdate(f);
 	if (f->nls && !f->gap && f->nwords >= 1)
 		f->gap = (f->nwords && f->eos) ? FMT_SWID(f) * 2 : FMT_SWID(f);
-	fmt_insertword(f, f->nwords++, wb, f->filled ? 0 : f->gap);
+	f->eos = wb_eos(wb);
+	fmt_insertword(f, wb, f->filled ? 0 : f->gap);
 	f->filled = 0;
 	f->nls = 0;
 	f->gap = 0;
-	f->eos = wb_eos(wb);
 }
+
+/* assuming an empty line has cost 10000; take care of integer overflow */
+#define POW2(x)				((x) * (x))
+#define FMT_COST(lwid, llen, pen)	(POW2(((llen) - (lwid)) * 1000l / (llen)) / 100l + (pen) * 10l)
 
 /* the cost of putting a line break before word pos */
 static long fmt_findcost(struct fmt *f, int pos)
 {
-	int i, w;
+	int i, pen = 0;
 	long cur;
+	int lwid = 0;
 	int llen = FMT_LLEN(f);
 	if (pos <= 0)
 		return 0;
 	if (f->best_pos[pos] >= 0)
 		return f->best[pos];
 	i = pos - 1;
-	w = 0;
+	lwid = 0;
+	if (f->words[i].hy)	/* the last word is hyphenated */
+		lwid += f->words[i].hy;
+	if (f->words[i].hy)
+		pen = n_hyp;
 	while (i >= 0) {
-		w += f->words[i].wid;
+		lwid += f->words[i].wid;
 		if (i + 1 < pos)
-			w += f->words[i + 1].gap;
-		if (w > llen && pos - i > 1)
+			lwid += f->words[i + 1].gap;
+		if (lwid > llen && pos - i > 1)
 			break;
-		cur = fmt_findcost(f, i) + (llen - w) * (llen - w);
+		cur = fmt_findcost(f, i) + FMT_COST(lwid, llen, pen);
 		if (f->best_pos[pos] < 0 || cur < f->best[pos]) {
 			f->best_pos[pos] = i;
 			f->best[pos] = cur;
@@ -277,7 +286,6 @@ static long fmt_findcost(struct fmt *f, int pos)
 	return f->best[pos];
 }
 
-/* the best position for breaking the line ending at pos */
 static int fmt_bestpos(struct fmt *f, int pos)
 {
 	fmt_findcost(f, pos);
@@ -287,26 +295,28 @@ static int fmt_bestpos(struct fmt *f, int pos)
 /* return the last filled word */
 static int fmt_breakparagraph(struct fmt *f, int pos, int all)
 {
-	int i, w;
-	long cur, best = 0;
+	int i;
+	long best = 0;
 	int best_i = -1;
 	int llen = FMT_LLEN(f);
+	int lwid = 0;
 	if (all || (pos > 0 && f->words[pos - 1].wid >= llen)) {
 		fmt_findcost(f, pos);
 		return pos;
 	}
 	i = pos - 1;
-	w = 0;
+	lwid = 0;
+	if (f->words[i].hy)	/* the last word is hyphenated */
+		lwid += f->words[i].hy;
 	while (i >= 0) {
-		w += f->words[i].wid;
+		lwid += f->words[i].wid;
 		if (i + 1 < pos)
-			w += f->words[i + 1].gap;
-		if (w > llen && pos - i > 1)
+			lwid += f->words[i + 1].gap;
+		if (lwid > llen && pos - i > 1)
 			break;
-		cur = fmt_findcost(f, i);
-		if (best_i < 0 || cur < best) {
+		if (best_i < 0 || fmt_findcost(f, i) < best) {
 			best_i = i;
-			best = cur;
+			best = fmt_findcost(f, i);
 		}
 		i--;
 	}
@@ -317,7 +327,7 @@ static int fmt_breakparagraph(struct fmt *f, int pos, int all)
 static int fmt_break(struct fmt *f, int end)
 {
 	int llen, fmt_div, fmt_rem, beg;
-	int n, w, i;
+	int w, i, nspc;
 	struct line *l;
 	int ret = 0;
 	beg = fmt_bestpos(f, end);
@@ -329,17 +339,18 @@ static int fmt_break(struct fmt *f, int end)
 	llen = FMT_LLEN(f);
 	f->words[beg].gap = 0;
 	w = fmt_wordslen(f, beg, end);
-	n = end - beg;
-	if (FMT_ADJ(f) && n > 1) {
-		fmt_div = (llen - w) / (n - 1);
-		fmt_rem = (llen - w) % (n - 1);
+	nspc = fmt_spaces(f, beg, end);
+	if (FMT_ADJ(f) && nspc) {
+		fmt_div = (llen - w) / nspc;
+		fmt_rem = (llen - w) % nspc;
 		for (i = beg + 1; i < end; i++)
-			f->words[i].gap += fmt_div + (i < fmt_rem);
+			if (f->words[i].str)
+				f->words[i].gap += fmt_div + (fmt_rem-- > 0);
 	}
 	l->wid = fmt_wordscopy(f, beg, end, &l->sbuf, &l->elsn, &l->elsp);
 	if (beg > 0)
 		fmt_confupdate(f);
-	return ret + n;
+	return ret + (end - beg);
 }
 
 int fmt_fill(struct fmt *f, int all)
