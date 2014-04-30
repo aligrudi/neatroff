@@ -369,12 +369,27 @@ static int ren_passline(struct fmt *fmt)
 	return ret;
 }
 
+/* estimated number of lines until traps or the end of a page */
+static int ren_safelines(void)
+{
+	return f_nexttrap() / (MAX(1, n_L) * n_v);
+}
+
+/* call fmt_fill() for all pending lines */
+static void ren_fmtfill(struct fmt *fmt, int all)
+{
+	int n;
+	do {	/* do not hyphenate lines preceding traps or new pages */
+		n = fmt_fill(fmt, (n_hy & HY_LAST) ? ren_safelines() : 0, all);
+		while (fmt_morelines(fmt))
+			ren_passline(fmt);
+	} while (n);
+}
+
 /* output current line; returns 1 if triggered a trap */
 static int ren_br(void)
 {
-	fmt_fill(cfmt, 0);
-	while (fmt_morelines(cfmt))
-		ren_passline(cfmt);
+	ren_fmtfill(cfmt, 0);
 	fmt_br(cfmt);
 	return ren_passline(cfmt);
 }
@@ -932,7 +947,7 @@ static int render_rec(int level)
 				break;
 			if (bp_final == 0) {
 				bp_final = 1;
-				fmt_fill(cfmt, 0);
+				ren_fmtfill(cfmt, 0);
 				if (trap_em >= 0)
 					trap_exec(trap_em);
 			} else {
@@ -950,15 +965,15 @@ static int render_rec(int level)
 					fmt_newline(cfmt);
 				else
 					fmt_space(cfmt);
-				if (!(n_j & AD_P))
-					fmt_fill(cfmt, 0);
 				wb_reset(wb);
+				if (!(n_j & AD_P))
+					ren_fmtfill(cfmt, 0);
 			}
 		}
 		/* flush the line if necessary */
 		if (c == ' ' || c == '\n' || c < 0) {
 			if (ren_fillreq && !wb_part(wb))
-				fmt_fill(cfmt, 1);
+				ren_fmtfill(cfmt, 1);
 			while (fmt_morelines(cfmt))
 				ren_passline(cfmt);
 			ren_fillreq = 0;

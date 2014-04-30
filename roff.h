@@ -306,7 +306,7 @@ void fmt_word(struct fmt *fmt, struct wb *wb);
 void fmt_newline(struct fmt *fmt);
 void fmt_space(struct fmt *fmt);
 void fmt_br(struct fmt *fmt);
-int fmt_fill(struct fmt *fmt, int all);
+int fmt_fill(struct fmt *fmt, int nreq, int all);
 int fmt_morelines(struct fmt *fmt);
 int fmt_morewords(struct fmt *fmt);
 int fmt_nextline(struct fmt *fmt, struct sbuf *sbuf, int *w,

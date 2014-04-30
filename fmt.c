@@ -47,6 +47,7 @@ struct fmt {
 	/* for paragraph adjustment */
 	long best[NWORDS];
 	int best_pos[NWORDS];
+	int best_dep[NWORDS];
 	/* current line */
 	int gap;		/* space before the next word */
 	int nls;		/* newlines before the next word */
@@ -103,6 +104,13 @@ static int fmt_wordscopy(struct fmt *f, int beg, int end,
 	return w;
 }
 
+static int fmt_nlines(struct fmt *f)
+{
+	if (f->l_tail <= f->l_head)
+		return f->l_head - f->l_tail;
+	return NLINES - f->l_tail + f->l_head;
+}
+
 /* the total width of the specified words in f->words[] */
 static int fmt_wordslen(struct fmt *f, int beg, int end)
 {
@@ -156,7 +164,7 @@ static struct line *fmt_mkline(struct fmt *f)
 static int fmt_sp(struct fmt *f)
 {
 	struct line *l;
-	fmt_fill(f, 0);
+	fmt_fill(f, 0, 0);
 	l = fmt_mkline(f);
 	if (!l)
 		return 1;
@@ -169,7 +177,7 @@ static int fmt_sp(struct fmt *f)
 
 void fmt_br(struct fmt *f)
 {
-	fmt_fill(f, 0);
+	fmt_fill(f, 0, 0);
 	f->filled = 0;
 	if (f->nwords)
 		fmt_sp(f);
@@ -233,7 +241,7 @@ static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 void fmt_word(struct fmt *f, struct wb *wb)
 {
 	if (f->nwords == NWORDS || fmt_confchanged(f))
-		fmt_fill(f, 0);
+		fmt_fill(f, 0, 0);
 	if (wb_empty(wb) || f->nwords == NWORDS)
 		return;
 	if (FMT_FILL(f) && f->nls && f->gap)
@@ -279,6 +287,7 @@ static long fmt_findcost(struct fmt *f, int pos)
 		cur = fmt_findcost(f, i) + FMT_COST(lwid, llen, pen);
 		if (f->best_pos[pos] < 0 || cur < f->best[pos]) {
 			f->best_pos[pos] = i;
+			f->best_dep[pos] = f->best_dep[i] + 1;
 			f->best[pos] = cur;
 		}
 		i--;
@@ -296,8 +305,7 @@ static int fmt_bestpos(struct fmt *f, int pos)
 static int fmt_breakparagraph(struct fmt *f, int pos, int all)
 {
 	int i;
-	long best = 0;
-	int best_i = -1;
+	int best = -1;
 	int llen = FMT_LLEN(f);
 	int lwid = 0;
 	if (all || (pos > 0 && f->words[pos - 1].wid >= llen)) {
@@ -314,13 +322,25 @@ static int fmt_breakparagraph(struct fmt *f, int pos, int all)
 			lwid += f->words[i + 1].gap;
 		if (lwid > llen && pos - i > 1)
 			break;
-		if (best_i < 0 || fmt_findcost(f, i) < best) {
-			best_i = i;
-			best = fmt_findcost(f, i);
-		}
+		if (best < 0 || fmt_findcost(f, i) < fmt_findcost(f, best))
+			best = i;
 		i--;
 	}
-	return best_i;
+	return best;
+}
+
+static int fmt_head(struct fmt *f, int nreq, int pos)
+{
+	int best = -1;
+	int i;
+	if (nreq <= 0 || f->best_dep[pos] < nreq)
+		return pos;
+	for (i = 1; i < pos && f->best_dep[i] <= nreq; i++) {
+		fmt_findcost(f, i);
+		if (f->best_dep[i] == nreq && !f->words[i - 1].hy)
+			best = i;
+	}
+	return best >= 0 ? best : i - 1;
 }
 
 /* break f->words[0..end] into lines according to fmt_bestpos() */
@@ -353,18 +373,39 @@ static int fmt_break(struct fmt *f, int end)
 	return ret + (end - beg);
 }
 
-int fmt_fill(struct fmt *f, int all)
+/*
+ * fill the words collected in the buffer
+ *
+ * The argument nreq, when nonzero, limits the number of lines
+ * to format.  It also tells fmt_fill() not to hyphenate the
+ * last word of nreq-th line.  This is used in ren.c to prevent
+ * hyphenating last lines of pages.
+ *
+ * The all argument forces fmt_fill() to fill all of the words.
+ * This is used for the \p escape sequence.
+ */
+int fmt_fill(struct fmt *f, int nreq, int all)
 {
-	int end, n, i;
+	int end;	/* the final line ends before this word */
+	int end_head;	/* like end, but only the first nreq lines included */
+	int head = 0;	/* only nreq first lines have been formatted */
+	int n, i;
 	if (!FMT_FILL(f))
 		return 0;
 	/* not enough words to fill */
 	if (!all && fmt_wordslen(f, 0, f->nwords) <= FMT_LLEN(f))
 		return 0;
+	if (nreq > 0 && nreq <= fmt_nlines(f))
+		return 0;
 	/* resetting positions */
 	for (i = 0; i < f->nwords + 1; i++)
 		f->best_pos[i] = -1;
 	end = fmt_breakparagraph(f, f->nwords, all);
+	if (nreq > 0) {
+		end_head = fmt_head(f, nreq - fmt_nlines(f), end);
+		head = end_head < end;
+		end = end_head;
+	}
 	/* recursively add lines */
 	n = fmt_break(f, end);
 	f->nwords -= n;
@@ -374,7 +415,7 @@ int fmt_fill(struct fmt *f, int all)
 		f->words[0].gap = 0;
 	if (f->nwords)		/* apply the new .l and .i */
 		fmt_confupdate(f);
-	return n != end;
+	return head || n != end;
 }
 
 struct fmt *fmt_alloc(void)
