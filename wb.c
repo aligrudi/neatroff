@@ -416,9 +416,11 @@ static int skipreqs(char **s, struct wb *w1)
 	char d[ILNLEN];
 	char *r = *s;
 	int c;
-	wb_reset(w1);
+	if (w1)
+		wb_reset(w1);
 	while ((c = escread(s, d)) > 0) {
-		wb_putc(w1, c, d);
+		if (w1)
+			wb_putc(w1, c, d);
 		r = *s;
 	}
 	if (c < 0 || !strcmp(c_hc, d))
@@ -427,51 +429,43 @@ static int skipreqs(char **s, struct wb *w1)
 	return 0;
 }
 
-static int wb_dashwid(struct wb *wb)
+/* return the size of \(hy if appended to wb */
+int wb_dashwid(struct wb *wb)
 {
 	struct glyph *g = dev_glyph("hy", R_F(wb));
 	return charwid(R_F(wb), R_S(wb), g ? g->wid : 0);
 }
 
-/* find the positions marked with dashes, hyphens or \: */
-static int dashpos(char *word, int *hyidx, int *hywid, int *hydash, int flg)
+/* find explicit hyphenation positions: dashes, \: and \% */
+int wb_hyphmark(char *word, int *hyidx, int *hyins)
 {
 	char d[ILNLEN];
-	struct wb wb;
 	char *s = word;
-	int n = 0;
-	int c;
-	wb_init(&wb);
-	skipreqs(&s, &wb);
+	int c, n = 0;
+	if (skipreqs(&s, NULL))
+		return -1;
 	while ((c = escread(&s, d)) >= 0 && n < NHYPHS) {
-		wb_putc(&wb, c, d);
-		if (c)
-			continue;
-		hyidx[n] = s - word;
-		hywid[n] = wb_wid(&wb);
-		hydash[n] = 0;
-		if (!strcmp("-", d) || (!strcmp("em", d) ||
-				!strcmp("hy", d)) || !strcmp(c_bp, d)) {
-			n++;
+		if (!c && !strcmp(c_hc, d)) {
+			hyins[n] = 1;
+			hyidx[n++] = s - word;
 		}
-		if (!strcmp(c_hc, d)) {
-			hydash[n] = wb_dashwid(&wb);
-			n++;
+		if (!c && (!strcmp(c_bp, d) || !strcmp("-", d) ||
+				(!strcmp("em", d) || !strcmp("hy", d)))) {
+			hyins[n] = 0;
+			hyidx[n++] = s - word;
 		}
 	}
-	wb_done(&wb);
 	return n;
 }
 
-static int hyphpos(char *src, int *hyidx, int *hywid, int *hydash, int flg)
+/* find the hyphenation positions of the given word */
+int wb_hyph(char *src, int *hyidx, int flg)
 {
 	char word[ILNLEN];	/* word to pass to hyphenate() */
 	char hyph[ILNLEN];	/* hyphenation points returned from hyphenate() */
 	char *iw[ILNLEN];	/* beginning of i-th char in word */
 	char *is[ILNLEN];	/* beginning of i-th char in s */
 	int n = 0;		/* the number of characters in word */
-	int sw[ILNLEN];		/* dash width at i-th char in word */
-	int dw[ILNLEN];		/* dash width at i-th char in word */
 	int nhy = 0;		/* number of hyphenations found */
 	char d[ILNLEN];
 	struct wb wb;
@@ -486,8 +480,6 @@ static int hyphpos(char *src, int *hyidx, int *hywid, int *hydash, int flg)
 		if (c == 0) {
 			iw[n] = wp;
 			is[n] = prev_s;
-			dw[n] = wb_dashwid(&wb);
-			sw[n] = wb_wid(&wb);
 			/* ignore multi-char aliases except for ligatures */
 			if (!utf8one(d) && !font_islig(dev_font(R_F(&wb)), d))
 				strcpy(d, ".");
@@ -501,31 +493,10 @@ static int hyphpos(char *src, int *hyidx, int *hywid, int *hydash, int flg)
 	if (n < 3)
 		return 0;
 	hyphenate(hyph, word, flg);
-	for (i = 1; i < n - 1 && nhy < NHYPHS; i++) {
-		if (hyph[iw[i] - word]) {
-			hyidx[nhy] = is[i] - src;
-			hywid[nhy] = sw[i - 1];
-			hydash[nhy] = dw[i];
-			nhy++;
-		}
-	}
+	for (i = 1; i < n - 1 && nhy < NHYPHS; i++)
+		if (hyph[iw[i] - word])
+			hyidx[nhy++] = is[i] - src;
 	return nhy;
-}
-
-int wb_hyph(char *word, int *hyidx, int *hywid, int *hydash, int flg)
-{
-	char *s = word;
-	struct wb wb;
-	int n;
-	wb_init(&wb);
-	if (skipreqs(&s, &wb)) {
-		wb_done(&wb);
-		return 0;
-	}
-	wb_done(&wb);
-	if ((n = dashpos(word, hyidx, hywid, hydash, flg)))
-		return n;
-	return flg ? hyphpos(word, hyidx, hywid, hydash, flg) : 0;
 }
 
 void wb_italiccorrection(struct wb *wb)
@@ -538,4 +509,26 @@ void wb_italiccorrection(struct wb *wb)
 void wb_italiccorrectionleft(struct wb *wb)
 {
 	wb->icleft_ll = sbuf_len(&wb->sbuf);
+}
+
+void wb_fnszget(struct wb *wb, int *fn, int *sz, int *m)
+{
+	*fn = wb->r_f;
+	*sz = wb->r_s;
+	*m = wb->r_m;
+}
+
+void wb_fnszset(struct wb *wb, int fn, int sz, int m)
+{
+	wb->r_f = fn;
+	wb->r_s = sz;
+	wb->r_m = m;
+}
+
+void wb_catstr(struct wb *wb, char *s, char *end)
+{
+	char d[ILNLEN];
+	int c;
+	while (s < end && (c = escread(&s, d)) >= 0)
+		wb_putc(wb, c, d);
 }

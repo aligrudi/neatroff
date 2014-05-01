@@ -266,8 +266,11 @@ void wb_drawxend(struct wb *wb);
 void wb_italiccorrection(struct wb *wb);
 void wb_italiccorrectionleft(struct wb *wb);
 void wb_cat(struct wb *wb, struct wb *src);
-int wb_hyph(char *word, int *hyidx, int *hywid, int *hydash, int flg);
+void wb_catstr(struct wb *wb, char *beg, char *end);
+int wb_hyphmark(char *word, int *hyidx, int *hyins);
+int wb_hyph(char *word, int *hyidx, int flg);
 int wb_wid(struct wb *wb);
+int wb_dashwid(struct wb *wb);
 int wb_empty(struct wb *wb);
 int wb_eos(struct wb *wb);
 void wb_wconf(struct wb *wb, int *ct, int *st, int *sb,
@@ -276,6 +279,8 @@ int wb_lig(struct wb *wb, char *c);
 int wb_kern(struct wb *wb, char *c);
 void wb_reset(struct wb *wb);
 char *wb_buf(struct wb *wb);
+void wb_fnszget(struct wb *wb, int *fn, int *sz, int *m);
+void wb_fnszset(struct wb *wb, int fn, int sz, int m);
 
 /* character translation (.tr) */
 void cmap_add(char *c1, char *c2);

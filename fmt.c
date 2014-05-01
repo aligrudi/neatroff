@@ -205,36 +205,51 @@ void fmt_newline(struct fmt *f)
 	}
 }
 
-/* copy word buffer wb in fmt->words[i] */
+static void fmt_wb2word(struct fmt *f, struct word *word, struct wb *wb,
+			int hy, int str, int gap)
+{
+	int len = strlen(wb_buf(wb));
+	word->s = malloc(len + 1);
+	memcpy(word->s, wb_buf(wb), len + 1);
+	word->wid = wb_wid(wb);
+	word->elsn = wb->els_neg;
+	word->elsp = wb->els_pos;
+	word->hy = hy ? wb_dashwid(wb) : 0;
+	word->str = str;
+	word->gap = gap;
+}
+
 static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 {
 	int hyidx[NHYPHS];
-	int hywid[NHYPHS];
-	int hydash[NHYPHS];
-	struct word *w;
-	char *beg, *end;
+	int hyins[NHYPHS] = {0};
 	char *src = wb_buf(wb);
+	struct wb wbc;
+	char *beg;
+	char *end;
 	int n, i;
-	n = wb_hyph(src, hyidx, hywid, hydash, n_hy);
+	int cf, cs, cm;
+	int hy = 0;		/* insert hyphens */
+	n = wb_hyphmark(src, hyidx, hyins);
+	if (!n && n_hy && (n = wb_hyph(src, hyidx, n_hy)) > 0)
+		hy = 1;
+	if (n <= 0) {
+		fmt_wb2word(f, &f->words[f->nwords++], wb, 0, 1, gap);
+		return;
+	}
+	wb_init(&wbc);
 	for (i = 0; i <= n; i++) {
-		w = &f->words[f->nwords++];
 		beg = src + (i > 0 ? hyidx[i - 1] : 0);
 		end = src + (i < n ? hyidx[i] : strlen(src));
-		w->s = malloc(end - beg + 1);
-		memcpy(w->s, beg, end - beg);
-		w->s[end - beg] = '\0';
-		if (n) {
-			w->wid = (i < n ? hywid[i] : wb_wid(wb)) -
-				(i > 0 ? hywid[i - 1] : 0);
-		} else {
-			w->wid = wb_wid(wb);
-		}
-		w->elsn = wb->els_neg;
-		w->elsp = wb->els_pos;
-		w->hy = i < n ? hydash[i] : 0;
-		w->str = i == 0;
-		w->gap = i == 0 ? gap : 0;
+		wb_catstr(&wbc, beg, end);
+		fmt_wb2word(f, &f->words[f->nwords++], &wbc,
+			i < n && (hy || hyins[i]), i == 0, i == 0 ? gap : 0);
+		/* restoring wbc */
+		wb_fnszget(&wbc, &cs, &cf, &cm);
+		wb_reset(&wbc);
+		wb_fnszset(&wbc, cs, cf, cm);
 	}
+	wb_done(&wbc);
 }
 
 /* insert wb into fmt */
