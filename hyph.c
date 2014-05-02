@@ -11,7 +11,7 @@
 static char hwword[HYHWLEN];	/* buffer for .hw words */
 static char hwhyph[HYHWLEN];	/* buffer for .hw hyphenations */
 static int hwword_len;		/* used hyword[] length */
-/* per starting character word lists for .hw word */
+/* per starting character word lists for dictionary entries */
 static int hwhead[256];		/* the head of hw_*[] lists */
 static int hw_next[HYHWN];	/* the next word with the same initial */
 static int hw_idx[HYHWN];	/* the offset of this word in hwword[] */
@@ -19,10 +19,10 @@ static int hw_len[HYHWN];	/* the length of the word */
 static int hw_n = 1;		/* number of words in hw_*[] lists */
 /* tex hyphenation algorithm */
 static int hyinit;		/* hyphenation data initialized */
-static char hypats[HYPATLEN];
-static char hynums[HYPATLEN];
-static int nhypats;
-static char *hyhash[32 * 32];
+static char hypats[HYPATLEN];	/* the patterns */
+static char hynums[HYPATLEN];	/* numbers in the patterns */
+static int nhypats;		/* number of patterns */
+static char *hyhash[32 * 32];	/* the first pattern for each pair of letters */
 
 /* functions for the hyphenation dictionary */
 
@@ -64,7 +64,7 @@ static char *hw_lookup(char *s)
 	char word[ILNLEN];
 	int i;
 	strcpy_lower(word, s);
-	/* finding a .hw word that matches a prefix of word */
+	/* finding a dictionary entry that matches a prefix of the input */
 	i = hwhead[(unsigned char) word[0]];
 	while (i > 0) {
 		if (!strncmp(word, hwword + hw_idx[i], hw_len[i]))
@@ -81,15 +81,17 @@ void tr_hw(char **args)
 		hw_add(args[i]);
 }
 
-/* functions implementing tex hyphenation algorithm */
+/* functions implementing the tex hyphenation algorithm */
 
 #define HYC_MAP(c)	((c) == '.' ? 0 : (c) - 'a' + 1)
 
+/* index of the string starting with a and b in hyhash[] */
 static int hyidx(int a, int b)
 {
 	return (HYC_MAP(a) << 5) | HYC_MAP(b);
 }
 
+/* make s lower-case and replace its non-alphabetic characters with . */
 static void hyword(char *d, char *s)
 {
 	int c;
@@ -100,29 +102,35 @@ static void hyword(char *d, char *s)
 	*d = '\0';
 }
 
-static void hyfind(char *hyph, char *word, int flg)
+/* len will be the length of the pattern matching s */
+static char *hyfind(char *s, int *len)
+{
+	char *p = hyhash[hyidx(s[0], s[1])];
+	if (!p)
+		return NULL;
+	do {
+		*len = strlen(p);
+		if (!strncmp(s + 2, p + 2, *len - 2))
+			return hynums + (p - hypats);
+		p += *len + 1;
+	} while (p < hypats + nhypats && s[0] == p[0] && s[1] == p[1]);
+	return NULL;
+}
+
+/* mark the hyphenation points of word in hyph */
+static void hydohyph(char *hyph, char *word, int flg)
 {
 	char n[ILNLEN] = {0};
 	char w[ILNLEN];
-	char *p;
+	char *np;
 	int i, j, wlen, plen;
 	hyword(w, word);
 	wlen = strlen(w);
-	for (i = 0; i < wlen - 1; i++) {
-		p = hyhash[hyidx(w[i], w[i + 1])];
-		while (p) {
-			plen = strlen(p);
-			if (!strncmp(w + i, p, plen)) {
-				for (j = 0; j < plen; j++)
-					if (n[i + j] < hynums[p - hypats + j])
-						n[i + j] = hynums[p - hypats + j];
-				break;
-			}
-			p = strchr(p, '\0') + 1;
-			if (p >= hypats + nhypats || w[i] != p[0] || w[i + 1] != p[1])
-				break;
-		}
-	}
+	for (i = 0; i < wlen - 1; i++)
+		if ((np = hyfind(w + i, &plen)))
+			for (j = 0; j < plen; j++)
+				if (n[i + j] < np[j])
+					n[i + j] = np[j];
 	memset(hyph, 0, wlen * sizeof(hyph[0]));
 	for (i = 3; i < wlen - 2; i++)
 		if (n[i] % 2 && w[i - 1] != '.' && w[i - 2] != '.' && w[i + 1] != '.')
@@ -130,6 +138,7 @@ static void hyfind(char *hyph, char *word, int flg)
 				(~flg & HY_FIRST2 || w[i - 3] != '.');
 }
 
+/* insert pattern s into hypats[] and hynums[] */
 static void hyins(char *s)
 {
 	char *p = hypats + nhypats;
@@ -598,5 +607,5 @@ void hyphenate(char *hyph, char *word, int flg)
 	if (r)
 		memcpy(hyph, r, strlen(word) + 1);
 	else
-		hyfind(hyph, word, flg);
+		hydohyph(hyph, word, flg);
 }
