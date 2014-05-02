@@ -4,15 +4,19 @@
 #include <stdio.h>
 #include "roff.h"
 
-#define HYEXLEN		(1 << 17)	/* hyphenation exception list length */
-#define HYEXWLEN	128		/* hyphenation exception word length */
 #define HYPATLEN	(1 << 19)	/* hyphenation pattern length */
+#define HYHWLEN		(HYHWN << 4)	/* hyphenation dictionary length */
 
-/* hyphenation exception list */
-static char hyexcept[HYEXLEN];
-static char hyexcept_hyph[HYEXLEN];
-static int nhyexcept;
-
+/* hyphenation dictionary (.hw) */
+static char hwword[HYHWLEN];	/* buffer for .hw words */
+static char hwhyph[HYHWLEN];	/* buffer for .hw hyphenations */
+static int hwword_len;		/* used hyword[] length */
+/* per starting character word lists for .hw word */
+static int hwhead[256];		/* the head of hw_*[] lists */
+static int hw_next[HYHWN];	/* the next word with the same initial */
+static int hw_idx[HYHWN];	/* the offset of this word in hwword[] */
+static int hw_len[HYHWN];	/* the length of the word */
+static int hw_n = 1;		/* number of words in hw_*[] lists */
 /* tex hyphenation algorithm */
 static int hyinit;		/* hyphenation data initialized */
 static char hypats[HYPATLEN];
@@ -20,23 +24,28 @@ static char hynums[HYPATLEN];
 static int nhypats;
 static char *hyhash[32 * 32];
 
-static void hyph_initpatterns(void);
-static void hyph_initexceptions(void);
-static void hyfind(char *hyph, char *word, int flg);
+/* functions for the hyphenation dictionary */
 
-static void hyexcept_add(char *s)
+static void hw_add(char *word)
 {
-	char *d = hyexcept + nhyexcept;
-	*d++ = ' ';
-	while (*s) {
-		if (*s == '-') {
-			hyexcept_hyph[d - hyexcept - 1] = 1;
-			s++;
-		} else {
-			d += utf8read(&s, d);
-		}
+	char *s = word;
+	char *d = hwword + hwword_len;
+	int c, i;
+	if (hw_n == LEN(hw_idx) || hwword_len + 128 > sizeof(hwword))
+		return;
+	i = hw_n++;
+	while ((c = *s++)) {
+		if (c == '-')
+			hwhyph[d - hwword] = 1;
+		else
+			*d++ = c;
 	}
-	nhyexcept = d - hyexcept;
+	*d++ = '\0';
+	hw_idx[i] = hwword_len;
+	hwword_len = d - hwword;
+	hw_len[i] = hwword_len - hw_idx[i] - 1;
+	hw_next[i] = hwhead[(unsigned char) word[0]];
+	hwhead[(unsigned char) word[0]] = i;
 }
 
 static void strcpy_lower(char *d, char *s)
@@ -50,44 +59,29 @@ static void strcpy_lower(char *d, char *s)
 	*d = '\0';
 }
 
-static char *hyexcept_lookup(char *s)
+static char *hw_lookup(char *s)
 {
 	char word[ILNLEN];
-	char *r;
-	int len, i;
-	word[0] = ' ';
-	strcpy_lower(word + 1, s);
-	len = strlen(word);
-	for (i = len; i >= 4; i--) {
-		word[i] = ' ';
-		word[i + 1] = '\0';
-		if ((r = strstr(hyexcept, word)))
-			return hyexcept_hyph + (r - hyexcept);
+	int i;
+	strcpy_lower(word, s);
+	/* finding a .hw word that matches a prefix of word */
+	i = hwhead[(unsigned char) word[0]];
+	while (i > 0) {
+		if (!strncmp(word, hwword + hw_idx[i], hw_len[i]))
+			return hwhyph + hw_idx[i];
+		i = hw_next[i];
 	}
 	return NULL;
-}
-
-void hyphenate(char *hyph, char *word, int flg)
-{
-	char *r;
-	if (!hyinit) {
-		hyinit = 1;
-		hyph_initpatterns();
-		hyph_initexceptions();
-	}
-	r = hyexcept_lookup(word);
-	if (r)
-		memcpy(hyph, r, strlen(word) + 1);
-	else
-		hyfind(hyph, word, flg);
 }
 
 void tr_hw(char **args)
 {
 	int i;
 	for (i = 1; i < NARGS && args[i]; i++)
-		hyexcept_add(args[i]);
+		hw_add(args[i]);
 }
+
+/* functions implementing tex hyphenation algorithm */
 
 #define HYC_MAP(c)	((c) == '.' ? 0 : (c) - 'a' + 1)
 
@@ -586,8 +580,23 @@ static void hyph_initexceptions(void)
 		while (*s != ' ')
 			*d++ = *s++;
 		*d = '\0';
-		hyexcept_add(word);
+		hw_add(word);
 		while (*s == ' ')
 			s++;
 	}
+}
+
+void hyphenate(char *hyph, char *word, int flg)
+{
+	char *r;
+	if (!hyinit) {
+		hyinit = 1;
+		hyph_initpatterns();
+		hyph_initexceptions();
+	}
+	r = hw_lookup(word);
+	if (r)
+		memcpy(hyph, r, strlen(word) + 1);
+	else
+		hyfind(hyph, word, flg);
 }

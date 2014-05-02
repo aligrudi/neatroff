@@ -47,6 +47,7 @@
 #define MAXFRAC		100000	/* maximum value of the fractional part */
 #define LIGLEN		4	/* length of ligatures */
 #define NCDEFS		128	/* number of character definitions (.char) */
+#define HYHWN		1024	/* hyphenation dictionary size (.hw) */
 #define NHYPHS		8	/* maximum hyphenations per word */
 
 /* converting scales */
