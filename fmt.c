@@ -282,7 +282,7 @@ static long fmt_findcost(struct fmt *f, int pos)
 	int i, pen = 0;
 	long cur;
 	int lwid = 0;
-	int llen = FMT_LLEN(f);
+	int llen = MAX(1, FMT_LLEN(f));
 	if (pos <= 0)
 		return 0;
 	if (f->best_pos[pos] >= 0)
