@@ -309,6 +309,7 @@ struct fmt *fmt_alloc(void);
 void fmt_free(struct fmt *fmt);
 int fmt_wid(struct fmt *fmt);
 void fmt_space(struct fmt *fmt);
+void fmt_suppressnl(struct fmt *fmt);
 int fmt_word(struct fmt *fmt, struct wb *wb);
 int fmt_newline(struct fmt *fmt);
 int fmt_fillreq(struct fmt *f);

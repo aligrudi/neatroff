@@ -49,6 +49,7 @@ struct fmt {
 	/* current line */
 	int gap;		/* space before the next word */
 	int nls;		/* newlines before the next word */
+	int nls_sup;		/* suppressed newlines */
 	int li, ll;		/* current line indentation and length */
 	int filled;		/* filled all words in the last fmt_fill() */
 	int eos;		/* last word ends a sentence */
@@ -170,6 +171,7 @@ static int fmt_sp(struct fmt *f)
 		return 1;
 	f->filled = 0;
 	f->nls--;
+	f->nls_sup = 0;
 	l->wid = fmt_wordscopy(f, 0, f->nwords, &l->sbuf, &l->elsn, &l->elsp);
 	f->nwords = 0;
 	f->fillreq = 0;
@@ -265,24 +267,33 @@ static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 	wb_done(&wbc);
 }
 
+/* the amount of space necessary before the next word */
+static int fmt_wordgap(struct fmt *f)
+{
+	if ((f->nls || f->nls_sup) && !f->gap && f->nwords >= 1)
+		return (f->nwords && f->eos) ? FMT_SWID(f) * 2 : FMT_SWID(f);
+	return f->gap;
+}
+
 /* insert wb into fmt */
 int fmt_word(struct fmt *f, struct wb *wb)
 {
+	if (wb_empty(wb))
+		return 0;
 	if (f->nwords + NHYPHS >= NWORDS || fmt_confchanged(f))
 		if (fmt_fill(f))
 			return 1;
-	if (wb_empty(wb))
-		return 0;
 	if (FMT_FILL(f) && f->nls && f->gap)
-		fmt_sp(f);
+		if (fmt_sp(f))
+			return 1;
 	if (!f->nwords)		/* apply the new .l and .i */
 		fmt_confupdate(f);
-	if (f->nls && !f->gap && f->nwords >= 1)
-		f->gap = (f->nwords && f->eos) ? FMT_SWID(f) * 2 : FMT_SWID(f);
+	f->gap = fmt_wordgap(f);
 	f->eos = wb_eos(wb);
 	fmt_insertword(f, wb, f->filled ? 0 : f->gap);
 	f->filled = 0;
 	f->nls = 0;
+	f->nls_sup = 0;
 	f->gap = 0;
 	return 0;
 }
@@ -468,8 +479,7 @@ void fmt_free(struct fmt *fmt)
 
 int fmt_wid(struct fmt *fmt)
 {
-	return fmt_wordslen(fmt, 0, fmt->nwords) +
-		(fmt->nls ? FMT_SWID(fmt) : fmt->gap);
+	return fmt_wordslen(fmt, 0, fmt->nwords) + fmt_wordgap(fmt);
 }
 
 int fmt_morewords(struct fmt *fmt)
@@ -480,4 +490,13 @@ int fmt_morewords(struct fmt *fmt)
 int fmt_morelines(struct fmt *fmt)
 {
 	return fmt->l_head != fmt->l_tail;
+}
+
+/* suppress the last newline */
+void fmt_suppressnl(struct fmt *fmt)
+{
+	if (fmt->nls) {
+		fmt->nls--;
+		fmt->nls_sup = 1;
+	}
 }

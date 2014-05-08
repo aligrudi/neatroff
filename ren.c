@@ -26,8 +26,8 @@ static int ren_div;		/* rendering a diversion */
 static int trap_em = -1;	/* end macro */
 
 static struct wb ren_wb;	/* the main ren.c word buffer */
-static int ren_nl;		/* just after newline */
-static int ren_cnl;		/* current char is a newline */
+static int ren_nl;		/* just after a newline */
+static int ren_partial;		/* reading an input line in render_rec() */
 static int ren_unbuf[8];	/* ren_back() buffer */
 static int ren_un;
 static int ren_aborted;		/* .ab executed */
@@ -140,12 +140,14 @@ static void ren_page(int pg, int force)
 		trap_exec(trap_reg(-1));
 }
 
-static void ren_first(void)
+static int ren_first(void)
 {
 	if (bp_first && !cdiv) {
 		bp_first = 0;
 		ren_page(bp_next, 1);
+		return 0;
 	}
+	return 1;
 }
 
 /* when nodiv, do not append .sp to diversions */
@@ -170,11 +172,15 @@ static int render_rec(int level);
 static void trap_exec(int reg)
 {
 	char cmd[16];
+	int partial = ren_partial;
 	if (str_get(reg)) {
 		sprintf(cmd, "%c%s %d\n", c_cc, TR_POPREN, ren_level);
 		in_pushnl(cmd, NULL);
 		in_pushnl(str_get(reg), NULL);
 		render_rec(++ren_level);
+		/* executed the trap while in the middle of an input line */
+		if (partial)
+			fmt_suppressnl(cfmt);
 	}
 }
 
@@ -310,7 +316,6 @@ static void ren_mc(struct sbuf *sbuf, int w, int ljust)
 static int ren_line(char *line, int w, int ad, int body,
 		int li, int ll, int els_neg, int els_pos)
 {
-	char cmd[16];
 	struct sbuf sbeg, send;
 	int prev_d, lspc, ljust;
 	ren_first();
@@ -336,11 +341,8 @@ static int ren_line(char *line, int w, int ad, int body,
 		ren_sp(els_pos, 1);
 	n_a = els_pos;
 	if (detect_traps(prev_d, n_d) || detect_pagelimit(lspc - n_v)) {
-		sprintf(cmd, "%c&", c_ec);
-		if (!ren_cnl)		/* prevent unwanted newlines */
-			in_push(cmd, NULL);
-		if (!ren_traps(prev_d, n_d, 0))
-			ren_pagelimit(lspc - n_v);
+		if (!ren_pagelimit(lspc - n_v))
+			ren_traps(prev_d, n_d, 0);
 		return 1;
 	}
 	if (lspc - n_v && down(lspc - n_v))
@@ -453,6 +455,8 @@ void tr_rt(char **args)
 void tr_ne(char **args)
 {
 	int n = args[1] ? eval(args[1], 'v') : n_v;
+	if (!ren_first())
+		return;
 	if (!ren_traps(n_d, n_d + n - 1, 1))
 		ren_pagelimit(n);
 }
@@ -955,20 +959,21 @@ static int render_rec(int level)
 			}
 		}
 		if (c >= 0)
-			ren_cnl = c == '\n';
+			ren_partial = c != '\n';
 		/* add wb (the current word) to cfmt */
 		if (c == ' ' || c == '\n') {
 			if (!wb_part(wb)) {	/* not after a \c */
 				while (fmt_word(cfmt, wb))
 					ren_fmtpop(cfmt);
+				wb_reset(wb);
 				if (c == '\n')
 					while (fmt_newline(cfmt))
 						ren_fmtpop(cfmt);
-				if (c == ' ')
-					fmt_space(cfmt);
-				wb_reset(wb);
 				if (!(n_j & AD_P))
 					ren_fmtpopall(cfmt);
+				ren_fmtpop(cfmt);
+				if (c == ' ')
+					fmt_space(cfmt);
 			}
 		}
 		/* flush the line if necessary */
