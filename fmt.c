@@ -2,15 +2,13 @@
  * line formatting buffer for line adjustment and hyphenation
  *
  * The line formatting buffer does two main functions: breaking
- * words into lines (possibly after hyphenating some of them), and, if
- * requested, adjusting the space between words in a line.  In this
- * file the first step is referred to as filling.
+ * words into lines (possibly after hyphenating some of them),
+ * and, if requested, adjusting the space between words in a line.
+ * In this file the first step is referred to as filling.
  *
- * Inputs are specified via these functions:
- * + fmt_word(): for appending space-separated words.
- * + fmt_space(): for appending spaces.
- * + fmt_newline(): for appending new lines.
- *
+ * Functions like fmt_word() return nonzero on failure, which
+ * means the call should be repeated after fetching previously
+ * formatted lines via fmt_nextline().
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,7 +26,7 @@ struct word {
 	int elsn, elsp;	/* els_neg and els_pos */
 	int gap;	/* the space before this word */
 	int hy;		/* hyphen width if inserted after this word */
-	int str;	/* does the spece before it stretch */
+	int str;	/* does the space before it stretch */
 };
 
 struct line {
@@ -54,6 +52,7 @@ struct fmt {
 	int li, ll;		/* current line indentation and length */
 	int filled;		/* filled all words in the last fmt_fill() */
 	int eos;		/* last word ends a sentence */
+	int fillreq;		/* fill after the last word (\p) */
 };
 
 /* .ll, .in and .ti are delayed until the partial line is output */
@@ -164,7 +163,8 @@ static struct line *fmt_mkline(struct fmt *f)
 static int fmt_sp(struct fmt *f)
 {
 	struct line *l;
-	fmt_fill(f, 0, 0);
+	if (fmt_fill(f))
+		return 1;
 	l = fmt_mkline(f);
 	if (!l)
 		return 1;
@@ -172,15 +172,18 @@ static int fmt_sp(struct fmt *f)
 	f->nls--;
 	l->wid = fmt_wordscopy(f, 0, f->nwords, &l->sbuf, &l->elsn, &l->elsp);
 	f->nwords = 0;
+	f->fillreq = 0;
 	return 0;
 }
 
-void fmt_br(struct fmt *f)
+int fmt_br(struct fmt *f)
 {
-	fmt_fill(f, 0, 0);
+	if (fmt_fill(f))
+		return 1;
 	f->filled = 0;
 	if (f->nwords)
 		fmt_sp(f);
+	return 0;
 }
 
 void fmt_space(struct fmt *fmt)
@@ -188,21 +191,31 @@ void fmt_space(struct fmt *fmt)
 	fmt->gap += FMT_SWID(fmt);
 }
 
-void fmt_newline(struct fmt *f)
+int fmt_newline(struct fmt *f)
 {
-	f->nls++;
 	f->gap = 0;
 	if (!FMT_FILL(f)) {
+		f->nls++;
 		fmt_sp(f);
-		return;
+		return 0;
 	}
-	if (f->nls == 1 && !f->filled && !f->nwords)
+	if (f->nls >= 1)
+		if (fmt_sp(f))
+			return 1;
+	if (f->nls == 0 && !f->filled && !f->nwords)
 		fmt_sp(f);
-	if (f->nls > 1) {
-		if (!f->filled)
-			fmt_sp(f);
-		fmt_sp(f);
-	}
+	f->nls++;
+	return 0;
+}
+
+/* format the paragraph after the next word (\p) */
+int fmt_fillreq(struct fmt *f)
+{
+	if (f->fillreq > 0)
+		if (fmt_fill(f))
+			return 1;
+	f->fillreq = f->nwords + 1;
+	return 0;
 }
 
 static void fmt_wb2word(struct fmt *f, struct word *word, struct wb *wb,
@@ -253,12 +266,13 @@ static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 }
 
 /* insert wb into fmt */
-void fmt_word(struct fmt *f, struct wb *wb)
+int fmt_word(struct fmt *f, struct wb *wb)
 {
-	if (f->nwords == NWORDS || fmt_confchanged(f))
-		fmt_fill(f, 0, 0);
-	if (wb_empty(wb) || f->nwords == NWORDS)
-		return;
+	if (f->nwords + NHYPHS >= NWORDS || fmt_confchanged(f))
+		if (fmt_fill(f))
+			return 1;
+	if (wb_empty(wb))
+		return 0;
 	if (FMT_FILL(f) && f->nls && f->gap)
 		fmt_sp(f);
 	if (!f->nwords)		/* apply the new .l and .i */
@@ -270,6 +284,7 @@ void fmt_word(struct fmt *f, struct wb *wb)
 	f->filled = 0;
 	f->nls = 0;
 	f->gap = 0;
+	return 0;
 }
 
 /* assuming an empty line has cost 10000; take care of integer overflow */
@@ -317,13 +332,17 @@ static int fmt_bestpos(struct fmt *f, int pos)
 }
 
 /* return the last filled word */
-static int fmt_breakparagraph(struct fmt *f, int pos, int all)
+static int fmt_breakparagraph(struct fmt *f, int pos)
 {
 	int i;
 	int best = -1;
 	int llen = FMT_LLEN(f);
 	int lwid = 0;
-	if (all || (pos > 0 && f->words[pos - 1].wid >= llen)) {
+	if (f->fillreq > 0 && f->fillreq <= f->nwords) {
+		fmt_findcost(f, f->fillreq);
+		return f->fillreq;
+	}
+	if (pos > 0 && f->words[pos - 1].wid >= llen) {
 		fmt_findcost(f, pos);
 		return pos;
 	}
@@ -335,7 +354,7 @@ static int fmt_breakparagraph(struct fmt *f, int pos, int all)
 		lwid += f->words[i].wid;
 		if (i + 1 < pos)
 			lwid += f->words[i + 1].gap;
-		if (lwid > llen && pos - i > 1)
+		if (lwid > llen && i + 1 < pos)
 			break;
 		if (best < 0 || fmt_findcost(f, i) < fmt_findcost(f, best))
 			best = i;
@@ -344,13 +363,14 @@ static int fmt_breakparagraph(struct fmt *f, int pos, int all)
 	return best;
 }
 
+/* extract the first nreq formatted lines before the word at pos */
 static int fmt_head(struct fmt *f, int nreq, int pos)
 {
 	int best = -1;
 	int i;
 	if (nreq <= 0 || f->best_dep[pos] < nreq)
 		return pos;
-	for (i = 1; i < pos && f->best_dep[i] <= nreq; i++) {
+	for (i = 1; i <= pos && f->best_dep[i] <= nreq; i++) {
 		fmt_findcost(f, i);
 		if (f->best_dep[i] == nreq && !f->words[i - 1].hy)
 			best = i;
@@ -388,19 +408,17 @@ static int fmt_break(struct fmt *f, int end)
 	return ret + (end - beg);
 }
 
-/*
- * fill the words collected in the buffer
- *
- * The argument nreq, when nonzero, limits the number of lines
- * to format.  It also tells fmt_fill() not to hyphenate the
- * last word of nreq-th line.  This is used in ren.c to prevent
- * hyphenating last lines of pages.
- *
- * The all argument forces fmt_fill() to fill all of the words.
- * This is used for the \p escape sequence.
- */
-int fmt_fill(struct fmt *f, int nreq, int all)
+/* estimated number of lines until traps or the end of a page */
+static int fmt_safelines(void)
 {
+	int lnht = MAX(1, n_L) * n_v;
+	return (f_nexttrap() + lnht - 1) / lnht;
+}
+
+/* fill the words collected in the buffer */
+int fmt_fill(struct fmt *f)
+{
+	int nreq;	/* the number of lines until a trap */
 	int end;	/* the final line ends before this word */
 	int end_head;	/* like end, but only the first nreq lines included */
 	int head = 0;	/* only nreq first lines have been formatted */
@@ -408,14 +426,16 @@ int fmt_fill(struct fmt *f, int nreq, int all)
 	if (!FMT_FILL(f))
 		return 0;
 	/* not enough words to fill */
-	if (!all && fmt_wordslen(f, 0, f->nwords) <= FMT_LLEN(f))
+	if ((f->fillreq <= 0 || f->nwords < f->fillreq) &&
+			fmt_wordslen(f, 0, f->nwords) <= FMT_LLEN(f))
 		return 0;
+	nreq = (n_hy & HY_LAST) ? fmt_safelines() : 0;
 	if (nreq > 0 && nreq <= fmt_nlines(f))
-		return 0;
+		return 1;
 	/* resetting positions */
 	for (i = 0; i < f->nwords + 1; i++)
 		f->best_pos[i] = -1;
-	end = fmt_breakparagraph(f, f->nwords, all);
+	end = fmt_breakparagraph(f, f->nwords);
 	if (nreq > 0) {
 		end_head = fmt_head(f, nreq - fmt_nlines(f), end);
 		head = end_head < end;
@@ -424,6 +444,7 @@ int fmt_fill(struct fmt *f, int nreq, int all)
 	/* recursively add lines */
 	n = fmt_break(f, end);
 	f->nwords -= n;
+	f->fillreq -= n;
 	fmt_movewords(f, 0, n, f->nwords);
 	f->filled = n && !f->nwords;
 	if (f->nwords)

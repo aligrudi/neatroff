@@ -308,11 +308,12 @@ void hyphenate(char *hyphs, char *word, int flg);
 struct fmt *fmt_alloc(void);
 void fmt_free(struct fmt *fmt);
 int fmt_wid(struct fmt *fmt);
-void fmt_word(struct fmt *fmt, struct wb *wb);
-void fmt_newline(struct fmt *fmt);
 void fmt_space(struct fmt *fmt);
-void fmt_br(struct fmt *fmt);
-int fmt_fill(struct fmt *fmt, int nreq, int all);
+int fmt_word(struct fmt *fmt, struct wb *wb);
+int fmt_newline(struct fmt *fmt);
+int fmt_fillreq(struct fmt *f);
+int fmt_br(struct fmt *fmt);
+int fmt_fill(struct fmt *fmt);
 int fmt_morelines(struct fmt *fmt);
 int fmt_morewords(struct fmt *fmt);
 int fmt_nextline(struct fmt *fmt, struct sbuf *sbuf, int *w,
