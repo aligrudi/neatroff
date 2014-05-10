@@ -424,6 +424,11 @@ static void tr_ss(char **args)
 		n_ss = eval_re(args[1], n_ss, 0);
 }
 
+static void tr_ssh(char **args)
+{
+	n_ssh = args[1] ? eval_re(args[1], n_ssh, 0) : 0;
+}
+
 static void tr_cs(char **args)
 {
 	if (!args[1])
@@ -902,6 +907,7 @@ static struct cmd {
 	{"so", tr_so},
 	{"sp", tr_sp},
 	{"ss", tr_ss},
+	{"ssh", tr_ssh},
 	{"sv", tr_sv},
 	{"sy", tr_sy, mkargs_eol},
 	{"ta", tr_ta},

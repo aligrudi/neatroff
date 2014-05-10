@@ -120,13 +120,23 @@ static int fmt_wordslen(struct fmt *f, int beg, int end)
 	return beg < end ? w + f->words[end - 1].hy : 0;
 }
 
-/* the number stretchable spaces in f */
+/* the number of stretchable spaces in f */
 static int fmt_spaces(struct fmt *f, int beg, int end)
 {
 	int i, n = 0;
 	for (i = beg + 1; i < end; i++)
 		if (f->words[i].str)
 			n++;
+	return n;
+}
+
+/* the amount of stretchable spaces in f */
+static int fmt_spacessum(struct fmt *f, int beg, int end)
+{
+	int i, n = 0;
+	for (i = beg + 1; i < end; i++)
+		if (f->words[i].str)
+			n += f->words[i].gap;
 	return n;
 }
 
@@ -307,7 +317,8 @@ static long fmt_findcost(struct fmt *f, int pos)
 {
 	int i, pen = 0;
 	long cur;
-	int lwid = 0;
+	int lwid = 0;			/* current line length */
+	int swid = 0;			/* amount of spaces */
 	int llen = MAX(1, FMT_LLEN(f));
 	if (pos <= 0)
 		return 0;
@@ -323,8 +334,11 @@ static long fmt_findcost(struct fmt *f, int pos)
 		lwid += f->words[i].wid;
 		if (i + 1 < pos)
 			lwid += f->words[i + 1].gap;
-		if (lwid > llen && pos - i > 1)
-			break;
+		if (i + 1 < pos && f->words[i + 1].str)
+			swid += f->words[i + 1].gap;
+		if (lwid - (swid * n_ssh / 100) > llen)
+			if (pos - i > 1)
+				break;
 		cur = fmt_findcost(f, i) + FMT_COST(lwid, llen, pen);
 		if (f->best_pos[pos] < 0 || cur < f->best[pos]) {
 			f->best_pos[pos] = i;
@@ -409,6 +423,10 @@ static int fmt_break(struct fmt *f, int end)
 	if (FMT_ADJ(f) && nspc) {
 		fmt_div = (llen - w) / nspc;
 		fmt_rem = (llen - w) % nspc;
+		if (fmt_rem < 0) {
+			fmt_div--;
+			fmt_rem += nspc;
+		}
 		for (i = beg + 1; i < end; i++)
 			if (f->words[i].str)
 				f->words[i].gap += fmt_div + (fmt_rem-- > 0);
@@ -433,12 +451,14 @@ int fmt_fill(struct fmt *f)
 	int end;	/* the final line ends before this word */
 	int end_head;	/* like end, but only the first nreq lines included */
 	int head = 0;	/* only nreq first lines have been formatted */
+	int llen;	/* line length, taking shrinkable spaces into account */
 	int n, i;
 	if (!FMT_FILL(f))
 		return 0;
+	llen = fmt_wordslen(f, 0, f->nwords) -
+		fmt_spacessum(f, 0, f->nwords) * n_ssh / 100;
 	/* not enough words to fill */
-	if ((f->fillreq <= 0 || f->nwords < f->fillreq) &&
-			fmt_wordslen(f, 0, f->nwords) <= FMT_LLEN(f))
+	if ((f->fillreq <= 0 || f->nwords < f->fillreq) && llen <= FMT_LLEN(f))
 		return 0;
 	nreq = (n_hy & HY_LAST) ? fmt_safelines() : 0;
 	if (nreq > 0 && nreq <= fmt_nlines(f))

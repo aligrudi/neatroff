@@ -468,6 +468,7 @@ int clr_get(char *s);
 #define n_ns		(*nreg(map(".ns")))	/* .ns mode */
 #define n_o0		(*nreg(map(".o0")))	/* last .o */
 #define n_ss		(*nreg(map(".ss")))	/* .ss value */
+#define n_ssh		(*nreg(map(".ssh")))	/* .ssh value; word space compression */
 #define n_s0		(*nreg(map(".s0")))	/* last .s */
 #define n_sv		(*nreg(map(".sv")))	/* .sv value */
 #define n_lt		(*nreg(map(".lt")))	/* .lt value */
