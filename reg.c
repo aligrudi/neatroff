@@ -36,7 +36,7 @@ static char *eregs[] = {	/* environment-specific number registers */
 	".nS", ".m", ".s", ".u", ".v",
 	".it", ".itn", ".mc", ".mcn",
 	".ce", ".f0", ".hy", ".hyp", ".i0", ".l0",
-	".L0", ".m0", ".n0", ".s0", ".ss", ".ssh",
+	".L0", ".m0", ".n0", ".s0", ".ss", ".ssh", ".sss",
 	".ti", ".lt", ".lt0", ".v0",
 };
 
@@ -199,6 +199,7 @@ static void env_set(int id)
 		n_lt = SC_IN * 65 / 10;
 		n_hy = 1;
 		n_ss = 12;
+		n_sss = 12;
 		n_nM = 1;
 		n_nS = 1;
 		strcpy(env->hc, "\\%");

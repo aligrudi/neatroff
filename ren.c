@@ -93,11 +93,6 @@ int charwid(int fn, int sz, int wid)
 	return DEVWID(sz, wid) + (dev_getbd(fn) ? dev_getbd(fn) - 1 : 0);
 }
 
-int spacewid(int fn, int sz)
-{
-	return charwid(fn, sz, (dev_font(fn)->spacewid * n_ss + 6) / 12);
-}
-
 int f_divreg(void)
 {
 	return cdiv ? cdiv->reg : -1;
@@ -608,7 +603,7 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 {
 	switch (c) {
 	case ' ':
-		wb_hmov(wb, spacewid(n_f, n_s));
+		wb_hmov(wb, N_SS(n_f, n_s));
 		break;
 	case 'b':
 		ren_bcmd(wb, arg);

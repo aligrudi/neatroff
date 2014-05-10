@@ -181,10 +181,12 @@ int font_mapped(struct font *fn, char *name);
 /* glyph handling functions */
 struct glyph *dev_glyph(char *c, int fn);
 int charwid(int fn, int sz, int wid);
-int spacewid(int fn, int sz);
 
 /* convert wid in device unitwidth size to size sz */
 #define DEVWID(sz, wid)		(((wid) * (sz) + (dev_uwid / 2)) / dev_uwid)
+/* the amount of word and sentence space for the given font and size */
+#define N_SS(fn, sz)	(charwid((fn), (sz), (dev_font(fn)->spacewid * n_ss + 6) / 12))
+#define N_SSS(fn, sz)	(charwid((fn), (sz), (dev_font(fn)->spacewid * n_sss + 6) / 12))
 
 /* different layers of neatroff */
 int in_next(void);		/* input layer */
@@ -467,8 +469,9 @@ int clr_get(char *s);
 #define n_na		(*nreg(map(".na")))	/* .na mode */
 #define n_ns		(*nreg(map(".ns")))	/* .ns mode */
 #define n_o0		(*nreg(map(".o0")))	/* last .o */
-#define n_ss		(*nreg(map(".ss")))	/* .ss value */
-#define n_ssh		(*nreg(map(".ssh")))	/* .ssh value; word space compression */
+#define n_ss		(*nreg(map(".ss")))	/* word space (.ss) */
+#define n_sss		(*nreg(map(".sss")))	/* sentence space (.ss) */
+#define n_ssh		(*nreg(map(".ssh")))	/* word space compression (.ssh) */
 #define n_s0		(*nreg(map(".s0")))	/* last .s */
 #define n_sv		(*nreg(map(".sv")))	/* .sv value */
 #define n_lt		(*nreg(map(".lt")))	/* .lt value */

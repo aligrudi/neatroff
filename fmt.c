@@ -18,7 +18,6 @@
 #define FMT_LLEN(f)	MAX(0, (f)->ll - (f)->li)
 #define FMT_FILL(f)	(!n_ce && n_u)
 #define FMT_ADJ(f)	(n_u && !n_na && !n_ce && (n_j & AD_B) == AD_B)
-#define FMT_SWID(f)	(spacewid(n_f, n_s))
 
 struct word {
 	char *s;
@@ -200,7 +199,7 @@ int fmt_br(struct fmt *f)
 
 void fmt_space(struct fmt *fmt)
 {
-	fmt->gap += FMT_SWID(fmt);
+	fmt->gap += N_SS(n_f, n_s);
 }
 
 int fmt_newline(struct fmt *f)
@@ -280,9 +279,11 @@ static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 /* the amount of space necessary before the next word */
 static int fmt_wordgap(struct fmt *f)
 {
-	if ((f->nls || f->nls_sup) && !f->gap && f->nwords >= 1)
-		return (f->nwords && f->eos) ? FMT_SWID(f) * 2 : FMT_SWID(f);
-	return f->gap;
+	int nls = f->nls || f->nls_sup;
+	if (f->eos && f->nwords)
+		if ((nls && !f->gap) || (!nls && f->gap == 2 * N_SS(n_f, n_s)))
+			return N_SS(n_f, n_s) + N_SSS(n_f, n_s);
+	return (nls && !f->gap && f->nwords) ? N_SS(n_f, n_s) : f->gap;
 }
 
 /* insert wb into fmt */

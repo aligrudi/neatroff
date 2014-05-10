@@ -420,8 +420,10 @@ static void tr_cp(char **args)
 
 static void tr_ss(char **args)
 {
-	if (args[1])
+	if (args[1]) {
 		n_ss = eval_re(args[1], n_ss, 0);
+		n_sss = args[2] ? eval_re(args[2], n_sss, 0) : n_ss;
+	}
 }
 
 static void tr_ssh(char **args)

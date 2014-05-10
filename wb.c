@@ -169,7 +169,7 @@ void wb_put(struct wb *wb, char *c)
 		return;
 	}
 	if (c[0] == ' ') {
-		wb_hmov(wb, spacewid(R_F(wb), R_S(wb)));
+		wb_hmov(wb, N_SS(R_F(wb), R_S(wb)));
 		return;
 	}
 	if (c[0] == '\t' || c[0] == '' ||
