@@ -357,6 +357,12 @@ static int fmt_bestpos(struct fmt *f, int pos)
 	return MAX(0, f->best_pos[pos]);
 }
 
+static int fmt_bestdep(struct fmt *f, int pos)
+{
+	fmt_findcost(f, pos);
+	return MAX(0, f->best_dep[pos]);
+}
+
 /* return the last filled word */
 static int fmt_breakparagraph(struct fmt *f, int pos)
 {
@@ -392,16 +398,30 @@ static int fmt_breakparagraph(struct fmt *f, int pos)
 /* extract the first nreq formatted lines before the word at pos */
 static int fmt_head(struct fmt *f, int nreq, int pos)
 {
-	int best = -1;
-	int i;
-	if (nreq <= 0 || f->best_dep[pos] < nreq)
+	int best = pos;		/* best line break for nreq-th line */
+	int prev, next;		/* best line breaks without hyphenation */
+	if (nreq <= 0 || fmt_bestdep(f, pos) < nreq)
 		return pos;
-	for (i = 1; i <= pos && f->best_dep[i] <= nreq; i++) {
-		fmt_findcost(f, i);
-		if (f->best_dep[i] == nreq && !f->words[i - 1].hy)
-			best = i;
-	}
-	return best >= 0 ? best : i - 1;
+	/* finding the optimal line break for nreq-th line */
+	while (best > 0 && fmt_bestdep(f, best) > nreq)
+		best = fmt_bestpos(f, best);
+	prev = best;
+	next = best;
+	/* finding closest line breaks without hyphenation */
+	while (prev > 1 && f->words[prev - 1].hy &&
+			fmt_bestdep(f, prev - 1) == nreq)
+		prev--;
+	while (next < pos && f->words[next - 1].hy &&
+			fmt_bestdep(f, next + 1) == nreq)
+		next++;
+	/* choosing the best of them */
+	if (!f->words[prev - 1].hy && !f->words[next - 1].hy)
+		return fmt_findcost(f, prev) <= fmt_findcost(f, next) ? prev : next;
+	if (!f->words[prev - 1].hy)
+		return prev;
+	if (!f->words[next - 1].hy)
+		return next;
+	return best;
 }
 
 /* break f->words[0..end] into lines according to fmt_bestpos() */
