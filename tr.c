@@ -116,7 +116,7 @@ static void macrobody(struct sbuf *sbuf, char *end)
 	int i, c;
 	int first = 1;
 	cp_back('\n');
-	cp_wid(0);		/* copy-mode; disable \w handling */
+	cp_copymode(1);
 	while ((c = cp_next()) >= 0) {
 		if (sbuf && !first)
 			sbuf_add(sbuf, c);
@@ -141,7 +141,7 @@ static void macrobody(struct sbuf *sbuf, char *end)
 				sbuf_add(sbuf, c);
 		}
 	}
-	cp_wid(1);
+	cp_copymode(0);
 }
 
 static void tr_de(char **args)
@@ -781,9 +781,9 @@ static int mkargs_ds(char **args, char *buf, int len)
 	args[0] = s;
 	s = arg_regname(s, e - s);
 	args[1] = s;
-	cp_wid(0);
+	cp_copymode(1);
 	s = arg_string(s, e - s);
-	cp_wid(1);
+	cp_copymode(0);
 	c = cp_next();
 	if (c >= 0 && c != '\n')
 		jmp_eol();
@@ -950,9 +950,9 @@ int tr_nextreq(void)
 			mkargs_req(args + 1, buf, sizeof(buf));
 		req->f(args);
 	} else {
-		cp_wid(0);
+		cp_copymode(1);
 		mkargs(args + 1, buf, sizeof(buf));
-		cp_wid(1);
+		cp_copymode(0);
 		if (str_get(map(cmd + 1)))
 			in_push(str_get(map(cmd + 1)), args + 1);
 	}

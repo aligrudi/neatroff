@@ -5,7 +5,7 @@
 
 static int cp_nblk;		/* input block depth (text in \{ and \}) */
 static int cp_sblk[NIES];	/* skip \} escape at this depth, if set */
-static int cp_widreq = 1;	/* inline \w requests */
+static int cp_cpmode;		/* disable the interpretation \w and \E */
 
 static void cparg(char *d)
 {
@@ -125,10 +125,12 @@ int cp_next(void)
 	c = cp_raw();
 	if (c == c_ec) {
 		c = cp_raw();
+		if (c == 'E' && !cp_cpmode)
+			c = cp_next();
 		if (c == '"') {
 			while (c >= 0 && c != '\n')
 				c = cp_raw();
-		} else if (c == 'w' && cp_widreq) {
+		} else if (c == 'w' && !cp_cpmode) {
 			cp_width();
 			c = cp_next();
 		} else if (c == 'n') {
@@ -171,7 +173,7 @@ void cp_blk(int skip)
 	}
 }
 
-void cp_wid(int enable)
+void cp_copymode(int mode)
 {
-	cp_widreq = enable;
+	cp_cpmode = mode;
 }
