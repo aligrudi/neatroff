@@ -56,7 +56,7 @@
 #define SC_EM		(n_s * SC_IN / 72)
 
 /* escape sequences */
-#define ESC_Q	"bCDhHlLNoSvwxX"	/* \X'ccc' quoted escape sequences */
+#define ESC_Q	"bCDhHlLNoRSvwxX"	/* \X'ccc' quoted escape sequences */
 #define ESC_P	"*fgkmns"		/* \Xc \X(cc \X[ccc] escape sequences */
 
 #define MIN(a, b)	((a) < (b) ? (a) : (b))

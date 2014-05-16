@@ -78,6 +78,20 @@ static void cp_width(void)
 	in_push(wid, NULL);
 }
 
+static void cp_numdef(void)
+{
+	char arg[ILNLEN];
+	char *s;
+	argnext(arg, 'R', cp_next, cp_back);
+	s = arg;
+	while (*s && *s != ' ')
+		s++;
+	if (!*s)
+		return;
+	*s++ = '\0';
+	num_set(map(arg), eval_re(s, num_get(map(arg), 0), 'u'));
+}
+
 static int cp_raw(void)
 {
 	int c;
@@ -144,6 +158,9 @@ int cp_next(void)
 			c = cp_next();
 		} else if (c == '$') {
 			cp_arg();
+			c = cp_next();
+		} else if (c == 'R' && !cp_cpmode) {
+			cp_numdef();
 			c = cp_next();
 		} else {
 			cp_back(c);
