@@ -726,15 +726,16 @@ static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int)
 			}
 			return;
 		}
-		if (strchr(" bCcDdfHhkLlmNoprSsuvXxz0^|{}&/,", c[1])) {
+		if (strchr(" bCcDdefHhkLlmNoprSsuvXxz0^|{}&/,", c[1])) {
 			argnext(arg, c[1], next, back);
-			if (c[1] == 'S' || c[1] == 'H')
-				return;			/* not implemented */
-			if (c[1] != 'N') {
+			if (c[1] == 'e') {
+				snprintf(c, GNLEN, "%c%c", c_ec, c_ec);
+			} else if (c[1] == 'N') {
+				snprintf(c, GNLEN, "GID=%s", arg);
+			} else {
 				ren_cmd(wb, c[1], arg);
 				return;
 			}
-			snprintf(c, GNLEN, "GID=%s", arg);
 		}
 	}
 	if (!ren_div && cdef_map(c, n_f)) {		/* .char characters */
