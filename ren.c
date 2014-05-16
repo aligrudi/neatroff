@@ -111,6 +111,8 @@ void tr_divbeg(char **args)
 
 void tr_divend(char **args)
 {
+	if (ren_div <= 0)
+		errdie("neatroff: diversion stack empty\n");
 	odiv_end();
 	ren_div--;
 }
