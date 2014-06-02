@@ -14,6 +14,7 @@ struct env {
 	int tabs[NTABS];	/* tab stops */
 	char tabs_type[NTABS];	/* type of tabs: L, C, R */
 	struct fmt *fmt;	/* per environment line formatting buffer */
+	struct wb wb;		/* per environment partial word */
 	char tc[GNLEN];		/* tab character (.tc) */
 	char lc[GNLEN];		/* leader character (.lc) */
 	char hc[GNLEN];		/* hyphenation character (.hc) */
@@ -167,6 +168,7 @@ static struct env *env_alloc(void)
 {
 	struct env *env = malloc(sizeof(*env));
 	memset(env, 0, sizeof(*env));
+	wb_init(&env->wb);
 	env->fmt = fmt_alloc();
 	return env;
 }
@@ -174,6 +176,7 @@ static struct env *env_alloc(void)
 static void env_free(struct env *env)
 {
 	fmt_free(env->fmt);
+	wb_done(&env->wb);
 	free(env);
 }
 
@@ -265,6 +268,11 @@ void tr_ev(char **args)
 struct fmt *env_fmt(void)
 {
 	return env->fmt;
+}
+
+struct wb *env_wb(void)
+{
+	return &env->wb;
 }
 
 char *env_hc(void)

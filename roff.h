@@ -103,6 +103,7 @@ void odiv_end(void);
 void env_init(void);
 void env_done(void);
 struct fmt *env_fmt(void);
+struct wb *env_wb(void);
 char *env_hc(void);
 char *env_mc(void);
 char *env_tc(void);

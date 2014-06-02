@@ -5,8 +5,8 @@
 #include <string.h>
 #include "roff.h"
 
-#define cfmt		env_fmt()		/* line buffer */
-#define RENWB(wb)	((wb) == &ren_wb)	/* is ren_wb */
+#define cfmt		env_fmt()	/* current formatter */
+#define cwb		env_wb()	/* current word buffer */
 
 /* diversions */
 struct div {
@@ -25,7 +25,6 @@ static struct div *cdiv;	/* current diversion */
 static int ren_div;		/* rendering a diversion */
 static int trap_em = -1;	/* end macro */
 
-static struct wb ren_wb;	/* the main ren.c word buffer */
 static int ren_nl;		/* just after a newline */
 static int ren_partial;		/* reading an input line in render_rec() */
 static int ren_unbuf[8];	/* ren_back() buffer */
@@ -100,7 +99,7 @@ int f_divreg(void)
 
 int f_hpos(void)
 {
-	return fmt_wid(cfmt) + wb_wid(&ren_wb);
+	return fmt_wid(cfmt) + wb_wid(cwb);
 }
 
 void tr_divbeg(char **args)
@@ -626,7 +625,7 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 		wb_hmov(wb, eval(arg, 'm'));
 		break;
 	case 'k':
-		num_set(map(arg), RENWB(wb) ? f_hpos() - n_lb : wb_wid(wb));
+		num_set(map(arg), wb == cwb ? f_hpos() - n_lb : wb_wid(wb));
 		break;
 	case 'L':
 		ren_vlcmd(wb, arg);
@@ -641,7 +640,7 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 		ren_ocmd(wb, arg);
 		break;
 	case 'p':
-		if (RENWB(wb))
+		if (wb == cwb)
 			while (fmt_fillreq(cfmt))
 				ren_fmtpop(cfmt);
 		break;
@@ -858,7 +857,7 @@ static void ren_field(struct wb *wb, int (*next)(void), void (*back)(int))
 		if (ren_until(&wbs[n++], c_fb, c_fa, next, back) != 1)
 			break;
 	}
-	left = RENWB(wb) ? f_hpos() : wb_wid(wb);
+	left = wb == cwb ? f_hpos() : wb_wid(wb);
 	right = tab_next(left);
 	for (i = 0; i < n; i++)
 		wid += wb_wid(&wbs[i]);
@@ -879,7 +878,7 @@ static void ren_field(struct wb *wb, int (*next)(void), void (*back)(int))
 static void ren_tab(struct wb *wb, char *tc, int (*next)(void), void (*back)(int))
 {
 	struct wb t;
-	int pos = RENWB(wb) ? f_hpos() : wb_wid(wb);
+	int pos = wb == cwb ? f_hpos() : wb_wid(wb);
 	int ins = tab_next(pos);	/* insertion position */
 	int typ = tab_type(pos);	/* tab type */
 	int c;
@@ -932,7 +931,6 @@ void tr_popren(char **args)
 /* read characters from tr.c and pass the rendered lines to out.c */
 static int render_rec(int level)
 {
-	struct wb *wb = &ren_wb;
 	int c;
 	while (ren_level >= level) {
 		while (!tr_nextreq())
@@ -958,12 +956,12 @@ static int render_rec(int level)
 		}
 		if (c >= 0)
 			ren_partial = c != '\n';
-		/* add wb (the current word) to cfmt */
+		/* add cwb (the current word) to cfmt */
 		if (c == ' ' || c == '\n') {
-			if (!wb_part(wb)) {	/* not after a \c */
-				while (fmt_word(cfmt, wb))
+			if (!wb_part(cwb)) {	/* not after a \c */
+				while (fmt_word(cfmt, cwb))
 					ren_fmtpop(cfmt);
-				wb_reset(wb);
+				wb_reset(cwb);
 				if (c == '\n')
 					while (fmt_newline(cfmt))
 						ren_fmtpop(cfmt);
@@ -981,11 +979,11 @@ static int render_rec(int level)
 			n_lb = f_hpos();
 		if (c == '\n' && n_it && --n_itn == 0)
 			trap_exec(n_it);
-		if (c == '\n' && !wb_part(wb))
+		if (c == '\n' && !wb_part(cwb))
 			n_ce = MAX(0, n_ce - 1);
 		if (c != ' ' && c >= 0) {
 			ren_back(c);
-			ren_char(wb, ren_next, ren_back);
+			ren_char(cwb, ren_next, ren_back);
 		}
 		if (c >= 0)
 			ren_nl = c == '\n';
@@ -996,9 +994,7 @@ static int render_rec(int level)
 /* render input words */
 int render(void)
 {
-	struct wb *wb = &ren_wb;
 	n_nl = -1;
-	wb_init(wb);
 	while (!tr_nextreq())
 		;
 	ren_first();			/* transition to the first page */
@@ -1007,7 +1003,6 @@ int render(void)
 	if (fmt_morewords(cfmt))
 		ren_page(bp_next, 1);
 	ren_br();
-	wb_done(wb);
 	return 0;
 }
 
