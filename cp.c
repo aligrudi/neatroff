@@ -34,6 +34,7 @@ static int regid(void)
 	return map(regname);
 }
 
+/* interpolate \n(xy */
 static void cp_num(void)
 {
 	int id;
@@ -47,6 +48,7 @@ static void cp_num(void)
 		in_push(num_str(id), NULL);
 }
 
+/* interpolate \*(xy */
 static void cp_str(void)
 {
 	char arg[ILNLEN];
@@ -68,11 +70,13 @@ static void cp_str(void)
 	}
 }
 
+/* interpolate \g(xy */
 static void cp_numfmt(void)
 {
 	in_push(num_getfmt(regid()), NULL);
 }
 
+/* interpolate \$1 */
 static void cp_arg(void)
 {
 	char argname[NMLEN];
@@ -86,6 +90,7 @@ static void cp_arg(void)
 		in_push(arg, NULL);
 }
 
+/* interpolate \w'xyz' */
 static void cp_width(void)
 {
 	char wid[16];
@@ -93,6 +98,7 @@ static void cp_width(void)
 	in_push(wid, NULL);
 }
 
+/* define a register as \R'xyz expr' */
 static void cp_numdef(void)
 {
 	char arg[ILNLEN];
@@ -105,6 +111,33 @@ static void cp_numdef(void)
 		return;
 	*s++ = '\0';
 	num_set(map(arg), eval_re(s, num_get(map(arg), 0), 'u'));
+}
+
+/* conditional interpolation as \?'cond@expr1@expr2@' */
+static void cp_cond(void)
+{
+	char arg[ILNLEN];
+	char delim[GNLEN], cs[GNLEN];
+	char *r, *s = arg;
+	char *s1, *s2;
+	int n;
+	argnext(arg, '?', cp_next, cp_back);
+	n = eval_up(&s, '\0');
+	if (charread(&s, delim) < 0)
+		return;
+	if (!strcmp(delim, "\\&") && charread(&s, delim) < 0)
+		return;
+	s1 = s;
+	r = s;
+	while (charread_delim(&s, cs, delim) >= 0)
+		r = s;
+	*r = '\0';
+	s2 = s;
+	r = s;
+	while (charread_delim(&s, cs, delim) >= 0)
+		r = s;
+	*r = '\0';
+	in_push(n > 0 ? s1 : s2, NULL);
 }
 
 static int cp_raw(void)
@@ -176,6 +209,9 @@ int cp_next(void)
 			c = cp_next();
 		} else if (c == 'R' && !cp_cpmode) {
 			cp_numdef();
+			c = cp_next();
+		} else if (c == '?' && !cp_cpmode) {
+			cp_cond();
 			c = cp_next();
 		} else {
 			cp_back(c);

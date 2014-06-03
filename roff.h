@@ -56,7 +56,7 @@
 #define SC_EM		(n_s * SC_IN / 72)
 
 /* escape sequences */
-#define ESC_Q	"bCDhHlLNoRSvwxX"	/* \X'ccc' quoted escape sequences */
+#define ESC_Q	"bCDhHlLNoRSvwxX?"	/* \X'ccc' quoted escape sequences */
 #define ESC_P	"*fgkmns"		/* \Xc \X(cc \X[ccc] escape sequences */
 
 #define MIN(a, b)	((a) < (b) ? (a) : (b))
@@ -391,6 +391,7 @@ int utf8one(char *s);
 int charnext(char *c, int (*next)(void), void (*back)(int));
 int charread(char **s, char *c);
 int charnext_delim(char *c, int (*next)(void), void (*back)(int), char *delim);
+int charread_delim(char **s, char *c, char *delim);
 void charnext_str(char *d, char *c);
 void argnext(char *d, int cmd, int (*next)(void), void (*back)(int));
 void argread(char **sp, char *d, int cmd);

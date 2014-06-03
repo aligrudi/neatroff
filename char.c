@@ -130,6 +130,16 @@ int charread(char **s, char *c)
 	return ret;
 }
 
+/* like charnext_delim() for string buffers */
+int charread_delim(char **s, char *c, char *delim)
+{
+	int ret;
+	sstr_push(*s);
+	ret = charnext_delim(c, sstr_next, sstr_back, delim);
+	*s = sstr_pop();
+	return ret;
+}
+
 /* read the argument of a troff escape sequence */
 void argnext(char *d, int cmd, int (*next)(void), void (*back)(int))
 {
