@@ -378,6 +378,8 @@ void tr_wh(char **args);
 void tr_popren(char **args);
 
 void tr_init(void);
+int tr_readargs(char **args, struct sbuf *sbuf,
+		int (*next)(void), void (*back)(int));
 
 /* helpers */
 void errmsg(char *msg, ...);

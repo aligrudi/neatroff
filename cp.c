@@ -1,13 +1,14 @@
 /* copy-mode character interpretation */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "roff.h"
 
 static int cp_nblk;		/* input block depth (text in \{ and \}) */
 static int cp_sblk[NIES];	/* skip \} escape at this depth, if set */
 static int cp_cpmode;		/* disable the interpretation \w and \E */
 
-static void cparg(char *d)
+static void cparg(char *d, int len)
 {
 	int c = cp_next();
 	int i = 0;
@@ -29,7 +30,7 @@ static void cparg(char *d)
 static int regid(void)
 {
 	char regname[NMLEN];
-	cparg(regname);
+	cparg(regname, sizeof(regname));
 	return map(regname);
 }
 
@@ -48,9 +49,23 @@ static void cp_num(void)
 
 static void cp_str(void)
 {
-	char *buf = str_get(regid());
-	if (buf)
-		in_push(buf, NULL);
+	char arg[ILNLEN];
+	struct sbuf sbuf;
+	char *args[NARGS] = {NULL};
+	cparg(arg, sizeof(arg));
+	if (strchr(arg, ' ')) {
+		sbuf_init(&sbuf);
+		sstr_push(strchr(arg, ' ') + 1);
+		tr_readargs(args, &sbuf, sstr_next, sstr_back);
+		sstr_pop();
+		*strchr(arg, ' ') = '\0';
+		if (str_get(map(arg)))
+			in_push(str_get(map(arg)), args);
+		sbuf_done(&sbuf);
+	} else {
+		if (str_get(map(arg)))
+			in_push(str_get(map(arg)), NULL);
+	}
 }
 
 static void cp_numfmt(void)
@@ -63,7 +78,7 @@ static void cp_arg(void)
 	char argname[NMLEN];
 	char *arg = NULL;
 	int argnum;
-	cparg(argname);
+	cparg(argname, sizeof(argname));
 	argnum = atoi(argname);
 	if (argnum > 0 && argnum < NARGS + 1)
 		arg = in_arg(argnum);

@@ -108,7 +108,20 @@ static void tr_po(char **args)
 	n_o = MAX(0, po);
 }
 
-static char *arg_regname(char *s, int len);
+static void read_regname(char *s)
+{
+	int c = cp_next();
+	int n = n_cp ? 2 : NMLEN - 1;
+	while (c == ' ' || c == '\t')
+		c = cp_next();
+	while (c >= 0 && c != ' ' && c != '\t' && c != '\n' && --n >= 0) {
+		*s++ = c;
+		c = cp_next();
+	}
+	if (c >= 0)
+		cp_back(c);
+	*s = '\0';
+}
 
 static void macrobody(struct sbuf *sbuf, char *end)
 {
@@ -124,7 +137,7 @@ static void macrobody(struct sbuf *sbuf, char *end)
 		if (c == '\n') {
 			c = cp_next();
 			if (c == '.') {
-				arg_regname(buf, sizeof(buf));
+				read_regname(buf);
 				if ((n_cp && end[0] == buf[0] && end[1] == buf[1]) ||
 							!strcmp(end, buf)) {
 					jmp_eol();
@@ -165,17 +178,18 @@ static void tr_ig(char **args)
 }
 
 /* read into sbuf until stop; if stop is NULL, stop at whitespace */
-static int read_until(struct sbuf *sbuf, char *stop)
+static int read_until(struct sbuf *sbuf, char *stop,
+			int (*next)(void), void (*back)(int))
 {
 	char cs[GNLEN], cs2[GNLEN];
 	int c;
-	while ((c = cp_next()) >= 0) {
-		cp_back(c);
+	while ((c = next()) >= 0) {
+		back(c);
 		if (c == '\n')
 			return 1;
 		if (!stop && (c == ' ' || c == '\t'))
 			return 0;
-		charnext(cs, cp_next, cp_back);
+		charnext(cs, next, back);
 		if (stop && !strcmp(stop, cs))
 			return 0;
 		charnext_str(cs2, cs);
@@ -185,16 +199,16 @@ static int read_until(struct sbuf *sbuf, char *stop)
 }
 
 /* evaluate .if strcmp (i.e. 'str'str') */
-static int if_strcmp(void)
+static int if_strcmp(int (*next)(void), void (*back)(int))
 {
 	char delim[GNLEN];
 	struct sbuf s1, s2;
 	int ret;
-	charnext(delim, cp_next, cp_back);
+	charnext(delim, next, back);
 	sbuf_init(&s1);
 	sbuf_init(&s2);
-	read_until(&s1, delim);
-	read_until(&s2, delim);
+	read_until(&s1, delim, next, back);
+	read_until(&s2, delim, next, back);
 	ret = !strcmp(sbuf_buf(&s1), sbuf_buf(&s2));
 	sbuf_done(&s1);
 	sbuf_done(&s2);
@@ -202,7 +216,7 @@ static int if_strcmp(void)
 }
 
 /* evaluate .if condition letters */
-static int if_cond(void)
+static int if_cond(int (*next)(void), void (*back)(int))
 {
 	switch (cp_next()) {
 	case 'o':
@@ -218,16 +232,39 @@ static int if_cond(void)
 }
 
 /* evaluate .if condition */
-static int if_eval(void)
+static int if_eval(int (*next)(void), void (*back)(int))
 {
 	struct sbuf sbuf;
 	int ret;
 	sbuf_init(&sbuf);
-	if (!read_until(&sbuf, NULL))
-		cp_back(' ');
+	if (!read_until(&sbuf, NULL, next, back))
+		back(' ');
 	ret = eval(sbuf_buf(&sbuf), '\0') > 0;
 	sbuf_done(&sbuf);
 	return ret;
+}
+
+static int eval_if(int (*next)(void), void (*back)(int))
+{
+	int neg = 0;
+	int ret;
+	int c;
+	do {
+		c = next();
+	} while (c == ' ' || c == '\t');
+	if (c == '!') {
+		neg = 1;
+		c = next();
+	}
+	back(c);
+	if (strchr("oetn", c)) {
+		ret = if_cond(next, back);
+	} else if (!isdigit(c) && !strchr("-+*/%<=>&:.|()", c)) {
+		ret = if_strcmp(next, back);
+	} else {
+		ret = if_eval(next, back);
+	}
+	return ret != neg;
 }
 
 static int ie_cond[NIES];	/* .ie condition stack */
@@ -235,28 +272,11 @@ static int ie_depth;
 
 static void tr_if(char **args)
 {
-	int neg = 0;
-	int ret;
-	int c;
-	do {
-		c = cp_next();
-	} while (c == ' ' || c == '\t');
-	if (c == '!') {
-		neg = 1;
-		c = cp_next();
-	}
-	cp_back(c);
-	if (strchr("oetn", c)) {
-		ret = if_cond();
-	} else if (!isdigit(c) && !strchr("-+*/%<=>&:.|()", c)) {
-		ret = if_strcmp();
-	} else {
-		ret = if_eval();
-	}
+	int c = eval_if(cp_next, cp_back);
 	if (args[0][1] == 'i' && args[0][2] == 'e')	/* .ie command */
 		if (ie_depth < NIES)
-			ie_cond[ie_depth++] = ret != neg;
-	cp_blk(ret == neg);
+			ie_cond[ie_depth++] = c;
+	cp_blk(!c);
 }
 
 static void tr_el(char **args)
@@ -662,172 +682,169 @@ static void tr_fmap(char **args)
 		font_map(fn, args[2], args[3] ? font_glyph(fn, args[3]) : NULL);
 }
 
-static char *arg_regname(char *s, int len)
+static void arg_regname(struct sbuf *sbuf)
 {
-	char *e = n_cp ? s + 2 : s + len;
-	int c = cp_next();
-	while (c == ' ' || c == '\t')
-		c = cp_next();
-	while (s < e && c >= 0 && c != ' ' && c != '\t' && c != '\n') {
-		*s++ = c;
-		c = cp_next();
-	}
-	if (c >= 0)
-		cp_back(c);
-	*s++ = '\0';
-	return s;
+	char reg[NMLEN];
+	read_regname(reg);
+	sbuf_append(sbuf, reg);
+	sbuf_add(sbuf, 0);
 }
 
-static char *arg_normal(char *s, int len)
+static void arg_string(struct sbuf *sbuf)
 {
-	char *e = s + len - 1;
-	int quoted = 0;
-	int c;
-	c = cp_next();
-	while (c == ' ')
-		c = cp_next();
-	if (c == '"') {
-		quoted = 1;
-		c = cp_next();
-	}
-	while (s < e && c > 0 && c != '\n') {
-		if (!quoted && c == ' ')
-			break;
-		if (quoted && c == '"') {
-			c = cp_next();
-			if (c != '"')
-				break;
-		}
-		*s++ = c;
-		c = cp_next();
-	}
-	if (c >= 0)
-		cp_back(c);
-	*s++ = '\0';
-	return s;
-}
-
-static char *arg_string(char *s, int len)
-{
-	char *e = s + len - 1;
 	int c;
 	while ((c = cp_next()) == ' ')
 		;
 	if (c == '"')
 		c = cp_next();
-	while (s < e && c > 0 && c != '\n') {
-		*s++ = c;
+	while (c > 0 && c != '\n') {
+		sbuf_add(sbuf, c);
 		c = cp_next();
 	}
-	*s++ = '\0';
+	sbuf_add(sbuf, 0);
 	if (c >= 0)
 		cp_back(c);
-	return s;
+}
+
+static int mkargs_arg(struct sbuf *sbuf, int (*next)(void), void (*back)(int))
+{
+	int quoted = 0;
+	int c;
+	c = next();
+	while (c == ' ')
+		c = next();
+	if (c == '\n')
+		back(c);
+	if (c < 0 || c == '\n')
+		return 1;
+	if (c == '"') {
+		quoted = 1;
+		c = next();
+	}
+	while (c >= 0 && c != '\n') {
+		if (!quoted && c == ' ')
+			break;
+		if (quoted && c == '"') {
+			c = next();
+			if (c != '"')
+				break;
+		}
+		sbuf_add(sbuf, c);
+		c = next();
+	}
+	sbuf_add(sbuf, 0);
+	if (c >= 0)
+		back(c);
+	return 0;
+}
+
+/* read macro arguments */
+int tr_readargs(char **args, struct sbuf *sbuf, int (*next)(void), void (*back)(int))
+{
+	int idx[NARGS];
+	int i, n = 0;
+	while (n < NARGS) {
+		idx[n] = sbuf_len(sbuf);
+		if (mkargs_arg(sbuf, next, back))
+			break;
+		n++;
+	}
+	for (i = 0; i < n; i++)
+		args[i] = sbuf_buf(sbuf) + idx[i];
+	return n;
 }
 
 /* read macro arguments; trims tabs if rmtabs is nonzero */
-static int mkargs(char **args, char *buf, int len)
+static int mkargs(char **args, struct sbuf *sbuf)
 {
-	char *s = buf;
-	char *e = buf + len - 1;
-	int c;
-	int n = 0;
-	while (n < NARGS) {
-		char *r = s;
-		c = cp_next();
-		if (c < 0 || c == '\n')
-			return n;
-		cp_back(c);
-		s = arg_normal(s, e - s);
-		if (*r != '\0')
-			args[n++] = r;
-	}
+	int n = tr_readargs(args, sbuf, cp_next, cp_back);
 	jmp_eol();
 	return n;
 }
 
 /* read request arguments; trims tabs too */
-static int mkargs_req(char **args, char *buf, int len)
+static int mkargs_req(char **args, struct sbuf *sbuf)
 {
-	char *r, *s = buf;
-	char *e = buf + len - 1;
+	int idx[NARGS];
+	int i, n = 0;
 	int c;
-	int n = 0;
 	c = cp_next();
-	while (n < NARGS && s < e) {
-		r = s;
+	while (n < NARGS) {
+		idx[n] = sbuf_len(sbuf);
 		while (c == ' ' || c == '\t')
 			c = cp_next();
-		while (c >= 0 && c != '\n' && c != ' ' && c != '\t' && s < e) {
-			*s++ = c;
+		while (c >= 0 && c != '\n' && c != ' ' && c != '\t') {
+			sbuf_add(sbuf, c);
 			c = cp_next();
 		}
-		*s++ = '\0';
-		if (*r != '\0')
-			args[n++] = r;
+		if (sbuf_len(sbuf) > idx[n])
+			n++;
+		sbuf_add(sbuf, 0);
+		if (c == '\n')
+			cp_back(c);
 		if (c < 0 || c == '\n')
-			return n;
+			break;
 	}
+	for (i = 0; i < n; i++)
+		args[i] = sbuf_buf(sbuf) + idx[i];
 	jmp_eol();
 	return n;
 }
 
 /* read arguments for .ds */
-static int mkargs_ds(char **args, char *buf, int len)
+static int mkargs_ds(char **args, struct sbuf *sbuf)
 {
-	char *s = buf;
-	char *e = buf + len - 1;
-	int c;
-	args[0] = s;
-	s = arg_regname(s, e - s);
-	args[1] = s;
+	int idx[NARGS];
+	int i, n = 0;
+	idx[n++] = sbuf_len(sbuf);
+	arg_regname(sbuf);
+	idx[n++] = sbuf_len(sbuf);
 	cp_copymode(1);
-	s = arg_string(s, e - s);
+	arg_string(sbuf);
 	cp_copymode(0);
-	c = cp_next();
-	if (c >= 0 && c != '\n')
-		jmp_eol();
-	return 2;
+	jmp_eol();
+	for (i = 0; i < n; i++)
+		args[i] = sbuf_buf(sbuf) + idx[i];
+	return n;
 }
 
 /* read arguments for commands .nr that expect a register name */
-static int mkargs_reg1(char **args, char *buf, int len)
+static int mkargs_reg1(char **args, struct sbuf *sbuf)
 {
-	char *s = buf;
-	char *e = buf + len - 1;
-	args[0] = s;
-	s = arg_regname(s, e - s);
-	return mkargs_req(args + 1, s, e - s) + 1;
+	int n;
+	int idx0 = sbuf_len(sbuf);
+	arg_regname(sbuf);
+	n = mkargs_req(args + 1, sbuf) + 1;
+	args[0] = sbuf_buf(sbuf) + idx0;
+	return n;
 }
 
 /* do not read arguments; for .if, .ie and .el */
-static int mkargs_null(char **args, char *buf, int len)
+static int mkargs_null(char **args, struct sbuf *sbuf)
 {
 	return 0;
 }
 
 /* read the whole line for .tm */
-static int mkargs_eol(char **args, char *buf, int len)
+static int mkargs_eol(char **args, struct sbuf *sbuf)
 {
-	char *s = buf;
-	char *e = buf + len - 1;
+	int idx0 = sbuf_len(sbuf);
 	int c;
-	args[0] = s;
 	c = cp_next();
 	while (c == ' ')
 		c = cp_next();
-	while (s < e && c >= 0 && c != '\n') {
-		*s++ = c;
+	while (c >= 0 && c != '\n') {
+		sbuf_add(sbuf, c);
 		c = cp_next();
 	}
-	*s = '\0';
+	args[0] = sbuf_buf(sbuf) + idx0;
 	return 1;
 }
 
 static struct cmd {
 	char *id;
 	void (*f)(char **args);
-	int (*args)(char **args, char *buf, int len);
+	int (*args)(char **args, struct sbuf *sbuf);
 } cmds[] = {
 	{TR_DIVBEG, tr_divbeg},
 	{TR_DIVEND, tr_divend},
@@ -926,9 +943,9 @@ static struct cmd {
 int tr_nextreq(void)
 {
 	char *args[NARGS + 3] = {NULL};
-	char cmd[RNLEN];
-	char buf[LNLEN];
+	char cmd[RNLEN + 1];
 	struct cmd *req;
+	struct sbuf sbuf;
 	int c;
 	if (!tr_nl)
 		return 1;
@@ -941,21 +958,23 @@ int tr_nextreq(void)
 	args[0] = cmd;
 	cmd[0] = c;
 	req = NULL;
-	arg_regname(cmd + 1, sizeof(cmd) - 1);
+	read_regname(cmd + 1);
+	sbuf_init(&sbuf);
 	req = str_dget(map(cmd + 1));
 	if (req) {
 		if (req->args)
-			req->args(args + 1, buf, sizeof(buf));
+			req->args(args + 1, &sbuf);
 		else
-			mkargs_req(args + 1, buf, sizeof(buf));
+			mkargs_req(args + 1, &sbuf);
 		req->f(args);
 	} else {
 		cp_copymode(1);
-		mkargs(args + 1, buf, sizeof(buf));
+		mkargs(args + 1, &sbuf);
 		cp_copymode(0);
 		if (str_get(map(cmd + 1)))
 			in_push(str_get(map(cmd + 1)), args + 1);
 	}
+	sbuf_done(&sbuf);
 	return 0;
 }
 
