@@ -392,6 +392,7 @@ static int ren_br(void)
 
 void tr_br(char **args)
 {
+	ren_fmtpopall(cfmt);	/* output the completed lines first */
 	if (args[0][0] == c_cc)
 		ren_br();
 }
