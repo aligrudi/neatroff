@@ -91,6 +91,13 @@ static int evalatom(char **s)
 	return 0;
 }
 
+static int nonzero(int n)
+{
+	if (!n)
+		errdie("neatroff: divide by zero\n");
+	return n;
+}
+
 static int evalexpr(char **s)
 {
 	int ret = evalatom(s);
@@ -100,11 +107,11 @@ static int evalexpr(char **s)
 		else if (!evaljmp(s, '-'))
 			ret -= evalatom(s);
 		else if (!evaljmp(s, '/'))
-			ret /= evalatom(s);
+			ret /= nonzero(evalatom(s));
 		else if (!evaljmp(s, '*'))
 			ret *= evalatom(s);
 		else if (!evaljmp(s, '%'))
-			ret %= evalatom(s);
+			ret %= nonzero(evalatom(s));
 		else if (!evaljmp(s, '<'))
 			ret = !evaljmp(s, '=') ? ret <= evalatom(s) : ret < evalatom(s);
 		else if (!evaljmp(s, '>'))
