@@ -444,7 +444,7 @@ int wb_hyphmark(char *word, int *hyidx, int *hyins)
 	int c, n = 0;
 	if (skipreqs(&s, NULL))
 		return -1;
-	while ((c = escread(&s, d)) >= 0 && n < NHYPHS) {
+	while ((c = escread(&s, d)) >= 0 && n < NHYPHSWORD) {
 		if (!c && !strcmp(c_hc, d)) {
 			hyins[n] = 1;
 			hyidx[n++] = s - word;
@@ -493,7 +493,7 @@ int wb_hyph(char *src, int *hyidx, int flg)
 	if (n < 3)
 		return 0;
 	hyphenate(hyph, word, flg);
-	for (i = 1; i < n - 1 && nhy < NHYPHS; i++)
+	for (i = 1; i < n - 1 && nhy < NHYPHSWORD; i++)
 		if (hyph[iw[i] - word])
 			hyidx[nhy++] = is[i] - src;
 	return nhy;

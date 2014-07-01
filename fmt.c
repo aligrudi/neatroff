@@ -245,8 +245,8 @@ static void fmt_wb2word(struct fmt *f, struct word *word, struct wb *wb,
 
 static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 {
-	int hyidx[NHYPHS];
-	int hyins[NHYPHS] = {0};
+	int hyidx[NHYPHSWORD];
+	int hyins[NHYPHSWORD] = {0};
 	char *src = wb_buf(wb);
 	struct wb wbc;
 	char *beg;
@@ -291,7 +291,7 @@ int fmt_word(struct fmt *f, struct wb *wb)
 {
 	if (wb_empty(wb))
 		return 0;
-	if (f->nwords + NHYPHS >= NWORDS || fmt_confchanged(f))
+	if (f->nwords + NHYPHSWORD >= NWORDS || fmt_confchanged(f))
 		if (fmt_fill(f))
 			return 1;
 	if (FMT_FILL(f) && f->nls && f->gap)

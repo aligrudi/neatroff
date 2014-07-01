@@ -47,8 +47,8 @@
 #define MAXFRAC		100000	/* maximum value of the fractional part */
 #define LIGLEN		4	/* length of ligatures */
 #define NCDEFS		128	/* number of character definitions (.char) */
-#define HYHWN		1024	/* hyphenation dictionary size (.hw) */
-#define NHYPHS		8	/* maximum hyphenations per word */
+#define NHYPHS		16384	/* hyphenation dictionary/patterns (.hw) */
+#define NHYPHSWORD	16	/* number of hyphenations per word */
 
 /* converting scales */
 #define SC_IN		(dev_res)	/* inch in units */
@@ -358,6 +358,8 @@ void tr_fi(char **args);
 void tr_fp(char **args);
 void tr_fspecial(char **args);
 void tr_ft(char **args);
+void tr_hpf(char **args);
+void tr_hpfa(char **args);
 void tr_hw(char **args);
 void tr_in(char **args);
 void tr_ll(char **args);
