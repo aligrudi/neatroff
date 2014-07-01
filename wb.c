@@ -461,10 +461,10 @@ int wb_hyphmark(char *word, int *hyidx, int *hyins)
 /* find the hyphenation positions of the given word */
 int wb_hyph(char *src, int *hyidx, int flg)
 {
-	char word[ILNLEN];	/* word to pass to hyphenate() */
-	char hyph[ILNLEN];	/* hyphenation points returned from hyphenate() */
-	char *iw[ILNLEN];	/* beginning of i-th char in word */
-	char *is[ILNLEN];	/* beginning of i-th char in s */
+	char word[WORDLEN];	/* word to pass to hyphenate() */
+	char hyph[WORDLEN];	/* hyphenation points returned from hyphenate() */
+	char *iw[WORDLEN];	/* beginning of i-th char in word */
+	char *is[WORDLEN];	/* beginning of i-th char in s */
 	int n = 0;		/* the number of characters in word */
 	int nhy = 0;		/* number of hyphenations found */
 	char d[ILNLEN];
@@ -492,6 +492,7 @@ int wb_hyph(char *src, int *hyidx, int flg)
 	wb_done(&wb);
 	if (n < 3)
 		return 0;
+	memset(hyph, 0, (wp - word) * sizeof(hyph[0]));
 	hyphenate(hyph, word, flg);
 	for (i = 1; i < n - 1 && nhy < NHYPHSWORD; i++)
 		if (hyph[iw[i] - word])

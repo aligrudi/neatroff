@@ -50,6 +50,8 @@
 #define NCDEFS		128	/* number of character definitions (.char) */
 #define NHYPHS		16384	/* hyphenation dictionary/patterns (.hw) */
 #define NHYPHSWORD	16	/* number of hyphenations per word */
+#define NHCODES		512	/* number of .hcode characters */
+#define WORDLEN		256	/* word length (for hyph.c) */
 
 /* converting scales */
 #define SC_IN		(dev_res)	/* inch in units */
@@ -380,6 +382,7 @@ void tr_fi(char **args);
 void tr_fp(char **args);
 void tr_fspecial(char **args);
 void tr_ft(char **args);
+void tr_hcode(char **args);
 void tr_hpf(char **args);
 void tr_hpfa(char **args);
 void tr_hw(char **args);

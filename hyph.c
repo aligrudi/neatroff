@@ -7,6 +7,8 @@
 
 #define HYPATLEN	(NHYPHS * 16)	/* hyphenation pattern length */
 
+static int hcode_mapchar(char *s);
+
 /* the hyphenation dictionary (.hw) */
 
 static char hwword[HYPATLEN];	/* buffer for .hw words */
@@ -40,25 +42,35 @@ static void hw_add(char *word)
 	dict_put(&hwdict, hwword + hwoff[i], i);
 }
 
-/* copy lower-cased s to d */
-static void hw_strcpy(char *d, char *s)
+/* copy s to d after .hcode mappings; s[map[j]] corresponds to d[j] */
+static void hw_strcpy(char *d, char *s, int *map)
 {
-	while (*s) {
-		if (*s & 0x80)
-			*d++ = *s++;
-		else
-			*d++ = tolower(*s++);
+	int di = 0, si = 0, len;
+	while (s[si]) {
+		len = utf8len((unsigned char) s[si]);
+		map[di] = si;
+		memcpy(d + di, s + si, len);
+		si += len;
+		di += hcode_mapchar(d + di);
 	}
-	*d = '\0';
+	d[di] = '\0';
 }
 
-static char *hw_lookup(char *s)
+static int hw_lookup(char *word, char *hyph)
 {
-	char word[ILNLEN];
-	int i, idx = -1;
-	hw_strcpy(word, s);
-	i = dict_prefix(&hwdict, s, &idx);
-	return i >= 0 ? hwhyph + hwoff[i] : NULL;
+	char word2[WORDLEN] = {0};
+	char *hyph2;
+	int map[WORDLEN] = {0};
+	int i, j, idx = -1;
+	hw_strcpy(word2, word, map);
+	i = dict_prefix(&hwdict, word2, &idx);
+	if (i < 0)
+		return 1;
+	hyph2 = hwhyph + hwoff[i];
+	for (j = 0; word2[j]; j++)
+		if (hyph2[j])
+			hyph[map[j]] = hyph2[j];
+	return 0;
 }
 
 void tr_hw(char **args)
@@ -78,15 +90,20 @@ static struct dict hydict;	/* map patterns to their index in hyoff[] */
 static int hyoff[NHYPHS];	/* the offset of this pattern in hypats[] */
 static int hy_n;		/* number of words in hy_*[] lists */
 
-/* make s lower-case and replace its non-alphabetic characters with . */
-static void hy_strcpy(char *d, char *s)
+/* copy s to d after .hcode mappings; s[map[j]] corresponds to d[j] */
+static void hy_strcpy(char *d, char *s, int *map)
 {
-	int c;
-	*d++ = '.';
-	while ((c = (unsigned char) *s++))
-		*d++ = c & 0x80 ? c : (isalpha(c) ? tolower(c) : '.');
-	*d++ = '.';
-	*d = '\0';
+	int di = 0, si = 0, len;
+	d[di++] = '.';
+	while (s[si]) {
+		len = utf8len((unsigned char) s[si]);
+		map[di] = si;
+		memcpy(d + di, s + si, len);
+		si += len;
+		di += hcode_mapchar(d + di);
+	}
+	d[di++] = '.';
+	d[di] = '\0';
 }
 
 /* find the patterns matching s and update hyphenation values in n */
@@ -109,12 +126,13 @@ static void hy_find(char *s, char *n)
 /* mark the hyphenation points of word in hyph */
 static void hy_dohyph(char *hyph, char *word, int flg)
 {
-	char n[ILNLEN] = {0};
-	char w[ILNLEN];
-	int c[ILNLEN];	/* start of the i-th character in w */
+	char n[WORDLEN] = {0};
+	char w[WORDLEN] = {0};
+	int c[WORDLEN];			/* start of the i-th character in w */
+	int wmap[WORDLEN] = {0};	/* word[wmap[i]] is w[i] */
 	int nc = 0;
 	int i, wlen;
-	hy_strcpy(w, word);
+	hy_strcpy(w, word, wmap);
 	wlen = strlen(w);
 	for (i = 0; i < wlen - 1; i += utf8len((unsigned int) w[i]))
 		c[nc++] = i;
@@ -123,12 +141,12 @@ static void hy_dohyph(char *hyph, char *word, int flg)
 	memset(hyph, 0, wlen * sizeof(hyph[0]));
 	for (i = 3; i < nc - 2; i++)
 		if (n[i] % 2 && w[c[i - 1]] != '.' && w[c[i - 2]] != '.' && w[c[i + 1]] != '.')
-			hyph[c[i - 1]] = (~flg & HY_FINAL2 || w[c[i + 2]] != '.') &&
+			hyph[wmap[c[i]]] = (~flg & HY_FINAL2 || w[c[i + 2]] != '.') &&
 				(~flg & HY_FIRST2 || w[c[i - 3]] != '.');
 }
 
 /* insert pattern s into hypats[] and hynums[] */
-static void hy_ins(char *s)
+static void hy_add(char *s)
 {
 	char *p = hypats + hypats_len;
 	char *n = hynums + hypats_len;
@@ -148,16 +166,45 @@ static void hy_ins(char *s)
 	hypats_len += i + 1;
 }
 
+/* .hcode request */
+static struct dict hcodedict;
+static char hcodesrc[NHCODES][GNLEN];
+static char hcodedst[NHCODES][GNLEN];
+static int hcode_n;
+
+/* replace the character in s after .hcode mapping; returns s's new length */
+static int hcode_mapchar(char *s)
+{
+	int i = dict_get(&hcodedict, s);
+	if (i >= 0)
+		strcpy(s, hcodedst[i]);
+	else if (isalpha((unsigned char) *s))
+		*s = tolower(*s);
+	return strlen(s);
+}
+
+void tr_hcode(char **args)
+{
+	int i = 1;
+	while (args[i] && args[i + 1] && hcode_n < NHCODES) {
+		strcpy(hcodesrc[hcode_n], args[i]);
+		strcpy(hcodedst[hcode_n], args[i + 1]);
+		dict_put(&hcodedict, hcodesrc[hcode_n], hcode_n);
+		hcode_n++;
+		i += 2;
+	}
+}
+
 static void hyph_readpatterns(char *s)
 {
-	char word[ILNLEN];
+	char word[WORDLEN];
 	char *d;
 	while (*s) {
 		d = word;
 		while (*s && !isspace((unsigned char) *s))
 			*d++ = *s++;
 		*d = '\0';
-		hy_ins(word);
+		hy_add(word);
 		while (*s && isspace((unsigned char) *s))
 			s++;
 	}
@@ -165,7 +212,7 @@ static void hyph_readpatterns(char *s)
 
 static void hyph_readexceptions(char *s)
 {
-	char word[ILNLEN];
+	char word[WORDLEN];
 	char *d;
 	while (*s) {
 		d = word;
@@ -180,16 +227,12 @@ static void hyph_readexceptions(char *s)
 
 void hyphenate(char *hyph, char *word, int flg)
 {
-	char *r;
 	if (!hyinit) {
 		hyinit = 1;
 		hyph_readpatterns(en_patterns);
 		hyph_readexceptions(en_exceptions);
 	}
-	r = hw_lookup(word);
-	if (r)
-		memcpy(hyph, r, strlen(word) + 1);
-	else
+	if (hw_lookup(word, hyph))
 		hy_dohyph(hyph, word, flg);
 }
 
@@ -202,14 +245,16 @@ void tr_hpfa(char **args)
 		hyinit = 1;
 		filp = fopen(args[1], "r");
 		while (fscanf(filp, "%s", tok) == 1)
-			hy_ins(tok);
+			if (strlen(tok) < WORDLEN)
+				hy_add(tok);
 		fclose(filp);
 	}
 	/* reading exceptions */
 	if (args[2]) {
 		filp = fopen(args[1], "r");
 		while (fscanf(filp, "%s", tok) == 1)
-			hw_add(tok);
+			if (strlen(tok) < WORDLEN)
+				hw_add(tok);
 		fclose(filp);
 	}
 }
@@ -218,6 +263,7 @@ void hyph_init(void)
 {
 	dict_init(&hwdict, NHYPHS, -1, 0, 1);
 	dict_init(&hydict, NHYPHS, -1, 0, 1);
+	dict_init(&hcodedict, NHYPHS, -1, 0, 1);
 }
 
 void tr_hpf(char **args)
