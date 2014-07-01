@@ -4,35 +4,19 @@
 #include <string.h>
 #include "roff.h"
 
-/* look up a character in chead[]/cnext[] table */
-static int font_cidx(struct font *fn, char *name)
-{
-	int i = fn->chead[(unsigned char) name[0]];
-	while (i >= 0 && strcmp(name, fn->c[i]))
-		i = fn->cnext[i];
-	return i;
-}
-
-/* look up a character in ghead[]/gnext[] table */
-static int font_gidx(struct font *fn, char *id)
-{
-	int i = fn->ghead[(unsigned char) id[0]];
-	while (i >= 0 && strcmp(fn->glyphs[i].id, id))
-		i = fn->gnext[i];
-	return i;
-}
-
+/* find a glyph by its name */
 struct glyph *font_find(struct font *fn, char *name)
 {
-	int i = font_cidx(fn, name);
+	int i = dict_get(&fn->cdict, name);
 	if (i < 0)
 		return NULL;
 	return fn->g_map[i] ? fn->g_map[i] : fn->g[i];
 }
 
+/* find a glyph by its device-dependent identifier */
 struct glyph *font_glyph(struct font *fn, char *id)
 {
-	int i = font_gidx(fn, id);
+	int i = dict_get(&fn->gdict, id);
 	return i >= 0 ? &fn->glyphs[i] : NULL;
 }
 
@@ -45,15 +29,14 @@ static struct glyph *font_glyphput(struct font *fn, char *id, char *name, int ty
 	strcpy(g->name, name);
 	g->type = type;
 	g->font = fn;
-	fn->gnext[i] = fn->ghead[(unsigned char) id[0]];
-	fn->ghead[(unsigned char) id[0]] = i;
+	dict_put(&fn->gdict, g->id, i);
 	return g;
 }
 
 /* map character name to the given glyph */
 int font_map(struct font *fn, char *name, struct glyph *g)
 {
-	int i = font_cidx(fn, name);
+	int i = dict_get(&fn->cdict, name);
 	if (g && g->font != fn)
 		return 1;
 	if (i < 0) {
@@ -61,8 +44,7 @@ int font_map(struct font *fn, char *name, struct glyph *g)
 			return 1;
 		i = fn->n++;
 		strcpy(fn->c[i], name);
-		fn->cnext[i] = fn->chead[(unsigned char) name[0]];
-		fn->chead[(unsigned char) name[0]] = i;
+		dict_put(&fn->cdict, fn->c[i], i);
 	}
 	fn->g_map[i] = g;
 	return 0;
@@ -71,7 +53,7 @@ int font_map(struct font *fn, char *name, struct glyph *g)
 /* return nonzero if character name has been mapped with font_map() */
 int font_mapped(struct font *fn, char *name)
 {
-	int i = font_cidx(fn, name);
+	int i = dict_get(&fn->cdict, name);
 	return i >= 0 && fn->g_map[i];
 }
 
@@ -164,8 +146,7 @@ static int font_readchar(struct font *fn, FILE *fin)
 	}
 	strcpy(fn->c[fn->n], name);
 	fn->g[fn->n] = glyph;
-	fn->cnext[fn->n] = fn->chead[(unsigned char) name[0]];
-	fn->chead[(unsigned char) name[0]] = fn->n;
+	dict_put(&fn->cdict, fn->c[fn->n], fn->n);
 	fn->n++;
 	return 0;
 }
@@ -211,10 +192,8 @@ struct font *font_open(char *path)
 		return NULL;
 	}
 	memset(fn, 0, sizeof(*fn));
-	for (i = 0; i < LEN(fn->ghead); i++)
-		fn->ghead[i] = -1;
-	for (i = 0; i < LEN(fn->chead); i++)
-		fn->chead[i] = -1;
+	dict_init(&fn->gdict, NGLYPHS, -1, 0, 0);
+	dict_init(&fn->cdict, NGLYPHS, -1, 0, 0);
 	for (i = 0; i < LEN(fn->knhead); i++)
 		fn->knhead[i] = -1;
 	while (fscanf(fin, "%s", tok) == 1) {

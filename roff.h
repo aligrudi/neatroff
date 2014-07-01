@@ -14,6 +14,7 @@
  * + eval_xyz: integer expression evaluation (eval.c)
  * + font_xyz: fonts (font.c)
  * + sbuf_xyz: variable length string buffers (sbuf.c)
+ * + dict_xyz: dictionaries (dict.c)
  * + wb_xyz: word buffers (wb.c)
  * + fmt_xyz: line formatting buffers (fmt.c)
  * + n_xyz: builtin number register xyz
@@ -111,6 +112,30 @@ char *env_lc(void);
 int tab_next(int pos);
 int tab_type(int pos);
 
+/* dictionary */
+struct dict {
+	int *head;
+	char **key;
+	long *val;
+	int *next;
+	int size;
+	int n;
+	char *buf;		/* buffer for keys */
+	int buflen;
+	int level2;		/* use two characters for hashing */
+	long notfound;		/* the value returned for missing keys */
+};
+
+void dict_init(struct dict *d, int size, long notfound, int dupkeys, int level2);
+void dict_done(struct dict *d);
+void dict_put(struct dict *d, char *key, long val);
+long dict_get(struct dict *d, char *key);
+long dict_pop(struct dict *d, char *key);
+int dict_idx(struct dict *d, char *key);
+char *dict_key(struct dict *d, int idx);
+long dict_val(struct dict *d, int idx);
+long dict_prefix(struct dict *d, char *key, int *idx);
+
 /* device related variables */
 extern int dev_res;
 extern int dev_uwid;
@@ -134,17 +159,13 @@ struct font {
 	int spacewid;
 	int special;
 	int cs, bd;			/* for .cs and .bd requests */
+	struct dict gdict;		/* mapping from glyphs[i].id to i */
 	/* charset section characters */
 	char c[NGLYPHS][GNLEN];		/* character names in charset */
 	struct glyph *g[NGLYPHS];	/* character glyphs in charset */
 	struct glyph *g_map[NGLYPHS];	/* character remapped via font_map() */
 	int n;				/* number of characters in charset */
-	/* glyph table based on the first character of their id fields in glyphs[] */
-	int ghead[256];			/* glyph list heads */
-	int gnext[NGLYPHS];		/* next item in glyph lists */
-	/* character table based on the first character of glyph names in c[] */
-	int chead[256];			/* character list heads */
-	int cnext[NGLYPHS];		/* next item in character lists */
+	struct dict cdict;		/* mapping from c[i] to i */
 	/* font ligatures (lg*) */
 	char lg[NLIGS][LIGLEN * GNLEN];	/* ligatures */
 	int lgn;			/* number of ligatures in lg[] */
@@ -299,6 +320,7 @@ int cdef_expand(struct wb *wb, char *c, int fn);
 #define HY_FIRST2	0x08	/* do not hyphenate the first two characters */
 
 void hyphenate(char *hyphs, char *word, int flg);
+void hyph_init(void);
 
 /* adjustment types */
 #define AD_C		0	/* center */

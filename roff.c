@@ -71,6 +71,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "neatroff: cannot open device %s\n", dev);
 		return 1;
 	}
+	hyph_init();
 	env_init();
 	tr_init();
 	if (i == argc)

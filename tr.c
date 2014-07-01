@@ -547,33 +547,26 @@ static void tr_chop(char **args)
 }
 
 /* character translation (.tr) */
+static struct dict cmap;		/* character mapping */
 static char cmap_src[NCMAPS][GNLEN];	/* source character */
 static char cmap_dst[NCMAPS][GNLEN];	/* character mapping */
 static int cmap_n;			/* number of translated character */
 
-static int tr_find(char *c)
-{
-	int i;
-	for (i = 0; i < cmap_n; i++)
-		if (!strcmp(c, cmap_src[i]))
-			return i;
-	return -1;
-}
-
 void cmap_add(char *c1, char *c2)
 {
-	int i = tr_find(c1);
+	int i = dict_get(&cmap, c1);
 	if (i < 0 && cmap_n < NCMAPS)
 		i = cmap_n++;
 	if (i >= 0) {
 		strcpy(cmap_src[i], c1);
 		strcpy(cmap_dst[i], c2);
+		dict_put(&cmap, cmap_src[i], i);
 	}
 }
 
 char *cmap_map(char *c)
 {
-	int i = tr_find(c);
+	int i = dict_get(&cmap, c);
 	return i >= 0 ? cmap_dst[i] : c;
 }
 
@@ -599,7 +592,7 @@ static int cdef_find(char *c, int fn)
 {
 	int i;
 	for (i = 0; i < cdef_n; i++)
-		if (!strcmp(cdef_src[i], c) && (!cdef_fn[i] || cdef_fn[i] == fn))
+		if ((!cdef_fn[i] || cdef_fn[i] == fn) && !strcmp(cdef_src[i], c))
 			return i;
 	return -1;
 }
@@ -995,4 +988,5 @@ void tr_init(void)
 	int i;
 	for (i = 0; i < LEN(cmds); i++)
 		str_dset(map(cmds[i].id), &cmds[i]);
+	dict_init(&cmap, NCMAPS, -1, 0, 0);
 }

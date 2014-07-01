@@ -12,12 +12,10 @@
 static char hwword[HYPATLEN];	/* buffer for .hw words */
 static char hwhyph[HYPATLEN];	/* buffer for .hw hyphenations */
 static int hwword_len;		/* used hwword[] length */
-/* word lists (per starting characters) for dictionary entries */
-static int hwhead[256];		/* the head of hw_*[] lists */
-static int hwnext[NHYPHS];	/* the next word with the same initial */
-static int hwidx[NHYPHS];	/* the offset of this word in hwword[] */
+static struct dict hwdict;	/* map words to their index in hwoff[] */
+static int hwoff[NHYPHS];	/* the offset of this word in hwword[] */
 static int hwlen[NHYPHS];	/* the length of the word */
-static int hw_n = 1;		/* number of words in hw_*[] lists */
+static int hw_n;		/* number of words in hw_*[] lists */
 
 /* functions for the hyphenation dictionary */
 
@@ -26,7 +24,7 @@ static void hw_add(char *word)
 	char *s = word;
 	char *d = hwword + hwword_len;
 	int c, i;
-	if (hw_n == LEN(hwidx) || hwword_len + 128 > sizeof(hwword))
+	if (hw_n == LEN(hwoff) || hwword_len + 128 > sizeof(hwword))
 		return;
 	i = hw_n++;
 	while ((c = *s++)) {
@@ -36,11 +34,10 @@ static void hw_add(char *word)
 			*d++ = c;
 	}
 	*d++ = '\0';
-	hwidx[i] = hwword_len;
+	hwoff[i] = hwword_len;
 	hwword_len = d - hwword;
-	hwlen[i] = hwword_len - hwidx[i] - 1;
-	hwnext[i] = hwhead[(unsigned char) word[0]];
-	hwhead[(unsigned char) word[0]] = i;
+	hwlen[i] = hwword_len - hwoff[i] - 1;
+	dict_put(&hwdict, hwword + hwoff[i], i);
 }
 
 /* copy lower-cased s to d */
@@ -58,16 +55,10 @@ static void hw_strcpy(char *d, char *s)
 static char *hw_lookup(char *s)
 {
 	char word[ILNLEN];
-	int i;
+	int i, idx = -1;
 	hw_strcpy(word, s);
-	/* finding a dictionary entry that matches a prefix of the input */
-	i = hwhead[(unsigned char) word[0]];
-	while (i > 0) {
-		if (!strncmp(word, hwword + hwidx[i], hwlen[i]))
-			return hwhyph + hwidx[i];
-		i = hwnext[i];
-	}
-	return NULL;
+	i = dict_prefix(&hwdict, s, &idx);
+	return i >= 0 ? hwhyph + hwoff[i] : NULL;
 }
 
 void tr_hw(char **args)
@@ -83,20 +74,9 @@ static int hyinit;		/* hyphenation data initialized */
 static char hypats[HYPATLEN];	/* the patterns */
 static char hynums[HYPATLEN];	/* numbers in the patterns */
 static int hypats_len;
-/* lists (one per pair of starting characters) for storing patterns */
-static int hyhead[256 * 256];	/* the head of hy_*[] lists */
-static int hynext[NHYPHS];	/* the next pattern with the same initial */
+static struct dict hydict;	/* map patterns to their index in hyoff[] */
 static int hyoff[NHYPHS];	/* the offset of this pattern in hypats[] */
-static int hy_n = 1;		/* number of words in hy_*[] lists */
-
-#define HYC_MAP(c)	((c) == '.' ? 0 : (c))
-
-/* index of the string starting with a and b in hyhash[] */
-static int hy_idx(char *s)
-{
-	return (HYC_MAP((unsigned char) s[1]) << 8) |
-		HYC_MAP((unsigned char) s[0]);
-}
+static int hy_n;		/* number of words in hy_*[] lists */
 
 /* make s lower-case and replace its non-alphabetic characters with . */
 static void hy_strcpy(char *d, char *s)
@@ -114,17 +94,15 @@ static void hy_find(char *s, char *n)
 {
 	int plen;
 	char *p, *np;
-	int j;
-	int idx = hyhead[hy_idx(s)];
-	while (idx > 0) {
-		p = hypats + hyoff[idx];
+	int i, j;
+	int idx = -1;
+	while ((i = dict_prefix(&hydict, s, &idx)) >= 0) {
+		p = hypats + hyoff[i];
 		np = hynums + (p - hypats);
 		plen = strlen(p);
-		if (!strncmp(s + 2, p + 2, plen - 2))
-			for (j = 0; j < plen; j++)
-				if (n[j] < np[j])
-					n[j] = np[j];
-		idx = hynext[idx];
+		for (j = 0; j < plen; j++)
+			if (n[j] < np[j])
+				n[j] = np[j];
 	}
 }
 
@@ -166,8 +144,7 @@ static void hy_ins(char *s)
 	}
 	p[i] = '\0';
 	hyoff[idx] = hypats_len;
-	hynext[idx] = hyhead[hy_idx(p)];
-	hyhead[hy_idx(p)] = idx;
+	dict_put(&hydict, hypats + hyoff[idx], idx);
 	hypats_len += i + 1;
 }
 
@@ -237,18 +214,23 @@ void tr_hpfa(char **args)
 	}
 }
 
+void hyph_init(void)
+{
+	dict_init(&hwdict, NHYPHS, -1, 0, 1);
+	dict_init(&hydict, NHYPHS, -1, 0, 1);
+}
+
 void tr_hpf(char **args)
 {
 	/* reseting the patterns */
 	hypats_len = 0;
-	hy_n = 1;
-	memset(hyhead, 0, sizeof(hyhead));
-	memset(hynext, 0, sizeof(hynext));
+	hy_n = 0;
+	dict_done(&hydict);
 	/* reseting the dictionary */
 	hwword_len = 0;
-	hw_n = 1;
-	memset(hwhead, 0, sizeof(hwhead));
-	memset(hwnext, 0, sizeof(hwnext));
+	hw_n = 0;
+	dict_done(&hwdict);
 	/* reading */
+	hyph_init();
 	tr_hpfa(args);
 }
