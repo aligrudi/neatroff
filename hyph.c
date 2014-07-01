@@ -240,9 +240,14 @@ void tr_hpfa(char **args)
 {
 	char tok[ILNLEN];
 	FILE *filp;
+	hyinit = 1;
+	/* load english hyphenation patterns with no arguments */
+	if (!args[1]) {
+		hyph_readpatterns(en_patterns);
+		hyph_readexceptions(en_exceptions);
+	}
 	/* reading patterns */
 	if (args[1]) {
-		hyinit = 1;
 		filp = fopen(args[1], "r");
 		while (fscanf(filp, "%s", tok) == 1)
 			if (strlen(tok) < WORDLEN)
