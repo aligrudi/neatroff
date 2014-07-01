@@ -186,12 +186,11 @@ static int hcode_mapchar(char *s)
 void tr_hcode(char **args)
 {
 	int i = 1;
-	while (args[i] && args[i + 1] && hcode_n < NHCODES) {
-		strcpy(hcodesrc[hcode_n], args[i]);
-		strcpy(hcodedst[hcode_n], args[i + 1]);
+	while (i + 1 <= NARGS && args[i + 1] && hcode_n < NHCODES) {
+		strcpy(hcodesrc[hcode_n], args[i++]);
+		strcpy(hcodedst[hcode_n], args[i++]);
 		dict_put(&hcodedict, hcodesrc[hcode_n], hcode_n);
 		hcode_n++;
-		i += 2;
 	}
 }
 
