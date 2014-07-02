@@ -14,6 +14,7 @@
  */
 void dict_init(struct dict *d, int size, long notfound, int dupkeys, int level2)
 {
+	int headsize = (level2 ? 256 * 256 : 256) * sizeof(d->head[0]);
 	memset(d, 0, sizeof(*d));
 	d->size = size;
 	d->n = 1;
@@ -22,7 +23,8 @@ void dict_init(struct dict *d, int size, long notfound, int dupkeys, int level2)
 	d->key = xmalloc(size * sizeof(d->key[0]));
 	d->val = xmalloc(size * sizeof(d->val[0]));
 	d->next = xmalloc(size * sizeof(d->next[0]));
-	d->head = xmalloc((level2 ? 256 * 256 : 256) * sizeof(d->next[0]));
+	d->head = xmalloc(headsize);
+	memset(d->head, 0, headsize);
 	if (dupkeys)
 		d->buf = xmalloc(size * NMLEN);
 }
