@@ -79,7 +79,7 @@ static void tr_as(char **args)
 	reg = map(args[1]);
 	s1 = str_get(reg) ? str_get(reg) : "";
 	s2 = args[2];
-	s = malloc(strlen(s1) + strlen(s2) + 1);
+	s = xmalloc(strlen(s1) + strlen(s2) + 1);
 	strcpy(s, s1);
 	strcat(s, s2);
 	str_set(reg, s);
@@ -626,7 +626,7 @@ static void cdef_add(char *fn, char *cs, char *def)
 		i = cdef_n++;
 	if (i >= 0) {
 		strncpy(cdef_src[i], c, sizeof(cdef_src[i]) - 1);
-		cdef_dst[i] = malloc(strlen(def) + 1);
+		cdef_dst[i] = xmalloc(strlen(def) + 1);
 		strcpy(cdef_dst[i], def);
 		cdef_fn[i] = fn ? dev_pos(fn) : 0;
 	}

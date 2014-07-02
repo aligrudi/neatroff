@@ -186,7 +186,7 @@ struct font *font_open(char *path)
 	fin = fopen(path, "r");
 	if (!fin)
 		return NULL;
-	fn = malloc(sizeof(*fn));
+	fn = xmalloc(sizeof(*fn));
 	if (!fn) {
 		fclose(fin);
 		return NULL;

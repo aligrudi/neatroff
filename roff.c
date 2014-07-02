@@ -25,6 +25,14 @@ void errdie(char *msg)
 	exit(1);
 }
 
+void *xmalloc(long len)
+{
+	void *m = malloc(len);
+	if (!m)
+		errdie("neatroff: malloc() failed\n");
+	return m;
+}
+
 static char *usage =
 	"Usage: neatroff [options] input\n\n"
 	"Options:\n"

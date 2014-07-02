@@ -127,7 +127,7 @@ void str_set(int id, char *s)
 	int len = strlen(s) + 1;
 	if (sregs[id])
 		free(sregs[id]);
-	sregs[id] = malloc(len);
+	sregs[id] = xmalloc(len);
 	memcpy(sregs[id], s, len);
 	sregs_dat[id] = NULL;
 }
@@ -166,7 +166,7 @@ void str_rn(int src, int dst)
 
 static struct env *env_alloc(void)
 {
-	struct env *env = malloc(sizeof(*env));
+	struct env *env = xmalloc(sizeof(*env));
 	memset(env, 0, sizeof(*env));
 	wb_init(&env->wb);
 	env->fmt = fmt_alloc();

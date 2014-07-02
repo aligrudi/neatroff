@@ -11,7 +11,7 @@ static void sbuf_extend(struct sbuf *sbuf, int amount)
 {
 	char *s = sbuf->s;
 	sbuf->sz = (MAX(1, amount) + SBUF_SZ - 1) & ~(SBUF_SZ - 1);
-	sbuf->s = malloc(sbuf->sz);
+	sbuf->s = xmalloc(sbuf->sz);
 	if (sbuf->n)
 		memcpy(sbuf->s, s, sbuf->n);
 	free(s);

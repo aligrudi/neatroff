@@ -233,7 +233,7 @@ static void fmt_wb2word(struct fmt *f, struct word *word, struct wb *wb,
 			int hy, int str, int gap)
 {
 	int len = strlen(wb_buf(wb));
-	word->s = malloc(len + 1);
+	word->s = xmalloc(len + 1);
 	memcpy(word->s, wb_buf(wb), len + 1);
 	word->wid = wb_wid(wb);
 	word->elsn = wb->els_neg;
@@ -508,7 +508,7 @@ int fmt_fill(struct fmt *f)
 
 struct fmt *fmt_alloc(void)
 {
-	struct fmt *fmt = malloc(sizeof(*fmt));
+	struct fmt *fmt = xmalloc(sizeof(*fmt));
 	memset(fmt, 0, sizeof(*fmt));
 	return fmt;
 }

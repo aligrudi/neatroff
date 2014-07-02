@@ -411,6 +411,7 @@ int tr_readargs(char **args, struct sbuf *sbuf,
 /* helpers */
 void errmsg(char *msg, ...);
 void errdie(char *msg);
+void *xmalloc(long len);
 int utf8len(int c);
 int utf8next(char *s, int (*next)(void));
 int utf8read(char **s, char *d);
