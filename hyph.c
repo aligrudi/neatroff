@@ -169,12 +169,19 @@ static void hcode_strcpy(char *d, char *s, int *map, int dots)
 
 void tr_hcode(char **args)
 {
-	int i = 1;
-	while (i + 1 <= NARGS && args[i + 1] && hcode_n < NHCODES) {
-		strcpy(hcodesrc[hcode_n], args[i++]);
-		strcpy(hcodedst[hcode_n], args[i++]);
-		dict_put(&hcodedict, hcodesrc[hcode_n], hcode_n);
-		hcode_n++;
+	char c1[GNLEN], c2[GNLEN];
+	char *s = args[1];
+	int i;
+	while (s && charread(&s, c1) >= 0 && charread(&s, c2) >= 0) {
+		i = dict_get(&hcodedict, c1);
+		if (i >= 0) {
+			strcpy(hcodedst[i], c2);
+		} else if (hcode_n < NHCODES) {
+			strcpy(hcodesrc[hcode_n], c1);
+			strcpy(hcodedst[hcode_n], c2);
+			dict_put(&hcodedict, hcodesrc[hcode_n], hcode_n);
+			hcode_n++;
+		}
 	}
 }
 
