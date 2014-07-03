@@ -7,7 +7,7 @@
 
 #define HYPATLEN	(NHYPHS * 16)	/* hyphenation pattern length */
 
-static int hcode_mapchar(char *s);
+static void hcode_strcpy(char *d, char *s, int *map, int dots);
 
 /* the hyphenation dictionary (.hw) */
 
@@ -15,11 +15,8 @@ static char hwword[HYPATLEN];	/* buffer for .hw words */
 static char hwhyph[HYPATLEN];	/* buffer for .hw hyphenations */
 static int hwword_len;		/* used hwword[] length */
 static struct dict hwdict;	/* map words to their index in hwoff[] */
-static int hwoff[NHYPHS];	/* the offset of this word in hwword[] */
-static int hwlen[NHYPHS];	/* the length of the word */
-static int hw_n;		/* number of words in hw_*[] lists */
-
-/* functions for the hyphenation dictionary */
+static int hwoff[NHYPHS];	/* the offset of words in hwword[] */
+static int hw_n;		/* the number of dictionary words */
 
 static void hw_add(char *word)
 {
@@ -38,22 +35,7 @@ static void hw_add(char *word)
 	*d++ = '\0';
 	hwoff[i] = hwword_len;
 	hwword_len = d - hwword;
-	hwlen[i] = hwword_len - hwoff[i] - 1;
 	dict_put(&hwdict, hwword + hwoff[i], i);
-}
-
-/* copy s to d after .hcode mappings; s[map[j]] corresponds to d[j] */
-static void hw_strcpy(char *d, char *s, int *map)
-{
-	int di = 0, si = 0, len;
-	while (s[si]) {
-		len = utf8len((unsigned char) s[si]);
-		map[di] = si;
-		memcpy(d + di, s + si, len);
-		si += len;
-		di += hcode_mapchar(d + di);
-	}
-	d[di] = '\0';
 }
 
 static int hw_lookup(char *word, char *hyph)
@@ -62,7 +44,7 @@ static int hw_lookup(char *word, char *hyph)
 	char *hyph2;
 	int map[WORDLEN] = {0};
 	int i, j, idx = -1;
-	hw_strcpy(word2, word, map);
+	hcode_strcpy(word2, word, map, 0);
 	i = dict_prefix(&hwdict, word2, &idx);
 	if (i < 0)
 		return 1;
@@ -83,28 +65,12 @@ void tr_hw(char **args)
 /* the tex hyphenation algorithm */
 
 static int hyinit;		/* hyphenation data initialized */
-static char hypats[HYPATLEN];	/* the patterns */
-static char hynums[HYPATLEN];	/* numbers in the patterns */
-static int hypats_len;
+static char hypats[HYPATLEN];	/* hyphenation patterns */
+static char hynums[HYPATLEN];	/* hyphenation pattern numbers */
+static int hypats_len;		/* used hypats[] and hynums[] length */
 static struct dict hydict;	/* map patterns to their index in hyoff[] */
 static int hyoff[NHYPHS];	/* the offset of this pattern in hypats[] */
-static int hy_n;		/* number of words in hy_*[] lists */
-
-/* copy s to d after .hcode mappings; s[map[j]] corresponds to d[j] */
-static void hy_strcpy(char *d, char *s, int *map)
-{
-	int di = 0, si = 0, len;
-	d[di++] = '.';
-	while (s[si]) {
-		len = utf8len((unsigned char) s[si]);
-		map[di] = si;
-		memcpy(d + di, s + si, len);
-		si += len;
-		di += hcode_mapchar(d + di);
-	}
-	d[di++] = '.';
-	d[di] = '\0';
-}
+static int hy_n;		/* the number of patterns */
 
 /* find the patterns matching s and update hyphenation values in n */
 static void hy_find(char *s, char *n)
@@ -132,7 +98,7 @@ static void hy_dohyph(char *hyph, char *word, int flg)
 	int wmap[WORDLEN] = {0};	/* word[wmap[i]] is w[i] */
 	int nc = 0;
 	int i, wlen;
-	hy_strcpy(w, word, wmap);
+	hcode_strcpy(w, word, wmap, 1);
 	wlen = strlen(w);
 	for (i = 0; i < wlen - 1; i += utf8len((unsigned int) w[i]))
 		c[nc++] = i;
@@ -181,6 +147,24 @@ static int hcode_mapchar(char *s)
 	else if (isalpha((unsigned char) *s))
 		*s = tolower(*s);
 	return strlen(s);
+}
+
+/* copy s to d after .hcode mappings; s[map[j]] corresponds to d[j] */
+static void hcode_strcpy(char *d, char *s, int *map, int dots)
+{
+	int di = 0, si = 0, len;
+	if (dots)
+		d[di++] = '.';
+	while (s[si]) {
+		len = utf8len((unsigned char) s[si]);
+		map[di] = si;
+		memcpy(d + di, s + si, len);
+		si += len;
+		di += hcode_mapchar(d + di);
+	}
+	if (dots)
+		d[di++] = '.';
+	d[di] = '\0';
 }
 
 void tr_hcode(char **args)
