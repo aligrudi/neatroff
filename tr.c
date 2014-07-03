@@ -555,12 +555,13 @@ static int cmap_n;			/* number of translated character */
 void cmap_add(char *c1, char *c2)
 {
 	int i = dict_get(&cmap, c1);
-	if (i < 0 && cmap_n < NCMAPS)
-		i = cmap_n++;
 	if (i >= 0) {
-		strcpy(cmap_src[i], c1);
 		strcpy(cmap_dst[i], c2);
-		dict_put(&cmap, cmap_src[i], i);
+	} else if (cmap_n < NCMAPS) {
+		strcpy(cmap_src[cmap_n], c1);
+		strcpy(cmap_dst[cmap_n], c2);
+		dict_put(&cmap, cmap_src[cmap_n], cmap_n);
+		cmap_n++;
 	}
 }
 
