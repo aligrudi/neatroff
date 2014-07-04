@@ -14,7 +14,6 @@ struct inbuf {
 	int pos;
 	int len;
 	int lnum;		/* file line number */
-	int nl;			/* read \n, if the previous char was not */
 	struct inbuf *prev;
 };
 
@@ -43,12 +42,6 @@ void in_push(char *s, char **args)
 	buf->len = len;
 	strcpy(buf->buf, s);
 	buf->args = args ? args_init(args) : NULL;
-}
-
-void in_pushnl(char *s, char **args)
-{
-	in_push(s, args);
-	buf->nl = 1;
 }
 
 void in_so(char *path)
@@ -119,8 +112,6 @@ static int in_read(void)
 	while (buf || !in_nextfile()) {
 		if (buf->un)
 			return buf->unbuf[--buf->un];
-		if (buf->nl-- > 0 && in_last[0] != '\n')
-			return '\n';
 		if (buf->buf && buf->pos < buf->len)
 			break;
 		if (!buf->buf && (c = getc(buf->fin)) >= 0) {

@@ -171,8 +171,10 @@ static void trap_exec(int reg)
 	int partial = ren_partial;
 	if (str_get(reg)) {
 		sprintf(cmd, "%c%s %d\n", c_cc, TR_POPREN, ren_level);
-		in_pushnl(cmd, NULL);
-		in_pushnl(str_get(reg), NULL);
+		in_push(cmd, NULL);
+		in_push(str_get(reg), NULL);
+		if (partial)
+			in_push("\n", NULL);
 		render_rec(++ren_level);
 		/* executed the trap while in the middle of an input line */
 		if (partial)
@@ -929,6 +931,8 @@ void tr_popren(char **args)
 	ren_level = args[1] ? atoi(args[1]) : 0;
 }
 
+#define FMT_PAR()	(n_u && !n_na && !n_ce && (n_j & AD_P) == AD_P)
+
 /* read characters from tr.c and pass the rendered lines to out.c */
 static int render_rec(int level)
 {
@@ -966,15 +970,14 @@ static int render_rec(int level)
 				if (c == '\n')
 					while (fmt_newline(cfmt))
 						ren_fmtpop(cfmt);
-				if (!(n_j & AD_P))
+				if (!FMT_PAR())
 					ren_fmtpopall(cfmt);
-				ren_fmtpop(cfmt);
 				if (c == ' ')
 					fmt_space(cfmt);
 			}
 		}
 		/* flush the line if necessary */
-		if (c == ' ' || c == '\n' || c < 0)
+		if ((!FMT_PAR() && (c == ' ' || c == '\n')) || c < 0)
 			ren_fmtpop(cfmt);
 		if (c == '\n' || ren_nl)	/* end or start of input line */
 			n_lb = f_hpos();

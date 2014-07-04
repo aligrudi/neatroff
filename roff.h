@@ -218,7 +218,6 @@ int cp_next(void);		/* copy-mode layer */
 int tr_next(void);		/* troff layer */
 
 void in_push(char *s, char **args);
-void in_pushnl(char *s, char **args);
 void in_so(char *path);		/* .so request */
 void in_nx(char *path);		/* .nx request */
 void in_ex(void);		/* .ex request */
