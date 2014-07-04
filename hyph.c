@@ -251,7 +251,7 @@ void tr_hpfa(char **args)
 	}
 	/* reading exceptions */
 	if (args[2]) {
-		filp = fopen(args[1], "r");
+		filp = fopen(args[2], "r");
 		while (fscanf(filp, "%s", tok) == 1)
 			if (strlen(tok) < WORDLEN)
 				hw_add(tok);
