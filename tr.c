@@ -135,23 +135,21 @@ static void macrobody(struct sbuf *sbuf, char *end)
 			sbuf_add(sbuf, c);
 		first = 0;
 		if (c == '\n') {
-			c = cp_next();
-			if (c == '.') {
-				read_regname(buf);
-				if ((n_cp && end[0] == buf[0] && end[1] == buf[1]) ||
-							!strcmp(end, buf)) {
-					jmp_eol();
-					break;
-				}
-				if (!sbuf)
-					continue;
+			if ((c = cp_next()) != '.') {
+				cp_back(c);
+				continue;
+			}
+			read_regname(buf);
+			if ((n_cp && end[0] == buf[0] && end[1] == buf[1]) ||
+						!strcmp(end, buf)) {
+				jmp_eol();
+				break;
+			}
+			if (sbuf) {
 				sbuf_add(sbuf, '.');
 				for (i = 0; buf[i]; i++)
 					sbuf_add(sbuf, (unsigned char) buf[i]);
-				continue;
 			}
-			if (sbuf && c >= 0)
-				sbuf_add(sbuf, c);
 		}
 	}
 	cp_copymode(0);
