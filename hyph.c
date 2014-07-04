@@ -18,24 +18,27 @@ static struct dict hwdict;	/* map words to their index in hwoff[] */
 static int hwoff[NHYPHS];	/* the offset of words in hwword[] */
 static int hw_n;		/* the number of dictionary words */
 
-static void hw_add(char *word)
+/* insert word s into hwword[] and hwhyph[] */
+static void hw_add(char *s)
 {
-	char *s = word;
-	char *d = hwword + hwword_len;
-	int c, i;
-	if (hw_n == LEN(hwoff) || hwword_len + 128 > sizeof(hwword))
+	char *p = hwword + hwword_len;
+	char *n = hwhyph + hwword_len;
+	int len = strlen(s) + 1;
+	int i = 0, c;
+	if (hw_n == NHYPHS || hwword_len + len > sizeof(hwword))
 		return;
-	i = hw_n++;
-	while ((c = *s++)) {
+	memset(n, 0, len);
+	while ((c = (unsigned char) *s++)) {
 		if (c == '-')
-			hwhyph[d - hwword] = 1;
+			n[i] = 1;
 		else
-			*d++ = c;
+			p[i++] = c;
 	}
-	*d++ = '\0';
-	hwoff[i] = hwword_len;
-	hwword_len = d - hwword;
-	dict_put(&hwdict, hwword + hwoff[i], i);
+	p[i] = '\0';
+	hwoff[hw_n] = hwword_len;
+	dict_put(&hwdict, hwword + hwoff[hw_n], hw_n);
+	hwword_len += i + 1;
+	hw_n++;
 }
 
 static int hw_lookup(char *word, char *hyph)
@@ -82,7 +85,7 @@ static void hy_find(char *s, char *n)
 	while ((i = dict_prefix(&hydict, s, &idx)) >= 0) {
 		p = hypats + hyoff[i];
 		np = hynums + (p - hypats);
-		plen = strlen(p);
+		plen = strlen(p) + 1;
 		for (j = 0; j < plen; j++)
 			if (n[j] < np[j])
 				n[j] = np[j];
@@ -116,20 +119,22 @@ static void hy_add(char *s)
 {
 	char *p = hypats + hypats_len;
 	char *n = hynums + hypats_len;
-	int i = 0, idx;
-	if (hy_n >= NHYPHS || hypats_len + 64 >= sizeof(hypats))
+	int len = strlen(s) + 1;
+	int i = 0, c;
+	if (hy_n >= NHYPHS || hypats_len + len >= sizeof(hypats))
 		return;
-	idx = hy_n++;
-	while (*s) {
-		if (*s >= '0' && *s <= '9')
-			n[i] = *s++ - '0';
+	memset(n, 0, len);
+	while ((c = (unsigned char) *s++)) {
+		if (c >= '0' && c <= '9')
+			n[i] = c - '0';
 		else
-			p[i++] = *s++;
+			p[i++] = c;
 	}
 	p[i] = '\0';
-	hyoff[idx] = hypats_len;
-	dict_put(&hydict, hypats + hyoff[idx], idx);
+	hyoff[hy_n] = hypats_len;
+	dict_put(&hydict, hypats + hyoff[hy_n], hy_n);
 	hypats_len += i + 1;
+	hy_n++;
 }
 
 /* .hcode request */
