@@ -172,22 +172,25 @@ static void hcode_strcpy(char *d, char *s, int *map, int dots)
 	d[di] = '\0';
 }
 
+void hcode_add(char *c1, char *c2)
+{
+	int i = dict_get(&hcodedict, c1);
+	if (i >= 0) {
+		strcpy(hcodedst[i], c2);
+	} else if (hcode_n < NHCODES) {
+		strcpy(hcodesrc[hcode_n], c1);
+		strcpy(hcodedst[hcode_n], c2);
+		dict_put(&hcodedict, hcodesrc[hcode_n], hcode_n);
+		hcode_n++;
+	}
+}
+
 void tr_hcode(char **args)
 {
 	char c1[GNLEN], c2[GNLEN];
 	char *s = args[1];
-	int i;
-	while (s && charread(&s, c1) >= 0 && charread(&s, c2) >= 0) {
-		i = dict_get(&hcodedict, c1);
-		if (i >= 0) {
-			strcpy(hcodedst[i], c2);
-		} else if (hcode_n < NHCODES) {
-			strcpy(hcodesrc[hcode_n], c1);
-			strcpy(hcodedst[hcode_n], c2);
-			dict_put(&hcodedict, hcodesrc[hcode_n], hcode_n);
-			hcode_n++;
-		}
-	}
+	while (s && utf8read(&s, c1) && utf8read(&s, c2))
+		hcode_add(c1, c2);
 }
 
 static void hyph_readpatterns(char *s)
@@ -233,7 +236,7 @@ void hyphenate(char *hyph, char *word, int flg)
 
 void tr_hpfa(char **args)
 {
-	char tok[ILNLEN];
+	char tok[ILNLEN], c1[ILNLEN], c2[ILNLEN];
 	FILE *filp;
 	hyinit = 1;
 	/* load english hyphenation patterns with no arguments */
@@ -242,19 +245,26 @@ void tr_hpfa(char **args)
 		hyph_readexceptions(en_exceptions);
 	}
 	/* reading patterns */
-	if (args[1]) {
-		filp = fopen(args[1], "r");
+	if (args[1] && (filp = fopen(args[1], "r"))) {
 		while (fscanf(filp, "%s", tok) == 1)
 			if (strlen(tok) < WORDLEN)
 				hy_add(tok);
 		fclose(filp);
 	}
 	/* reading exceptions */
-	if (args[2]) {
-		filp = fopen(args[2], "r");
+	if (args[2] && (filp = fopen(args[2], "r"))) {
 		while (fscanf(filp, "%s", tok) == 1)
 			if (strlen(tok) < WORDLEN)
 				hw_add(tok);
+		fclose(filp);
+	}
+	/* reading hcode mappings */
+	if (args[3] && (filp = fopen(args[3], "r"))) {
+		while (fscanf(filp, "%s", tok) == 1) {
+			char *s = tok;
+			if (utf8read(&s, c1) && utf8read(&s, c2))
+				hcode_add(c2, c1);	/* inverting */
+		}
 		fclose(filp);
 	}
 }
@@ -276,6 +286,9 @@ void tr_hpf(char **args)
 	hwword_len = 0;
 	hw_n = 0;
 	dict_done(&hwdict);
+	/* reseting hcode mappings */
+	hcode_n = 0;
+	dict_done(&hcodedict);
 	/* reading */
 	hyph_init();
 	tr_hpfa(args);
