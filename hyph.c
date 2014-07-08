@@ -103,15 +103,17 @@ static void hy_dohyph(char *hyph, char *word, int flg)
 	int i, wlen;
 	hcode_strcpy(w, word, wmap, 1);
 	wlen = strlen(w);
-	for (i = 0; i < wlen - 1; i += utf8len((unsigned int) w[i]))
+	for (i = 0; i < wlen - 1; i += utf8len((unsigned char) w[i]))
 		c[nc++] = i;
 	for (i = 0; i < nc - 1; i++)
 		hy_find(w + c[i], n + c[i]);
 	memset(hyph, 0, wlen * sizeof(hyph[0]));
 	for (i = 3; i < nc - 2; i++)
-		if (n[i] % 2 && w[c[i - 1]] != '.' && w[c[i - 2]] != '.' && w[c[i + 1]] != '.')
-			hyph[wmap[c[i]]] = (~flg & HY_FINAL2 || w[c[i + 2]] != '.') &&
-				(~flg & HY_FIRST2 || w[c[i - 3]] != '.');
+		if (n[c[i]] % 2 && w[c[i - 1]] != '.' &&
+				w[c[i - 2]] != '.' && w[c[i + 1]] != '.' &&
+				(~flg & HY_FINAL2 || w[c[i + 2]] != '.') &&
+				(~flg & HY_FIRST2 || w[c[i - 3]] != '.'))
+			hyph[wmap[c[i]]] = 1;
 }
 
 /* insert pattern s into hypats[] and hynums[] */
