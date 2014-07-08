@@ -264,7 +264,7 @@ void tr_hpfa(char **args)
 	if (args[3] && (filp = fopen(args[3], "r"))) {
 		while (fscanf(filp, "%s", tok) == 1) {
 			char *s = tok;
-			if (utf8read(&s, c1) && utf8read(&s, c2))
+			if (utf8read(&s, c1) && utf8read(&s, c2) && !*s)
 				hcode_add(c2, c1);	/* inverting */
 		}
 		fclose(filp);
