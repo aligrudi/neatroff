@@ -229,5 +229,7 @@ struct font *font_open(char *path)
 
 void font_close(struct font *fn)
 {
+	dict_done(&fn->gdict);
+	dict_done(&fn->cdict);
 	free(fn);
 }
