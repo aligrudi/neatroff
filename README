@@ -11,4 +11,4 @@ http://litcave.rudi.ir/.
 For compiling neatroff and neatpost, modify FDIR and MDIR of their
 Makefiles to point the directories containing the default output
 device and macros.  For the output device, you can either use the one
-available in the homepage or use the mktrfn program to create one.
+available in the homepage or use the neatmkfn program to create one.
