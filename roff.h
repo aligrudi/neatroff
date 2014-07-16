@@ -59,7 +59,7 @@
 #define SC_EM		(n_s * SC_IN / 72)
 
 /* escape sequences */
-#define ESC_Q	"bCDhHlLNoRSvwxX?"	/* \X'ccc' quoted escape sequences */
+#define ESC_Q	"bCDhHlLNoRSvwxXZ?"	/* \X'ccc' quoted escape sequences */
 #define ESC_P	"*fgkmns"		/* \Xc \X(cc \X[ccc] escape sequences */
 
 #define MIN(a, b)	((a) < (b) ? (a) : (b))
@@ -296,6 +296,8 @@ void wb_catstr(struct wb *wb, char *beg, char *end);
 int wb_hyphmark(char *word, int *hyidx, int *hyins);
 int wb_hyph(char *word, int *hyidx, int flg);
 int wb_wid(struct wb *wb);
+int wb_hpos(struct wb *wb);
+int wb_vpos(struct wb *wb);
 int wb_dashwid(struct wb *wb);
 int wb_empty(struct wb *wb);
 int wb_eos(struct wb *wb);
@@ -358,6 +360,7 @@ void ren_vlcmd(struct wb *wb, char *arg);	/* \L */
 void ren_bcmd(struct wb *wb, char *arg);	/* \b */
 void ren_ocmd(struct wb *wb, char *arg);	/* \o */
 void ren_dcmd(struct wb *wb, char *arg);	/* \D */
+void ren_zcmd(struct wb *wb, char *arg);	/* \Z */
 
 /* out.c */
 void out_line(char *s);				/* output rendered line */

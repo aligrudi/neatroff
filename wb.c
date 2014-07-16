@@ -384,6 +384,16 @@ int wb_wid(struct wb *wb)
 	return wb->h;
 }
 
+int wb_hpos(struct wb *wb)
+{
+	return wb->h;
+}
+
+int wb_vpos(struct wb *wb)
+{
+	return wb->v;
+}
+
 int wb_empty(struct wb *wb)
 {
 	return sbuf_empty(&wb->sbuf);

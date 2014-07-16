@@ -665,6 +665,9 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 	case 'x':
 		wb_els(wb, eval(arg, 'v'));
 		break;
+	case 'Z':
+		ren_zcmd(wb, arg);
+		break;
 	case '0':
 		wb_hmov(wb, zwid());
 		break;
@@ -730,7 +733,7 @@ static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int)
 			}
 			return;
 		}
-		if (strchr(" bCcDdefHhkLlmNoprSsuvXxz0^|{}&/,", c[1])) {
+		if (strchr(" bCcDdefHhkLlmNoprSsuvXxZz0^|{}&/,", c[1])) {
 			argnext(arg, c[1], next, back);
 			if (c[1] == 'e') {
 				snprintf(c, GNLEN, "%c%c", c_ec, c_ec);

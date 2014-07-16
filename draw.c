@@ -237,3 +237,19 @@ void ren_ocmd(struct wb *wb, char *arg)
 	wb_done(&wb3);
 	wb_done(&wb2);
 }
+
+void ren_zcmd(struct wb *wb, char *arg)
+{
+	int h, v;
+	int c;
+	h = wb_hpos(wb);
+	v = wb_vpos(wb);
+	sstr_push(arg);
+	while ((c = sstr_next()) >= 0) {
+		sstr_back(c);
+		ren_char(wb, sstr_next, sstr_back);
+	}
+	sstr_pop();
+	wb_hmov(wb, h - wb_hpos(wb));
+	wb_vmov(wb, v - wb_vpos(wb));
+}
