@@ -423,8 +423,8 @@ int charread(char **s, char *c);
 int charnext_delim(char *c, int (*next)(void), void (*back)(int), char *delim);
 int charread_delim(char **s, char *c, char *delim);
 void charnext_str(char *d, char *c);
-void argnext(char *d, int cmd, int (*next)(void), void (*back)(int));
-void argread(char **sp, char *d, int cmd);
+void quotednext(char *d, int (*next)(void), void (*back)(int));
+void unquotednext(char *d, int cmd, int (*next)(void), void (*back)(int));
 int escread(char **s, char *d);
 /* string streams; nested next()/back() interface for string buffers */
 void sstr_push(char *s);

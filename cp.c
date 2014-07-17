@@ -103,7 +103,7 @@ static void cp_numdef(void)
 {
 	char arg[ILNLEN];
 	char *s;
-	argnext(arg, 'R', cp_next, cp_back);
+	quotednext(arg, cp_next, cp_back);
 	s = arg;
 	while (*s && *s != ' ')
 		s++;
@@ -121,7 +121,7 @@ static void cp_cond(void)
 	char *r, *s = arg;
 	char *s1, *s2;
 	int n;
-	argnext(arg, '?', cp_next, cp_back);
+	quotednext(arg, cp_next, cp_back);
 	n = eval_up(&s, '\0');
 	if (charread(&s, delim) < 0)
 		return;

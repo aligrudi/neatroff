@@ -734,7 +734,11 @@ static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int)
 			return;
 		}
 		if (strchr(" bCcDdefHhkLlmNoprSsuvXxZz0^|{}&/,", c[1])) {
-			argnext(arg, c[1], next, back);
+			arg[0] = '\0';
+			if (strchr(ESC_P, c[1]))
+				unquotednext(arg, c[1], next, back);
+			if (strchr(ESC_Q, c[1]))
+				quotednext(arg, next, back);
 			if (c[1] == 'e') {
 				snprintf(c, GNLEN, "%c%c", c_ec, c_ec);
 			} else if (c[1] == 'N') {
@@ -766,7 +770,7 @@ int ren_char(struct wb *wb, int (*next)(void), void (*back)(int))
 	return 0;
 }
 
-/* like ren_char(); return 1 if d1 was read and d2 if d2 was read */
+/* like ren_char(); return 1 if d1 was read and 2 if d2 was read */
 static int ren_chardel(struct wb *wb, int (*next)(void), void (*back)(int),
 			char *d1, char *d2)
 {

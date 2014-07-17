@@ -55,6 +55,47 @@ int utf8next(char *s, int (*next)(void))
 	return l;
 }
 
+/* read quoted arguments of escape sequences (ESC_Q) */
+void quotednext(char *d, int (*next)(void), void (*back)(int))
+{
+	char delim[GNLEN], cs[GNLEN];
+	charnext(delim, next, back);
+	while (charnext_delim(cs, next, back, delim) >= 0) {
+		charnext_str(d, cs);
+		d = strchr(d, '\0');
+	}
+}
+
+/* read unquoted arguments of escape sequences (ESC_P) */
+void unquotednext(char *d, int cmd, int (*next)(void), void (*back)(int))
+{
+	int c = next();
+	if (cmd == 's' && (c == '-' || c == '+')) {
+		*d++ = c;
+		c = next();
+	}
+	if (c == '(') {
+		*d++ = next();
+		*d++ = next();
+	} else if (!n_cp && c == '[') {
+		c = next();
+		while (c > 0 && c != '\n' && c != ']') {
+			*d++ = c;
+			c = next();
+		}
+	} else {
+		*d++ = c;
+		if (cmd == 's' && c >= '1' && c <= '3') {
+			c = next();
+			if (isdigit(c))
+				*d++ = c;
+			else
+				back(c);
+		}
+	}
+	*d = '\0';
+}
+
 /*
  * read the next character or escape sequence (x, \x, \(xy, \[xyz], \C'xyz')
  *
@@ -91,7 +132,7 @@ int charnext(char *c, int (*next)(void), void (*back)(int))
 			c[l] = '\0';
 			return '[';
 		} else if (c[1] == 'C') {
-			argnext(c, 'C', next, back);
+			quotednext(c, next, back);
 			return 'C';
 		}
 		return '\\';
@@ -140,81 +181,36 @@ int charread_delim(char **s, char *c, char *delim)
 	return ret;
 }
 
-/* read the argument of a troff escape sequence */
-void argnext(char *d, int cmd, int (*next)(void), void (*back)(int))
-{
-	char delim[GNLEN], cs[GNLEN];
-	int c;
-	if (strchr(ESC_P, cmd)) {
-		c = next();
-		if (cmd == 's' && (c == '-' || c == '+')) {
-			*d++ = c;
-			c = next();
-		}
-		if (c == '(') {
-			*d++ = next();
-			*d++ = next();
-		} else if (!n_cp && c == '[') {
-			c = next();
-			while (c > 0 && c != '\n' && c != ']') {
-				*d++ = c;
-				c = next();
-			}
-		} else {
-			*d++ = c;
-			if (cmd == 's' && c >= '1' && c <= '3') {
-				c = next();
-				if (isdigit(c))
-					*d++ = c;
-				else
-					back(c);
-			}
-		}
-	}
-	if (strchr(ESC_Q, cmd)) {
-		charnext(delim, next, back);
-		while (charnext_delim(cs, next, back, delim) >= 0) {
-			charnext_str(d, cs);
-			d = strchr(d, '\0');
-		}
-	}
-	*d = '\0';
-}
-
-/* this is called only for internal neatroff strings */
-void argread(char **sp, char *d, int cmd)
+/* read quoted arguments; this is called only for internal neatroff strings */
+static void quotedread(char **sp, char *d)
 {
 	char *s = *sp;
-	int q;
-	if (strchr(ESC_P, cmd)) {
-		if (cmd == 's' && (*s == '-' || *s == '+'))
-			*d++ = *s++;
-		if (*s == '(') {
-			s++;
-			*d++ = *s++;
-			*d++ = *s++;
-		} else if (!n_cp && *s == '[') {
-			s++;
-			while (*s && *s != ']')
-				*d++ = *s++;
-			if (*s == ']')
-				s++;
-		} else {
-			*d++ = *s++;
-			if (cmd == 's' && s[-1] >= '1' && s[-1] <= '3')
-				if (isdigit(*s))
-					*d++ = *s++;
-		}
-	}
-	if (strchr(ESC_Q, cmd)) {
-		q = *s++;
-		while (*s && *s != q)
-			*d++ = *s++;
-		if (*s == q)
-			s++;
-	}
-	if (cmd == 'z')
+	int q = *s++;
+	while (*s && *s != q)
 		*d++ = *s++;
+	if (*s == q)
+		s++;
+	*d = '\0';
+	*sp = s;
+}
+
+/* read unquoted arguments; this is called only for internal neatroff strings */
+static void unquotedread(char **sp, char *d)
+{
+	char *s = *sp;
+	if (*s == '(') {
+		s++;
+		*d++ = *s++;
+		*d++ = *s++;
+	} else if (!n_cp && *s == '[') {
+		s++;
+		while (*s && *s != ']')
+			*d++ = *s++;
+		if (*s == ']')
+			s++;
+	} else {
+		*d++ = *s++;
+	}
 	*d = '\0';
 	*sp = s;
 }
@@ -246,7 +242,11 @@ int escread(char **s, char *d)
 				(*s)++;
 		} else if (strchr("CDfhmsvXx", d[1])) {
 			int c = d[1];
-			argread(s, d, d[1]);
+			d[0] = '\0';
+			if (strchr(ESC_P, c))
+				unquotedread(s, d);
+			if (strchr(ESC_Q, c))
+				quotedread(s, d);
 			return c == 'C' ? 0 : c;
 		}
 	}
