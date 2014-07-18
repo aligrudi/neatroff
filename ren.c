@@ -168,7 +168,7 @@ static int render_rec(int level);
 static void trap_exec(int reg)
 {
 	char cmd[16];
-	int partial = ren_partial;
+	int partial = ren_partial && (!ren_un || ren_unbuf[0] != '\n');
 	if (str_get(reg)) {
 		sprintf(cmd, "%c%s %d\n", c_cc, TR_POPREN, ren_level);
 		in_push(cmd, NULL);
@@ -945,7 +945,7 @@ static int render_rec(int level)
 {
 	int c;
 	while (ren_level >= level) {
-		while (!tr_nextreq())
+		while (!ren_un && !tr_nextreq())
 			if (ren_level < level)
 				break;
 		if (ren_level < level)
