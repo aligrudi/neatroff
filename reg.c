@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #include "roff.h"
 
 #define NENVS		64	/* number of environment registers */
@@ -89,7 +90,11 @@ char *num_str(int id)
 	}
 	if (s[0] == '.' && !strcmp(".neat", s))
 		return "1";
-	if (id == map("yr")) {
+	if (s[0] == '$' && s[1] == '$' && !s[2]) {
+		sprintf(numbuf, "%d", getpid());
+		return numbuf;
+	}
+	if (s[0] == 'y' && s[1] == 'r' && !s[2]) {
 		sprintf(numbuf, "%02d", nregs[id]);
 		return numbuf;
 	}
