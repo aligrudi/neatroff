@@ -33,6 +33,14 @@ void *xmalloc(long len)
 	return m;
 }
 
+static int xopens(char *path)
+{
+	FILE *filp = fopen(path, "r");
+	if (filp)
+		fclose(filp);
+	return filp != NULL;
+}
+
 static char *usage =
 	"Usage: neatroff [options] input\n\n"
 	"Options:\n"
@@ -58,7 +66,9 @@ int main(int argc, char **argv)
 			n_cp = 1;
 			break;
 		case 'm':
-			sprintf(path, "%s/tmac.%s", macrodir, argv[i] + 2);
+			sprintf(path, "%s/%s.tmac", macrodir, argv[i] + 2);
+			if (!xopens(path))
+				sprintf(path, "%s/tmac.%s", macrodir, argv[i] + 2);
 			in_queue(path);
 			break;
 		case 'F':
