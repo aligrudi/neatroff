@@ -290,7 +290,7 @@ static void ren_lnum(struct sbuf *spre)
 		wb_put(&wb, dig);
 	}
 	wb_hmov(&wb, n_nS * zwid());
-	sbuf_append(spre, sbuf_buf(&wb.sbuf));
+	sbuf_append(spre, wb_buf(&wb));
 	wb_done(&wb);
 	if (n_nn > 0)
 		n_nn--;
@@ -306,7 +306,7 @@ static void ren_mc(struct sbuf *sbuf, int w, int ljust)
 	if (w + ljust < n_l + n_mcn)
 		wb_hmov(&wb, n_l + n_mcn - w - ljust);
 	wb_putexpand(&wb, c_mc);
-	sbuf_append(sbuf, sbuf_buf(&wb.sbuf));
+	sbuf_append(sbuf, wb_buf(&wb));
 	wb_done(&wb);
 }
 
@@ -749,15 +749,14 @@ static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int)
 			}
 		}
 	}
-	if (!ren_div && cdef_map(c, n_f)) {		/* .char characters */
-		wb_putexpand(wb, c);
+	if (ren_div) {
+		wb_putraw(wb, c);
 		return;
 	}
-	if (!n_lg || ren_div || wb_lig(wb, c)) {
-		if (n_kn && !ren_div)
-			wb_kern(wb, c);
+	if (cdef_map(c, n_f))		/* .char characters */
+		wb_putexpand(wb, c);
+	else
 		wb_put(wb, c);
-	}
 }
 
 /* read one character and place it inside wb buffer */
@@ -849,7 +848,7 @@ void ren_tl(int (*next)(void), void (*back)(int))
 	ren_until(&wb2, delim, NULL, next, back);
 	wb_cpy(&wb, &wb2, n_lt - wb_wid(&wb2));
 	/* flushing the line */
-	ren_line(sbuf_buf(&wb.sbuf), wb_wid(&wb), AD_L, 0,
+	ren_line(wb_buf(&wb), wb_wid(&wb), AD_L, 0,
 			0, n_lt, wb.els_neg, wb.els_pos);
 	wb_done(&wb2);
 	wb_done(&wb);

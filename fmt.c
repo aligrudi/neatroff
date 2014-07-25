@@ -243,6 +243,29 @@ static void fmt_wb2word(struct fmt *f, struct word *word, struct wb *wb,
 	word->gap = gap;
 }
 
+/* find explicit hyphenation positions: dashes, \: and \% */
+static int fmt_hyphmarks(char *word, int *hyidx, int *hyins)
+{
+	char d[ILNLEN];
+	char *s = word;
+	int c, n = 0;
+	while ((c = escread(&s, d)) > 0)
+		;
+	if (c < 0 || !strcmp(c_hc, d))
+		return -1;
+	while ((c = escread(&s, d)) >= 0 && n < NHYPHSWORD) {
+		if (!c && !strcmp(c_hc, d)) {
+			hyins[n] = 1;
+			hyidx[n++] = s - word;
+		}
+		if (!c && (!strcmp(c_bp, d) || c_isdash(d))) {
+			hyins[n] = 0;
+			hyidx[n++] = s - word;
+		}
+	}
+	return n;
+}
+
 static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 {
 	int hyidx[NHYPHSWORD];
@@ -253,10 +276,7 @@ static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 	char *end;
 	int n, i;
 	int cf, cs, cm;
-	int hy = 0;		/* insert hyphens */
-	n = wb_hyphmark(src, hyidx, hyins);
-	if (!n && n_hy && (n = wb_hyph(src, hyidx, n_hy)) > 0)
-		hy = 1;
+	n = fmt_hyphmarks(src, hyidx, hyins);
 	if (n <= 0) {
 		fmt_wb2word(f, &f->words[f->nwords++], wb, 0, 1, gap);
 		return;
@@ -267,7 +287,7 @@ static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 		end = src + (i < n ? hyidx[i] : strlen(src));
 		wb_catstr(&wbc, beg, end);
 		fmt_wb2word(f, &f->words[f->nwords++], &wbc,
-			i < n && (hy || hyins[i]), i == 0, i == 0 ? gap : 0);
+			i < n && hyins[i], i == 0, i == 0 ? gap : 0);
 		/* restoring wbc */
 		wb_fnszget(&wbc, &cs, &cf, &cm);
 		wb_reset(&wbc);

@@ -64,30 +64,27 @@ static int font_idx(struct font *fn, struct glyph *g)
 }
 
 /*
- * Given a list of characters in the reverse order, font_lig()
- * returns the number of characters from the beginning of this
- * list that form a ligature in this font.  Zero naturally means
- * no ligature was matched.
+ * If the first m characters of src form a ligature, return n and
+ * copy the ligature to lig.
  */
-int font_lig(struct font *fn, char **c, int n)
+int font_lig(struct font *fn, char *lig, char src[][GNLEN], int n)
 {
-	int i;
-	/* concatenated characters in c[], in the correct order */
-	char s[GNLEN * 2] = "";
-	/* b[i] is the number of character of c[] in s + i */
-	int b[GNLEN * 2] = {0};
-	int len = 0;
-	for (i = 0; i < n; i++) {
-		char *cur = c[n - i - 1];
-		b[len] = n - i;
-		strcpy(s + len, cur);
-		len += strlen(cur);
+	char cat[GNLEN * 2] = "";
+	int cmap[GNLEN * 2] = {0};
+	int i, l;
+	for (i = 0; i < n && i < LIGLEN && strlen(cat) < GNLEN; i++) {
+		strcat(cat, src[i]);
+		cmap[strlen(cat)] = i;
 	}
 	for (i = 0; i < fn->lgn; i++) {
-		int l = strlen(fn->lg[i]);
-		if (b[len - l] > 1 && !strcmp(s + len - l, fn->lg[i]))
-			if (font_find(fn, fn->lg[i]))
-				return b[len - l];
+		l = strlen(fn->lg[i]);
+		if (cmap[l] && !strncmp(cat, fn->lg[i], l)) {
+			if (font_find(fn, fn->lg[i])) {
+				memcpy(lig, cat, l);
+				lig[l] = '\0';
+				return cmap[l] + 1;
+			}
+		}
 	}
 	return 0;
 }

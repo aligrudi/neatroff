@@ -1,4 +1,5 @@
 /* word buffer */
+#include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -17,17 +18,19 @@
 #define BBMAX		(1 << 29)
 #define BBMIN		-BBMAX
 
+static void wb_flushsub(struct wb *wb);
+
 void wb_init(struct wb *wb)
 {
 	memset(wb, 0, sizeof(*wb));
 	sbuf_init(&wb->sbuf);
+	wb->sub_collect = 1;
 	wb->f = -1;
 	wb->s = -1;
 	wb->m = -1;
 	wb->r_f = -1;
 	wb->r_s = -1;
 	wb->r_m = -1;
-	wb->icleft_ll = -1;
 	wb->llx = BBMAX;
 	wb->lly = BBMAX;
 	wb->urx = BBMIN;
@@ -55,8 +58,15 @@ static void wb_bbox(struct wb *wb, int llx, int lly, int urx, int ury)
 	wb->ury = MAX(wb->ury, -wb->v + ury);
 }
 
+/* pending font, size or color changes */
+static int wb_pendingfont(struct wb *wb)
+{
+	return wb->f != R_F(wb) || wb->s != R_S(wb) ||
+			(!n_cp && wb->m != R_M(wb));
+}
+
 /* append font and size to the buffer if needed */
-static void wb_font(struct wb *wb)
+static void wb_flushfont(struct wb *wb)
 {
 	if (wb->f != R_F(wb)) {
 		sbuf_printf(&wb->sbuf, "%cf(%02d", c_ec, R_F(wb));
@@ -73,27 +83,30 @@ static void wb_font(struct wb *wb)
 	wb_stsb(wb);
 }
 
-/* pending font, size or color changes */
-static int wb_pendingfont(struct wb *wb)
+/* apply font and size changes and flush the collected subword */
+static void wb_flush(struct wb *wb)
 {
-	return wb->f != R_F(wb) || wb->s != R_S(wb) ||
-			(!n_cp && wb->m != R_M(wb));
+	wb_flushsub(wb);
+	wb_flushfont(wb);
 }
 
 void wb_hmov(struct wb *wb, int n)
 {
+	wb_flushsub(wb);
 	wb->h += n;
 	sbuf_printf(&wb->sbuf, "%ch'%du'", c_ec, n);
 }
 
 void wb_vmov(struct wb *wb, int n)
 {
+	wb_flushsub(wb);
 	wb->v += n;
 	sbuf_printf(&wb->sbuf, "%cv'%du'", c_ec, n);
 }
 
 void wb_els(struct wb *wb, int els)
 {
+	wb_flushsub(wb);
 	if (els > wb->els_pos)
 		wb->els_pos = els;
 	if (els < wb->els_neg)
@@ -103,75 +116,14 @@ void wb_els(struct wb *wb, int els)
 
 void wb_etc(struct wb *wb, char *x)
 {
-	wb_font(wb);
+	wb_flush(wb);
 	sbuf_printf(&wb->sbuf, "%cX%s", c_ec, x);
 }
 
-/* make sure nothing is appended to wb after the last wb_put() */
-static void wb_prevcheck(struct wb *wb)
-{
-	if (wb->prev_ll != sbuf_len(&wb->sbuf))
-		wb->prev_n = 0;
-}
-
-/* mark wb->prev_c[] as valid */
-static void wb_prevok(struct wb *wb)
-{
-	wb->prev_ll = sbuf_len(&wb->sbuf);
-}
-
-/* append c to wb->prev_c[] */
-static void wb_prevput(struct wb *wb, char *c, int ll)
-{
-	if (wb->prev_n == LEN(wb->prev_c))
-		wb->prev_n--;
-	memmove(wb->prev_l + 1, wb->prev_l, wb->prev_n * sizeof(wb->prev_l[0]));
-	memmove(wb->prev_h + 1, wb->prev_h, wb->prev_n * sizeof(wb->prev_h[0]));
-	memmove(wb->prev_c + 1, wb->prev_c, wb->prev_n * sizeof(wb->prev_c[0]));
-	wb->prev_l[0] = ll;
-	wb->prev_h[0] = wb->h;
-	strcpy(wb->prev_c[0], c);
-	wb->prev_n++;
-	wb_prevok(wb);
-}
-
-/* strip the last i characters from wb */
-static void wb_prevpop(struct wb *wb, int i)
-{
-	int n = wb->prev_n - i;
-	sbuf_cut(&wb->sbuf, wb->prev_l[i - 1]);
-	wb->h = wb->prev_h[i - 1];
-	memmove(wb->prev_l, wb->prev_l + i, n * sizeof(wb->prev_l[0]));
-	memmove(wb->prev_h, wb->prev_h + i, n * sizeof(wb->prev_h[0]));
-	memmove(wb->prev_c, wb->prev_c + i, n * sizeof(wb->prev_c[0]));
-	wb->prev_n = n;
-	wb->prev_ll = sbuf_len(&wb->sbuf);
-}
-
-/* return the i-th last character inserted via wb_put() */
-static char *wb_prev(struct wb *wb, int i)
-{
-	wb_prevcheck(wb);
-	return i < wb->prev_n ? wb->prev_c[i] : NULL;
-}
-
-static struct glyph *wb_prevglyph(struct wb *wb)
-{
-	return wb_prev(wb, 0) ? dev_glyph(wb_prev(wb, 0), wb->f) : NULL;
-}
-
-void wb_put(struct wb *wb, char *c)
+static void wb_putbuf(struct wb *wb, char *c)
 {
 	struct glyph *g;
-	int ll, zerowidth;
-	if (c[0] == '\n') {
-		wb->part = 0;
-		return;
-	}
-	if (c[0] == ' ') {
-		wb_hmov(wb, N_SS(R_F(wb), R_S(wb)));
-		return;
-	}
+	int zerowidth;
 	if (c[0] == '\t' || c[0] == '' ||
 			(c[0] == c_ni && (c[1] == '\t' || c[1] == ''))) {
 		sbuf_append(&wb->sbuf, c);
@@ -183,13 +135,9 @@ void wb_put(struct wb *wb, char *c)
 		memmove(c, c + 1, strlen(c));
 		g = dev_glyph(c, R_F(wb));
 	}
-	if (g && !zerowidth && wb->icleft_ll == sbuf_len(&wb->sbuf))
-		if (glyph_icleft(g))
-			wb_hmov(wb, SDEVWID(R_S(wb), glyph_icleft(g)));
-	wb->icleft_ll = -1;
-	wb_font(wb);
-	wb_prevcheck(wb);		/* make sure wb->prev_c[] is valid */
-	ll = sbuf_len(&wb->sbuf);	/* sbuf length before inserting c */
+	if (g && !zerowidth && wb->icleft && glyph_icleft(g))
+		wb_hmov(wb, SDEVWID(R_S(wb), glyph_icleft(g)));
+	wb->icleft = 0;
 	if (!c[1] || c[0] == c_ec || c[0] == c_ni || utf8one(c)) {
 		if (c[0] == c_ni && c[1] == c_ec)
 			sbuf_printf(&wb->sbuf, "%c%c", c_ec, c_ec);
@@ -202,7 +150,6 @@ void wb_put(struct wb *wb, char *c)
 			sbuf_printf(&wb->sbuf, "%cC'%s'", c_ec, c);
 	}
 	if (!zerowidth) {
-		wb_prevput(wb, c, ll);
 		if (!n_cp && g)
 			wb_bbox(wb, SDEVWID(wb->s, g->llx),
 				SDEVWID(wb->s, g->lly),
@@ -214,48 +161,125 @@ void wb_put(struct wb *wb, char *c)
 	}
 }
 
+int c_isdash(char *c)
+{
+	return !strcmp("-", c) || !strcmp("em", c) || !strcmp("hy", c);
+}
+
+/* return nonzero if it cannot be hyphenated */
+static int wb_hyph(char src[][GNLEN], int src_n, char *src_hyph, int flg)
+{
+	char word[WORDLEN * GNLEN];	/* word to pass to hyphenate() */
+	char hyph[WORDLEN * GNLEN];	/* hyphenation points of word */
+	int smap[WORDLEN];		/* the mapping from src[] to word[] */
+	char *s, *d;
+	int i;
+	d = word;
+	*d = '\0';
+	for (i = 0; i < src_n; i++) {
+		s = src[i];
+		smap[i] = d - word;
+		if (c_isdash(s) || !strcmp(c_hc, s))
+			return 1;
+		if (!strcmp(c_bp, s))
+			continue;
+		if (!utf8one(s) || (!s[1] && !isalpha((unsigned char) s[0])))
+			strcpy(d, ".");
+		else
+			strcpy(d, s);
+		d = strchr(d, '\0');
+	}
+	memset(hyph, 0, (d - word) * sizeof(hyph[0]));
+	hyphenate(hyph, word, flg);
+	for (i = 0; i < src_n; i++)
+		src_hyph[i] = hyph[smap[i]];
+	return 0;
+}
+
+static int wb_layout(char src[][GNLEN], int src_n, int fn, int sz,
+			char dst[][GNLEN], int *kern, char *hyph)
+{
+	int dmap[WORDLEN];	/* the mapping from dst[] indices to src[] */
+	char src_hyph[WORDLEN];	/* hyphenation points in src[] */
+	int n = 0;		/* number of characters in dst[] */
+	int i, l;
+	if (!n_hy || wb_hyph(src, src_n, src_hyph, n_hy))
+		memset(src_hyph, 0, sizeof(src_hyph));
+	for (i = 0; i < src_n; i++) {
+		dmap[n] = i;
+		l = n_lg ? font_lig(dev_font(fn), dst[n], src + i, src_n - i) : 0;
+		if (l > 0)
+			i += l - 1;
+		else
+			strcpy(dst[n], src[i]);
+		n++;
+	}
+	kern[0] = 0;
+	for (i = 1; i < n; i++)
+		kern[i] = n_kn ? DEVWID(sz, font_kern(dev_font(fn),
+						dst[i - 1], dst[i])) : 0;
+	for (i = 0; i < n; i++)
+		hyph[i] = src_hyph[dmap[i]];
+	return n;
+}
+
+static void wb_flushsub(struct wb *wb)
+{
+	char dest[WORDLEN][GNLEN];
+	int kern[WORDLEN];
+	char hyph[WORDLEN];
+	char hc[GNLEN];
+	int n;
+	int i;
+	if (wb->sub_n) {
+		n = wb_layout(wb->sub_c, wb->sub_n, wb->f, wb->s,
+				dest, kern, hyph);
+		charnext_str(hc, c_hc);
+		wb->sub_n = 0;
+		for (i = 0; i < n; i++) {
+			if (kern[i])
+				sbuf_printf(&wb->sbuf, "%ch'%du'", c_ec, kern[i]);
+			if (hyph[i])
+				sbuf_printf(&wb->sbuf, "%s", c_hc);
+			wb_putbuf(wb, dest[i]);
+		}
+	}
+	wb->icleft = 0;
+}
+
+void wb_put(struct wb *wb, char *c)
+{
+	if (c[0] == '\n') {
+		wb->part = 0;
+		return;
+	}
+	if (c[0] == ' ') {
+		wb_flushsub(wb);
+		wb_hmov(wb, N_SS(R_F(wb), R_S(wb)));
+		return;
+	}
+	if (wb_pendingfont(wb) || wb->sub_n == LEN(wb->sub_c))
+		wb_flush(wb);
+	if (wb->sub_collect)
+		strcpy(wb->sub_c[wb->sub_n++], c);
+	else
+		wb_putbuf(wb, c);
+}
+
+/* just like wb_put() but disable subword collection */
+void wb_putraw(struct wb *wb, char *c)
+{
+	wb_flushsub(wb);
+	wb->sub_collect = 0;
+	wb_put(wb, c);
+	wb->sub_collect = 1;
+}
+
 /* just like wb_put(), but call cdef_expand() if c is defined */
 void wb_putexpand(struct wb *wb, char *c)
 {
 	if (cdef_expand(wb, c, R_F(wb)))
 		wb_put(wb, c);
-}
-
-/* return zero if c formed a ligature with its previous character */
-int wb_lig(struct wb *wb, char *c)
-{
-	char lig[GNLEN] = "";
-	char *cs[LIGLEN + 2];
-	int i = -1;
-	int ligpos;
-	if (wb_pendingfont(wb))		/* font changes disable ligatures */
-		return 1;
-	cs[0] = c;
-	while (wb_prev(wb, ++i))
-		cs[i + 1] = wb_prev(wb, i);
-	ligpos = font_lig(dev_font(R_F(wb)), cs, i + 1);
-	if (ligpos > 1) {
-		for (i = 0; i < ligpos - 1; i++)
-			strcat(lig, wb_prev(wb, ligpos - i - 2));
-		strcat(lig, c);
-		wb_prevpop(wb, ligpos - 1);
-		wb_put(wb, lig);
-		return 0;
-	}
-	return 1;
-}
-
-/* return 0 if pairwise kerning was done */
-int wb_kern(struct wb *wb, char *c)
-{
-	int val;
-	if (wb_pendingfont(wb) || !wb_prev(wb, 0))
-		return 1;
-	val = font_kern(dev_font(R_F(wb)), wb_prev(wb, 0), c);
-	if (val)
-		wb_hmov(wb, charwid(R_F(wb), R_S(wb), val));
-	wb_prevok(wb);		/* kerning should not prevent ligatures */
-	return !val;
 }
 
 int wb_part(struct wb *wb)
@@ -270,7 +294,7 @@ void wb_setpart(struct wb *wb)
 
 void wb_drawl(struct wb *wb, int c, int h, int v)
 {
-	wb_font(wb);
+	wb_flush(wb);
 	sbuf_printf(&wb->sbuf, "%cD'%c %du %du'", c_ec, c, h, v);
 	wb->h += h;
 	wb->v += v;
@@ -279,22 +303,23 @@ void wb_drawl(struct wb *wb, int c, int h, int v)
 
 void wb_drawc(struct wb *wb, int c, int r)
 {
-	wb_font(wb);
+	wb_flush(wb);
 	sbuf_printf(&wb->sbuf, "%cD'%c %du'", c_ec, c, r);
 	wb->h += r;
 }
 
 void wb_drawe(struct wb *wb, int c, int h, int v)
 {
-	wb_font(wb);
+	wb_flush(wb);
 	sbuf_printf(&wb->sbuf, "%cD'%c %du %du'", c_ec, c, h, v);
 	wb->h += h;
 }
 
 void wb_drawa(struct wb *wb, int c, int h1, int v1, int h2, int v2)
 {
-	wb_font(wb);
-	sbuf_printf(&wb->sbuf, "%cD'%c %du %du %du %du'", c_ec, c, h1, v1, h2, v2);
+	wb_flush(wb);
+	sbuf_printf(&wb->sbuf, "%cD'%c %du %du %du %du'",
+			c_ec, c, h1, v1, h2, v2);
 	wb->h += h1 + h2;
 	wb->v += v1 + v2;
 	wb_stsb(wb);
@@ -302,7 +327,7 @@ void wb_drawa(struct wb *wb, int c, int h1, int v1, int h2, int v2)
 
 void wb_drawxbeg(struct wb *wb, int c)
 {
-	wb_font(wb);
+	wb_flush(wb);
 	sbuf_printf(&wb->sbuf, "%cD'%c", c_ec, c);
 }
 
@@ -327,11 +352,14 @@ void wb_reset(struct wb *wb)
 
 char *wb_buf(struct wb *wb)
 {
+	wb_flushsub(wb);
 	return sbuf_buf(&wb->sbuf);
 }
 
 static void wb_putc(struct wb *wb, int t, char *s)
 {
+	if (t && t != 'C')
+		wb_flushsub(wb);
 	switch (t) {
 	case 0:
 	case 'C':
@@ -366,9 +394,13 @@ static void wb_putc(struct wb *wb, int t, char *s)
 
 void wb_cat(struct wb *wb, struct wb *src)
 {
-	char *s = sbuf_buf(&src->sbuf);
+	char *s;
 	char d[ILNLEN];
 	int c, part;
+	wb_flushsub(src);
+	wb_flushsub(wb);
+	wb->sub_collect = 0;
+	s = sbuf_buf(&src->sbuf);
 	while ((c = escread(&s, d)) >= 0)
 		wb_putc(wb, c, d);
 	part = src->part;
@@ -377,40 +409,45 @@ void wb_cat(struct wb *wb, struct wb *src)
 	wb->r_m = -1;
 	wb_reset(src);
 	src->part = part;
+	wb->sub_collect = 1;
 }
 
 int wb_wid(struct wb *wb)
 {
+	wb_flushsub(wb);
 	return wb->h;
 }
 
 int wb_hpos(struct wb *wb)
 {
+	wb_flushsub(wb);
 	return wb->h;
 }
 
 int wb_vpos(struct wb *wb)
 {
+	wb_flushsub(wb);
 	return wb->v;
 }
 
 int wb_empty(struct wb *wb)
 {
-	return sbuf_empty(&wb->sbuf);
+	return !wb->sub_n && sbuf_empty(&wb->sbuf);
 }
 
 /* return 1 if wb ends a sentence (.?!) */
 int wb_eos(struct wb *wb)
 {
-	int i = 0;
-	while (wb_prev(wb, i) && strchr("'\")]*", wb_prev(wb, i)[0]))
-		i++;
-	return wb_prev(wb, i) && strchr(".?!", wb_prev(wb, i)[0]);
+	int i = wb->sub_n - 1;
+	while (i > 0 && strchr("'\")]*", wb->sub_c[i][0]))
+		i--;
+	return i >= 0 && strchr(".?!", wb->sub_c[i][0]);
 }
 
 void wb_wconf(struct wb *wb, int *ct, int *st, int *sb,
 		int *llx, int *lly, int *urx, int *ury)
 {
+	wb_flushsub(wb);
 	*ct = wb->ct;
 	*st = -wb->st;
 	*sb = -wb->sb;
@@ -420,94 +457,9 @@ void wb_wconf(struct wb *wb, int *ct, int *st, int *sb,
 	*ury = wb->ury > BBMIN ? -wb->ury : 0;
 }
 
-/* skip troff requests; return 1 if read c_hc */
-static int skipreqs(char **s, struct wb *w1)
+static struct glyph *wb_prevglyph(struct wb *wb)
 {
-	char d[ILNLEN];
-	char *r = *s;
-	int c;
-	if (w1)
-		wb_reset(w1);
-	while ((c = escread(s, d)) > 0) {
-		if (w1)
-			wb_putc(w1, c, d);
-		r = *s;
-	}
-	if (c < 0 || !strcmp(c_hc, d))
-		return 1;
-	*s = r;
-	return 0;
-}
-
-/* return the size of \(hy if appended to wb */
-int wb_dashwid(struct wb *wb)
-{
-	struct glyph *g = dev_glyph("hy", R_F(wb));
-	return charwid(R_F(wb), R_S(wb), g ? g->wid : 0);
-}
-
-/* find explicit hyphenation positions: dashes, \: and \% */
-int wb_hyphmark(char *word, int *hyidx, int *hyins)
-{
-	char d[ILNLEN];
-	char *s = word;
-	int c, n = 0;
-	if (skipreqs(&s, NULL))
-		return -1;
-	while ((c = escread(&s, d)) >= 0 && n < NHYPHSWORD) {
-		if (!c && !strcmp(c_hc, d)) {
-			hyins[n] = 1;
-			hyidx[n++] = s - word;
-		}
-		if (!c && (!strcmp(c_bp, d) || !strcmp("-", d) ||
-				(!strcmp("em", d) || !strcmp("hy", d)))) {
-			hyins[n] = 0;
-			hyidx[n++] = s - word;
-		}
-	}
-	return n;
-}
-
-/* find the hyphenation positions of the given word */
-int wb_hyph(char *src, int *hyidx, int flg)
-{
-	char word[WORDLEN];	/* word to pass to hyphenate() */
-	char hyph[WORDLEN];	/* hyphenation points returned from hyphenate() */
-	char *iw[WORDLEN];	/* beginning of i-th char in word */
-	char *is[WORDLEN];	/* beginning of i-th char in s */
-	int n = 0;		/* the number of characters in word */
-	int nhy = 0;		/* number of hyphenations found */
-	char d[ILNLEN];
-	struct wb wb;
-	char *s = src;
-	char *prev_s = s;
-	char *wp = word, *we = word + sizeof(word);
-	int i, c;
-	wb_init(&wb);
-	skipreqs(&s, &wb);
-	while ((c = escread(&s, d)) >= 0 && (c > 0 || strlen(d) + 1 < we - wp)) {
-		wb_putc(&wb, c, d);
-		if (c == 0) {
-			iw[n] = wp;
-			is[n] = prev_s;
-			/* ignore multi-char aliases except for ligatures */
-			if (!utf8one(d) && !font_islig(dev_font(R_F(&wb)), d))
-				strcpy(d, ".");
-			strcpy(wp, d);
-			wp = strchr(wp, '\0');
-			n++;
-		}
-		prev_s = s;
-	}
-	wb_done(&wb);
-	if (n < 3)
-		return 0;
-	memset(hyph, 0, (wp - word) * sizeof(hyph[0]));
-	hyphenate(hyph, word, flg);
-	for (i = 1; i < n - 1 && nhy < NHYPHSWORD; i++)
-		if (hyph[iw[i] - word])
-			hyidx[nhy++] = is[i] - src;
-	return nhy;
+	return wb->sub_n ? dev_glyph(wb->sub_c[wb->sub_n - 1], wb->f) : NULL;
 }
 
 void wb_italiccorrection(struct wb *wb)
@@ -519,11 +471,13 @@ void wb_italiccorrection(struct wb *wb)
 
 void wb_italiccorrectionleft(struct wb *wb)
 {
-	wb->icleft_ll = sbuf_len(&wb->sbuf);
+	wb_flushsub(wb);
+	wb->icleft = 1;
 }
 
 void wb_fnszget(struct wb *wb, int *fn, int *sz, int *m)
 {
+	wb_flushsub(wb);
 	*fn = wb->r_f;
 	*sz = wb->r_s;
 	*m = wb->r_m;
@@ -540,6 +494,16 @@ void wb_catstr(struct wb *wb, char *s, char *end)
 {
 	char d[ILNLEN];
 	int c;
+	wb_flushsub(wb);
+	wb->sub_collect = 0;
 	while (s < end && (c = escread(&s, d)) >= 0)
 		wb_putc(wb, c, d);
+	wb->sub_collect = 1;
+}
+
+/* return the size of \(hy if appended to wb */
+int wb_dashwid(struct wb *wb)
+{
+	struct glyph *g = dev_glyph("hy", R_F(wb));
+	return charwid(wb->f, wb->s, g ? g->wid : 0);
 }

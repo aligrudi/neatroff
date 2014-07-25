@@ -196,7 +196,7 @@ struct font *font_open(char *path);
 void font_close(struct font *fn);
 struct glyph *font_glyph(struct font *fn, char *id);
 struct glyph *font_find(struct font *fn, char *name);
-int font_lig(struct font *fn, char **c, int n);
+int font_lig(struct font *fn, char *lig, char src[][GNLEN], int n);
 int font_kern(struct font *fn, char *c1, char *c2);
 int font_islig(struct font *fn, char *s);
 int font_map(struct font *fn, char *name, struct glyph *gl);
@@ -263,13 +263,11 @@ struct wb {
 	int h, v;		/* buffer vertical and horizontal positions */
 	int ct, sb, st;		/* \w registers */
 	int llx, lly, urx, ury;	/* bounding box */
-	int icleft_ll;		/* len after the pending left italic correction */
-	/* saving previous characters added via wb_put() */
-	char prev_c[LIGLEN][GNLEN];
-	int prev_l[LIGLEN];	/* sbuf_len(&wb->sbuf) before wb_put() calls */
-	int prev_h[LIGLEN];	/* wb->h before wb_put() calls */
-	int prev_n;		/* number of characters in prev_c[] */
-	int prev_ll;		/* sbuf_len(&wb->sbuf) after the last wb_put() */
+	int icleft;		/* pending left italic correction */
+	/* queued subword */
+	char sub_c[WORDLEN][GNLEN];	/* the collected subword */
+	int sub_n;		/* collected subword length */
+	int sub_collect;	/* enable subword collection */
 };
 
 void wb_init(struct wb *wb);
@@ -279,6 +277,7 @@ void wb_vmov(struct wb *wb, int n);
 void wb_els(struct wb *wb, int els);
 void wb_etc(struct wb *wb, char *x);
 void wb_put(struct wb *wb, char *c);
+void wb_putraw(struct wb *wb, char *c);
 void wb_putexpand(struct wb *wb, char *c);
 int wb_part(struct wb *wb);
 void wb_setpart(struct wb *wb);
@@ -293,22 +292,19 @@ void wb_italiccorrection(struct wb *wb);
 void wb_italiccorrectionleft(struct wb *wb);
 void wb_cat(struct wb *wb, struct wb *src);
 void wb_catstr(struct wb *wb, char *beg, char *end);
-int wb_hyphmark(char *word, int *hyidx, int *hyins);
-int wb_hyph(char *word, int *hyidx, int flg);
 int wb_wid(struct wb *wb);
 int wb_hpos(struct wb *wb);
 int wb_vpos(struct wb *wb);
-int wb_dashwid(struct wb *wb);
 int wb_empty(struct wb *wb);
 int wb_eos(struct wb *wb);
 void wb_wconf(struct wb *wb, int *ct, int *st, int *sb,
 		int *llx, int *lly, int *urx, int *ury);
-int wb_lig(struct wb *wb, char *c);
-int wb_kern(struct wb *wb, char *c);
 void wb_reset(struct wb *wb);
 char *wb_buf(struct wb *wb);
 void wb_fnszget(struct wb *wb, int *fn, int *sz, int *m);
 void wb_fnszset(struct wb *wb, int fn, int sz, int m);
+int wb_dashwid(struct wb *wb);
+int c_isdash(char *c);
 
 /* character translation (.tr) */
 void cmap_add(char *c1, char *c2);
