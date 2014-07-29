@@ -125,6 +125,7 @@ static void outg(char *c, int fn)
 static void outc(char *c)
 {
 	struct glyph *g = dev_glyph(c, o_f);
+	struct font *fn = dev_font(o_f);
 	int cwid, bwid;
 	if (!g)
 		return;
@@ -132,15 +133,15 @@ static void outc(char *c)
 	bwid = DEVWID(o_s, g->wid);
 	if (font_mapped(g->font, c))
 		c = g->name;
-	if (dev_getcs(o_f))
+	if (font_getcs(fn))
 		outnn("h%d", (cwid - bwid) / 2);
 	outg(c, dev_fontpos(g->font));
-	if (dev_getbd(o_f)) {
-		outnn("h%d", dev_getbd(o_f) - 1);
+	if (font_getbd(fn)) {
+		outnn("h%d", font_getbd(fn) - 1);
 		outg(c, dev_fontpos(g->font));
-		outnn("h%d", -dev_getbd(o_f) + 1);
+		outnn("h%d", -font_getbd(fn) + 1);
 	}
-	if (dev_getcs(o_f))
+	if (font_getcs(fn))
 		outnn("h%d", -(cwid - bwid) / 2);
 	outnn("h%d", cwid);
 }

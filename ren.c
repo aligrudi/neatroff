@@ -87,9 +87,10 @@ void tr_di(char **args)
 
 int charwid(int fn, int sz, int wid)
 {
-	if (dev_getcs(fn))
-		return dev_getcs(n_f) * SC_EM / 36;
-	return DEVWID(sz, wid) + (dev_getbd(fn) ? dev_getbd(fn) - 1 : 0);
+	struct font *f = dev_font(fn);
+	if (font_getcs(f))
+		return font_getcs(f) * SC_EM / 36;
+	return DEVWID(sz, wid) + (font_getbd(f) ? font_getbd(f) - 1 : 0);
 }
 
 int f_divreg(void)

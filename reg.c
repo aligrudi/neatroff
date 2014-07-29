@@ -61,7 +61,7 @@ char *num_str(int id)
 	if (s[0] == '.' && !s[2]) {
 		switch (s[1]) {
 		case 'b':
-			sprintf(numbuf, "%d", dev_getbd(n_f));
+			sprintf(numbuf, "%d", font_getbd(dev_font(n_f)));
 			return numbuf;
 		case 'c':
 			sprintf(numbuf, "%d", in_lnum());

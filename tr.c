@@ -453,7 +453,7 @@ static void tr_cs(char **args)
 {
 	if (!args[1])
 		return;
-	dev_setcs(dev_pos(args[1]), args[2] ? eval(args[2], 0) : 0);
+	font_setcs(dev_font(dev_pos(args[1])), args[2] ? eval(args[2], 0) : 0);
 }
 
 static void tr_nm(char **args)
@@ -482,7 +482,7 @@ static void tr_bd(char **args)
 {
 	if (!args[1] || !strcmp("S", args[1]))
 		return;
-	dev_setbd(dev_pos(args[1]), args[2] ? eval(args[2], 'u') : 0);
+	font_setbd(dev_font(dev_pos(args[1])), args[2] ? eval(args[2], 'u') : 0);
 }
 
 static void tr_it(char **args)

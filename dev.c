@@ -146,7 +146,7 @@ static struct glyph *dev_find(char *c, int fn, int byid)
 			if ((g = find(dev_font(dev_pos(fspecial_sp[i])), c)))
 				return g;
 	for (i = 0; i < NFONTS; i++)
-		if (fn_font[i] && fn_font[i]->special)
+		if (fn_font[i] && font_special(fn_font[i]))
 			if ((g = find(fn_font[i], c)))
 				return g;
 	return NULL;
@@ -198,28 +198,6 @@ int dev_fontpos(struct font *fn)
 struct font *dev_font(int pos)
 {
 	return pos >= 0 && pos < NFONTS ? fn_font[pos] : NULL;
-}
-
-int dev_getcs(int fn)
-{
-	return dev_font(fn)->cs;
-}
-
-void dev_setcs(int fn, int cs)
-{
-	if (fn >= 0)
-		dev_font(fn)->cs = cs;
-}
-
-int dev_getbd(int fn)
-{
-	return dev_font(fn)->bd;
-}
-
-void dev_setbd(int fn, int bd)
-{
-	if (fn >= 0)
-		dev_font(fn)->bd = bd;
 }
 
 void tr_fspecial(char **args)

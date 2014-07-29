@@ -4,6 +4,32 @@
 #include <string.h>
 #include "roff.h"
 
+struct font {
+	char name[FNLEN];
+	char fontname[FNLEN];
+	struct glyph glyphs[NGLYPHS];
+	int nglyphs;
+	int spacewid;
+	int special;
+	int cs, bd;			/* for .cs and .bd requests */
+	struct dict gdict;		/* mapping from glyphs[i].id to i */
+	/* charset section characters */
+	char c[NGLYPHS][GNLEN];		/* character names in charset */
+	struct glyph *g[NGLYPHS];	/* character glyphs in charset */
+	struct glyph *g_map[NGLYPHS];	/* character remapped via font_map() */
+	int n;				/* number of characters in charset */
+	struct dict cdict;		/* mapping from c[i] to i */
+	/* font ligatures (lg*) */
+	char lg[NLIGS][LIGLEN * GNLEN];	/* ligatures */
+	int lgn;			/* number of ligatures in lg[] */
+	/* kerning pair table per glyph (kn*) */
+	int knhead[NGLYPHS];		/* kerning pairs of glyphs[] */
+	int knnext[NKERNS];		/* next item in knhead[] list */
+	int knpair[NKERNS];		/* kerning pair 2nd glyphs */
+	int knval[NKERNS];		/* font pairwise kerning value */
+	int knn;			/* number of kerning pairs */
+};
+
 /* find a glyph by its name */
 struct glyph *font_find(struct font *fn, char *name)
 {
@@ -229,4 +255,34 @@ void font_close(struct font *fn)
 	dict_done(&fn->gdict);
 	dict_done(&fn->cdict);
 	free(fn);
+}
+
+int font_special(struct font *fn)
+{
+	return fn->special;
+}
+
+int font_spacewid(struct font *fn)
+{
+	return fn->spacewid;
+}
+
+int font_getcs(struct font *fn)
+{
+	return fn->cs;
+}
+
+void font_setcs(struct font *fn, int cs)
+{
+	fn->cs = cs;
+}
+
+int font_getbd(struct font *fn)
+{
+	return fn->bd;
+}
+
+void font_setbd(struct font *fn, int bd)
+{
+	fn->bd = bd;
 }

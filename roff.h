@@ -153,32 +153,6 @@ struct glyph {
 	int llx, lly, urx, ury;	/* character bounding box */
 };
 
-struct font {
-	char name[FNLEN];
-	char fontname[FNLEN];
-	struct glyph glyphs[NGLYPHS];
-	int nglyphs;
-	int spacewid;
-	int special;
-	int cs, bd;			/* for .cs and .bd requests */
-	struct dict gdict;		/* mapping from glyphs[i].id to i */
-	/* charset section characters */
-	char c[NGLYPHS][GNLEN];		/* character names in charset */
-	struct glyph *g[NGLYPHS];	/* character glyphs in charset */
-	struct glyph *g_map[NGLYPHS];	/* character remapped via font_map() */
-	int n;				/* number of characters in charset */
-	struct dict cdict;		/* mapping from c[i] to i */
-	/* font ligatures (lg*) */
-	char lg[NLIGS][LIGLEN * GNLEN];	/* ligatures */
-	int lgn;			/* number of ligatures in lg[] */
-	/* kerning pair table per glyph (kn*) */
-	int knhead[NGLYPHS];		/* kerning pairs of glyphs[] */
-	int knnext[NKERNS];		/* next item in knhead[] list */
-	int knpair[NKERNS];		/* kerning pair 2nd glyphs */
-	int knval[NKERNS];		/* font pairwise kerning value */
-	int knn;			/* number of kerning pairs */
-};
-
 /* output device functions */
 int dev_open(char *dir, char *dev);
 void dev_close(void);
@@ -186,10 +160,6 @@ int dev_mnt(int pos, char *id, char *name);
 int dev_pos(char *id);
 struct font *dev_font(int pos);
 int dev_fontpos(struct font *fn);
-void dev_setcs(int fn, int cs);
-int dev_getcs(int fn);
-void dev_setbd(int fn, int bd);
-int dev_getbd(int fn);
 
 /* font-related functions */
 struct font *font_open(char *path);
@@ -201,6 +171,12 @@ int font_kern(struct font *fn, char *c1, char *c2);
 int font_islig(struct font *fn, char *s);
 int font_map(struct font *fn, char *name, struct glyph *gl);
 int font_mapped(struct font *fn, char *name);
+int font_special(struct font *fn);
+int font_spacewid(struct font *fn);
+void font_setcs(struct font *fn, int cs);
+int font_getcs(struct font *fn);
+void font_setbd(struct font *fn, int bd);
+int font_getbd(struct font *fn);
 
 /* glyph handling functions */
 struct glyph *dev_glyph(char *c, int fn);
@@ -209,8 +185,8 @@ int charwid(int fn, int sz, int wid);
 /* convert wid in device unitwidth size to size sz */
 #define DEVWID(sz, wid)		(((wid) * (sz) + (dev_uwid / 2)) / dev_uwid)
 /* the amount of word and sentence space for the given font and size */
-#define N_SS(fn, sz)	(charwid((fn), (sz), (dev_font(fn)->spacewid * n_ss + 6) / 12))
-#define N_SSS(fn, sz)	(charwid((fn), (sz), (dev_font(fn)->spacewid * n_sss + 6) / 12))
+#define N_SS(fn, sz)	(charwid((fn), (sz), (font_spacewid(dev_font(fn)) * n_ss + 6) / 12))
+#define N_SSS(fn, sz)	(charwid((fn), (sz), (font_spacewid(dev_font(fn)) * n_sss + 6) / 12))
 
 /* different layers of neatroff */
 int in_next(void);		/* input layer */
