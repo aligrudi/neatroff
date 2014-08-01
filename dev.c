@@ -43,7 +43,10 @@ int dev_mnt(int pos, char *id, char *name)
 	struct font *fn;
 	if (pos >= NFONTS)
 		return -1;
-	sprintf(path, "%s/dev%s/%s", dev_dir, dev_dev, name);
+	if (strchr(name, '/'))
+		strcpy(path, name);
+	else
+		sprintf(path, "%s/dev%s/%s", dev_dir, dev_dev, name);
 	fn = font_open(path);
 	if (!fn)
 		return -1;
