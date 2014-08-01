@@ -174,7 +174,7 @@ static void hcode_strcpy(char *d, char *s, int *map, int dots)
 	d[di] = '\0';
 }
 
-void hcode_add(char *c1, char *c2)
+static void hcode_add(char *c1, char *c2)
 {
 	int i = dict_get(&hcodedict, c1);
 	if (i >= 0) {
