@@ -136,7 +136,8 @@ static void wb_putbuf(struct wb *wb, char *c)
 		g = dev_glyph(c, R_F(wb));
 	}
 	if (g && !zerowidth && wb->icleft && glyph_icleft(g))
-		wb_hmov(wb, SDEVWID(R_S(wb), glyph_icleft(g)));
+		sbuf_printf(&wb->sbuf, "%ch'%du'",
+			c_ec, SDEVWID(R_S(wb), glyph_icleft(g)));
 	wb->icleft = 0;
 	if (!c[1] || c[0] == c_ec || c[0] == c_ni || utf8one(c)) {
 		if (c[0] == c_ni && c[1] == c_ec)
@@ -196,55 +197,53 @@ static int wb_hyph(char src[][GNLEN], int src_n, char *src_hyph, int flg)
 	return 0;
 }
 
-static int wb_layout(char src[][GNLEN], int src_n, int fn, int sz,
-			char dst[][GNLEN], int *kern, char *hyph)
-{
-	int dmap[WORDLEN];	/* the mapping from dst[] indices to src[] */
-	char src_hyph[WORDLEN];	/* hyphenation points in src[] */
-	int n = 0;		/* number of characters in dst[] */
-	int i, l;
-	if (!n_hy || wb_hyph(src, src_n, src_hyph, n_hy))
-		memset(src_hyph, 0, sizeof(src_hyph));
-	for (i = 0; i < src_n; i++) {
-		dmap[n] = i;
-		l = n_lg ? font_lig(dev_font(fn), dst[n], src + i, src_n - i) : 0;
-		if (l > 0)
-			i += l - 1;
-		else
-			strcpy(dst[n], src[i]);
-		n++;
-	}
-	kern[0] = 0;
-	for (i = 1; i < n; i++)
-		kern[i] = n_kn ? DEVWID(sz, font_kern(dev_font(fn),
-						dst[i - 1], dst[i])) : 0;
-	for (i = 0; i < n; i++)
-		hyph[i] = src_hyph[dmap[i]];
-	return n;
-}
-
 static void wb_flushsub(struct wb *wb)
 {
-	char dest[WORDLEN][GNLEN];
-	int kern[WORDLEN];
-	char hyph[WORDLEN];
+	struct font *fn;
+	struct glyph *gsrc[WORDLEN];
+	struct glyph *gdst[WORDLEN];
+	int x[WORDLEN], y[WORDLEN], xadv[WORDLEN], yadv[WORDLEN];
+	int dmap[WORDLEN];
+	char src_hyph[WORDLEN];
 	char hc[GNLEN];
-	int n;
-	int i;
-	if (wb->sub_n) {
-		n = wb_layout(wb->sub_c, wb->sub_n, wb->f, wb->s,
-				dest, kern, hyph);
-		charnext_str(hc, c_hc);
-		wb->sub_n = 0;
-		for (i = 0; i < n; i++) {
-			if (kern[i])
-				sbuf_printf(&wb->sbuf, "%ch'%du'", c_ec, kern[i]);
-			if (hyph[i])
-				sbuf_printf(&wb->sbuf, "%s", c_hc);
-			wb_putbuf(wb, dest[i]);
-		}
+	int dst_n, i;
+	int feat_kern, feat_liga;
+	if (!wb->sub_n) {
+		wb->icleft = 0;
+		return;
 	}
+	wb->sub_collect = 0;
+	fn = dev_font(wb->f);
+	if (!n_hy || wb_hyph(wb->sub_c, wb->sub_n, src_hyph, n_hy))
+		memset(src_hyph, 0, sizeof(src_hyph));
+	for (i = 0; i < wb->sub_n; i++)
+		gsrc[i] = font_find(fn, wb->sub_c[i]);
+	feat_kern = font_feat(fn, "kern", n_kn);
+	feat_liga = font_feat(fn, "liga", n_lg);
+	dst_n = font_layout(fn, gsrc, wb->sub_n, wb->s,
+			gdst, dmap, x, y, xadv, yadv);
+	font_feat(fn, "kern", feat_kern);
+	font_feat(fn, "liga", feat_liga);
+	charnext_str(hc, c_hc);
+	for (i = 0; i < dst_n; i++) {
+		if (x[i])
+			sbuf_printf(&wb->sbuf, "%ch'%du'", c_ec, x[i]);
+		if (y[i])
+			sbuf_printf(&wb->sbuf, "%cv'%du'", c_ec, y[i]);
+		if (src_hyph[dmap[i]])
+			sbuf_printf(&wb->sbuf, "%s", hc);
+		if (gdst[i] == gsrc[dmap[i]])
+			wb_putbuf(wb, wb->sub_c[dmap[i]]);
+		else
+			wb_putbuf(wb, gdst[i]->name);
+		if (x[i] || xadv[i])
+			sbuf_printf(&wb->sbuf, "%ch'%du'", c_ec, xadv[i] - x[i]);
+		if (y[i] || yadv[i])
+			sbuf_printf(&wb->sbuf, "%cv'%du'", c_ec, yadv[i] - y[i]);
+	}
+	wb->sub_n = 0;
 	wb->icleft = 0;
+	wb->sub_collect = 1;
 }
 
 void wb_put(struct wb *wb, char *c)
@@ -260,10 +259,14 @@ void wb_put(struct wb *wb, char *c)
 	}
 	if (wb_pendingfont(wb) || wb->sub_n == LEN(wb->sub_c))
 		wb_flush(wb);
-	if (wb->sub_collect)
-		strcpy(wb->sub_c[wb->sub_n++], c);
-	else
+	if (wb->sub_collect) {
+		if (font_find(dev_font(wb->f), c))
+			strcpy(wb->sub_c[wb->sub_n++], c);
+		else
+			wb_putraw(wb, c);
+	} else {
 		wb_putbuf(wb, c);
+	}
 }
 
 /* just like wb_put() but disable subword collection */

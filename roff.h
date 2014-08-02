@@ -27,8 +27,6 @@
 #define NFILES		16	/* number of input files */
 #define NFONTS		32	/* number of fonts */
 #define NGLYPHS		1024	/* glyphs in fonts */
-#define NLIGS		128	/* number of font ligatures */
-#define NKERNS		1024	/* number of font kerning pairs */
 #define FNLEN		32	/* font name length */
 #define NMLEN		32	/* macro/register/environment/glyph name length */
 #define GNLEN		NMLEN	/* glyph name length */
@@ -46,12 +44,14 @@
 #define NSSTR		32	/* number of nested sstr_push() calls */
 #define NFIELDS		32	/* number of fields */
 #define MAXFRAC		100000	/* maximum value of the fractional part */
-#define LIGLEN		4	/* length of ligatures */
 #define NCDEFS		128	/* number of character definitions (.char) */
 #define NHYPHS		16384	/* hyphenation dictionary/patterns (.hw) */
 #define NHYPHSWORD	16	/* number of hyphenations per word */
 #define NHCODES		512	/* number of .hcode characters */
 #define WORDLEN		256	/* word length (for hyph.c) */
+#define NFEATS		128	/* number of features per font */
+#define NGRULES		1024	/* number of gsub/gpos rules per font */
+#define NGPATS		4096	/* number of gsub/gpos pattern glyphs */
 
 /* converting scales */
 #define SC_IN		(dev_res)	/* inch in units */
@@ -148,9 +148,9 @@ struct glyph {
 	char id[GNLEN];		/* device-dependent glyph identifier */
 	char name[GNLEN];	/* the first character mapped to this glyph */
 	struct font *font;	/* glyph font */
-	int wid;		/* character width */
-	int type;		/* character type; ascender/descender */
-	int llx, lly, urx, ury;	/* character bounding box */
+	short wid;		/* character width */
+	short llx, lly, urx, ury;	/* character bounding box */
+	short type;		/* character type; ascender/descender */
 };
 
 /* output device functions */
@@ -166,9 +166,6 @@ struct font *font_open(char *path);
 void font_close(struct font *fn);
 struct glyph *font_glyph(struct font *fn, char *id);
 struct glyph *font_find(struct font *fn, char *name);
-int font_lig(struct font *fn, char *lig, char src[][GNLEN], int n);
-int font_kern(struct font *fn, char *c1, char *c2);
-int font_islig(struct font *fn, char *s);
 int font_map(struct font *fn, char *name, struct glyph *gl);
 int font_mapped(struct font *fn, char *name);
 int font_special(struct font *fn);
@@ -177,6 +174,10 @@ void font_setcs(struct font *fn, int cs);
 int font_getcs(struct font *fn);
 void font_setbd(struct font *fn, int bd);
 int font_getbd(struct font *fn);
+int font_feat(struct font *fn, char *name, int val);
+int font_layout(struct font *fn, struct glyph **src, int nsrc, int sz,
+		struct glyph **dst, int *dmap,
+		int *x, int *y, int *xadv, int *yadv);
 
 /* glyph handling functions */
 struct glyph *dev_glyph(char *c, int fn);

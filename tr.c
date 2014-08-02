@@ -456,6 +456,18 @@ static void tr_cs(char **args)
 	font_setcs(dev_font(dev_pos(args[1])), args[2] ? eval(args[2], 0) : 0);
 }
 
+static void tr_ff(char **args)
+{
+	struct font *fn;
+	int i;
+	if (!args[2])
+		return;
+	fn = dev_font(dev_pos(args[1]));
+	for (i = 2; i <= NARGS; i++)
+		if (args[i] && args[i][0] && args[i][1])
+			font_feat(fn, args[i] + 1, args[i][0] == '+');
+}
+
 static void tr_nm(char **args)
 {
 	if (!args[1]) {
@@ -871,6 +883,7 @@ static struct cmd {
 	{"ev", tr_ev},
 	{"ex", tr_ex},
 	{"fc", tr_fc},
+	{"ff", tr_ff},
 	{"fi", tr_fi},
 	{"fmap", tr_fmap},
 	{"fp", tr_fp},
