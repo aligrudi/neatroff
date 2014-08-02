@@ -129,11 +129,11 @@ static void wb_putbuf(struct wb *wb, char *c)
 		sbuf_append(&wb->sbuf, c);
 		return;
 	}
-	g = dev_glyph(c, R_F(wb));
+	g = dev_glyph(c, wb->f);
 	zerowidth = !strcmp(c_hc, c) || !strcmp(c_bp, c);
 	if (!g && c[0] == c_ec && !zerowidth) {	/* unknown escape */
 		memmove(c, c + 1, strlen(c));
-		g = dev_glyph(c, R_F(wb));
+		g = dev_glyph(c, wb->f);
 	}
 	if (g && !zerowidth && wb->icleft && glyph_icleft(g))
 		sbuf_printf(&wb->sbuf, "%ch'%du'",
@@ -507,6 +507,6 @@ void wb_catstr(struct wb *wb, char *s, char *end)
 /* return the size of \(hy if appended to wb */
 int wb_dashwid(struct wb *wb)
 {
-	struct glyph *g = dev_glyph("hy", R_F(wb));
+	struct glyph *g = dev_glyph("hy", wb->f);
 	return charwid(wb->f, wb->s, g ? g->wid : 0);
 }
