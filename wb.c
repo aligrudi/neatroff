@@ -136,8 +136,7 @@ static void wb_putbuf(struct wb *wb, char *c)
 		g = dev_glyph(c, wb->f);
 	}
 	if (g && !zerowidth && wb->icleft && glyph_icleft(g))
-		sbuf_printf(&wb->sbuf, "%ch'%du'",
-			c_ec, SDEVWID(R_S(wb), glyph_icleft(g)));
+		wb_hmov(wb, SDEVWID(wb->s, glyph_icleft(g)));
 	wb->icleft = 0;
 	if (!c[1] || c[0] == c_ec || c[0] == c_ni || utf8one(c)) {
 		if (c[0] == c_ni && c[1] == c_ec)
@@ -197,6 +196,13 @@ static int wb_hyph(char src[][GNLEN], int src_n, char *src_hyph, int flg)
 	return 0;
 }
 
+static int wb_collect(struct wb *wb, int val)
+{
+	int old = wb->sub_collect;
+	wb->sub_collect = val;
+	return old;
+}
+
 static void wb_flushsub(struct wb *wb)
 {
 	struct font *fn;
@@ -208,10 +214,8 @@ static void wb_flushsub(struct wb *wb)
 	char hc[GNLEN];
 	int dst_n, i;
 	int feat_kern, feat_liga;
-	if (!wb->sub_n) {
-		wb->icleft = 0;
+	if (!wb->sub_n || !wb->sub_collect)
 		return;
-	}
 	wb->sub_collect = 0;
 	fn = dev_font(wb->f);
 	if (!n_hy || wb_hyph(wb->sub_c, wb->sub_n, src_hyph, n_hy))
@@ -227,9 +231,9 @@ static void wb_flushsub(struct wb *wb)
 	charnext_str(hc, c_hc);
 	for (i = 0; i < dst_n; i++) {
 		if (x[i])
-			sbuf_printf(&wb->sbuf, "%ch'%du'", c_ec, x[i]);
+			wb_hmov(wb, x[i]);
 		if (y[i])
-			sbuf_printf(&wb->sbuf, "%cv'%du'", c_ec, y[i]);
+			wb_vmov(wb, y[i]);
 		if (src_hyph[dmap[i]])
 			sbuf_printf(&wb->sbuf, "%s", hc);
 		if (gdst[i] == gsrc[dmap[i]])
@@ -237,9 +241,9 @@ static void wb_flushsub(struct wb *wb)
 		else
 			wb_putbuf(wb, gdst[i]->name);
 		if (x[i] || xadv[i])
-			sbuf_printf(&wb->sbuf, "%ch'%du'", c_ec, xadv[i] - x[i]);
+			wb_hmov(wb, xadv[i] - x[i]);
 		if (y[i] || yadv[i])
-			sbuf_printf(&wb->sbuf, "%cv'%du'", c_ec, yadv[i] - y[i]);
+			wb_vmov(wb, yadv[i] - y[i]);
 	}
 	wb->sub_n = 0;
 	wb->icleft = 0;
@@ -272,10 +276,11 @@ void wb_put(struct wb *wb, char *c)
 /* just like wb_put() but disable subword collection */
 void wb_putraw(struct wb *wb, char *c)
 {
+	int collect;
 	wb_flushsub(wb);
-	wb->sub_collect = 0;
+	collect = wb_collect(wb, 0);
 	wb_put(wb, c);
-	wb->sub_collect = 1;
+	wb_collect(wb, collect);
 }
 
 /* just like wb_put(), but call cdef_expand() if c is defined */
@@ -400,9 +405,10 @@ void wb_cat(struct wb *wb, struct wb *src)
 	char *s;
 	char d[ILNLEN];
 	int c, part;
+	int collect;
 	wb_flushsub(src);
 	wb_flushsub(wb);
-	wb->sub_collect = 0;
+	collect = wb_collect(wb, 0);
 	s = sbuf_buf(&src->sbuf);
 	while ((c = escread(&s, d)) >= 0)
 		wb_putc(wb, c, d);
@@ -412,7 +418,7 @@ void wb_cat(struct wb *wb, struct wb *src)
 	wb->r_m = -1;
 	wb_reset(src);
 	src->part = part;
-	wb->sub_collect = 1;
+	wb_collect(wb, collect);
 }
 
 int wb_wid(struct wb *wb)
@@ -496,12 +502,12 @@ void wb_fnszset(struct wb *wb, int fn, int sz, int m)
 void wb_catstr(struct wb *wb, char *s, char *end)
 {
 	char d[ILNLEN];
-	int c;
+	int collect, c;
 	wb_flushsub(wb);
-	wb->sub_collect = 0;
+	collect = wb_collect(wb, 0);
 	while (s < end && (c = escread(&s, d)) >= 0)
 		wb_putc(wb, c, d);
-	wb->sub_collect = 1;
+	wb_collect(wb, collect);
 }
 
 /* return the size of \(hy if appended to wb */
