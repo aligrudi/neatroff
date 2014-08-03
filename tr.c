@@ -464,7 +464,7 @@ static void tr_ff(char **args)
 		return;
 	fn = dev_font(dev_pos(args[1]));
 	for (i = 2; i <= NARGS; i++)
-		if (args[i] && args[i][0] && args[i][1])
+		if (fn && args[i] && args[i][0] && args[i][1])
 			font_feat(fn, args[i] + 1, args[i][0] == '+');
 }
 
