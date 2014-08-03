@@ -6,10 +6,15 @@
 
 #define GHASH(g1, g2)		((((g2) + 1) << 16) | ((g1) + 1))
 
+#define GF_PAT		1	/* gsub/gpos pattern glyph */
+#define GF_REP		2	/* gsub replacement glyph */
+#define GF_CON		4	/* context glyph */
+#define GF_ALT		8	/* pattern followed by alternative patterns */
+
 /* glyph pattern for gsub and gpos tables; each grule has some gpats */
 struct gpat {
 	short g;		/* glyph index */
-	short rep;		/* ignore this glyph; gsub replacement */
+	short flg;		/* pattern flags; GF_* */
 	short x, y, xadv, yadv;	/* gpos data */
 };
 
@@ -118,13 +123,13 @@ static int grule_hash(struct grule *rule)
 {
 	int g1 = -1, g2 = -1;
 	int i = 0;
-	while (i < rule->len && rule->pats[i].rep)
+	while (i < rule->len && rule->pats[i].flg == GF_REP)
 		i++;
-	g1 = i < rule->len ? rule->pats[i++].g : -1;
-	while (i < rule->len && rule->pats[i].rep)
+	g1 = i < rule->len && rule->pats[i].flg == GF_PAT ? rule->pats[i++].g : -1;
+	while (i < rule->len && rule->pats[i].flg == GF_REP)
 		i++;
-	g2 = i < rule->len ? rule->pats[i++].g : -1;
-	return GHASH(g1, g2);
+	g2 = i < rule->len && rule->pats[i].flg == GF_PAT ? rule->pats[i++].g : -1;
+	return GHASH(g1, g1 < 0 ? -1 : g2);
 }
 
 static int grule_find(struct grule *rules, int n, int hash)
@@ -141,29 +146,60 @@ static int grule_find(struct grule *rules, int n, int hash)
 	return rules[l].hash == hash ? l : -1;
 }
 
-static int font_rulematches(struct font *fn, struct grule *rule, int *src, int len)
+static int font_rulematches(struct font *fn, struct grule *rule,
+			int *src, int slen, int *dst, int dlen)
 {
-	int j, sidx = 0;
+	int sidx = 0;		/* the index of matched glyphs in src */
+	int didx = 0;		/* the index of matched glyphs in dst */
+	int ncon = 0;		/* number of initial context glyphs */
+	struct gpat *pats = rule->pats;
+	int j;
 	if (!fn->feat_set[rule->feat])
 		return 0;
-	for (j = 0; j < rule->len; j++)
-		if (!rule->pats[j].rep)
-			if (sidx >= len || rule->pats[j].g != src[sidx++])
-				return 0;
-	return j == rule->len;
+	/* the number of initial context glyphs */
+	for (j = 0; j < rule->len && pats[j].flg & GF_CON; j++)
+		if (pats[j].flg == GF_CON)
+			ncon++;
+	if (dlen < ncon)
+		return 0;
+	/* matching the base pattern */
+	for (; j < rule->len; j++) {
+		if (pats[j].flg & GF_REP)
+			continue;
+		if (sidx < slen && pats[j].g == src[sidx]) {
+			sidx++;
+			while (pats[j].flg & GF_ALT)
+				j++;
+		} else if (!(pats[j].flg & GF_ALT)) {
+			return 0;
+		}
+	}
+	if (j != rule->len)
+		return 0;
+	/* matching the initial context */
+	for (j = 0; j < rule->len && pats[j].flg & GF_CON; j++) {
+		if (pats[j].g == dst[didx - ncon]) {
+			didx++;
+			while (pats[j].flg & GF_ALT)
+				j++;
+		} else if (!(pats[j].flg & GF_ALT)) {
+			return 0;
+		}
+	}
+	return 1;
 }
 
-static struct grule *font_findrule(struct font *fn, struct grule *rules,
-			int n, int *src, int len)
+static struct grule *font_findrule(struct font *fn, struct grule *rules, int n,
+		int *src, int slen, int *dst, int dlen)
 {
+	int hash[] = {GHASH(-1, -1), GHASH(src[0], -1), GHASH(src[0], src[1])};
 	int i, j;
-	for (j = 0; j < 2 && j < len; j++) {
-		int hash = GHASH(src[0], j == 0 ? -1 : src[1]);
-		int idx = grule_find(rules, n, hash);
+	for (j = 0; j < LEN(hash) && j <= slen; j++) {
+		int idx = grule_find(rules, n, hash[j]);
 		if (idx < 0)
 			continue;
-		for (i = idx; i < n && rules[i].hash == hash; i++)
-			if (font_rulematches(fn, rules + i, src, len))
+		for (i = idx; i < n && rules[i].hash == hash[j]; i++)
+			if (font_rulematches(fn, rules + i, src, slen, dst, dlen))
 				return rules + i;
 	}
 	return NULL;
@@ -179,14 +215,14 @@ int font_layout(struct font *fn, struct glyph **gsrc, int nsrc, int sz,
 	for (i = 0; i < nsrc; i++)
 		src[i] = font_idx(fn, gsrc[i]);
 	for (i = 0; i < nsrc; i++) {
-		struct grule *rule = font_findrule(fn, fn->gsub,
-					fn->gsub_n, src + i, nsrc - i);
+		struct grule *rule = font_findrule(fn, fn->gsub, fn->gsub_n,
+				src + i, nsrc - i, dst + ndst, ndst);
 		dmap[ndst] = i;
 		if (rule) {
 			for (j = 0; j < rule->len; j++) {
-				if (rule->pats[j].rep)
+				if (rule->pats[j].flg == GF_REP)
 					dst[ndst++] = rule->pats[j].g;
-				else
+				if (rule->pats[j].flg == GF_PAT)
 					i++;
 			}
 			i--;
@@ -201,8 +237,8 @@ int font_layout(struct font *fn, struct glyph **gsrc, int nsrc, int sz,
 	for (i = 0; i < ndst; i++)
 		gdst[i] = fn->glyphs + dst[i];
 	for (i = 0; i < ndst; i++) {
-		struct grule *rule = font_findrule(fn, fn->gpos,
-					fn->gpos_n, dst + i, ndst - i);
+		struct grule *rule = font_findrule(fn, fn->gpos, fn->gpos_n,
+				dst + i, ndst - i, dst + i, i);
 		if (!rule)
 			continue;
 		for (j = 0; j < rule->len; j++) {
@@ -319,7 +355,16 @@ static int font_readgsub(struct font *fn, FILE *fin)
 		if (!tok[0] || !(g = font_glyph(fn, tok + 1)))
 			return 0;
 		rule->pats[i].g = font_idx(fn, g);
-		rule->pats[i].rep = tok[0] == '+';
+		if (tok[0] == '-')
+			rule->pats[i].flg = GF_PAT;
+		if (tok[0] == '=')
+			rule->pats[i].flg = GF_CON;
+		if (tok[0] == '+')
+			rule->pats[i].flg = GF_REP;
+		if (i > 0 && tok[0] == '|') {
+			rule->pats[i].flg = rule->pats[i - 1].flg;
+			rule->pats[i - 1].flg |= GF_ALT;
+		}
 	}
 	return 0;
 }
@@ -364,6 +409,8 @@ static int font_readkern(struct font *fn, FILE *fin)
 	rule->pats[0].g = font_idx(fn, font_glyph(fn, c1));
 	rule->pats[1].g = font_idx(fn, font_glyph(fn, c2));
 	rule->pats[0].xadv = val;
+	rule->pats[0].flg = GF_PAT;
+	rule->pats[1].flg = GF_PAT;
 	return 0;
 }
 
@@ -378,10 +425,12 @@ static void font_lig(struct font *fn, char *lig)
 		g[n++] = font_idx(fn, font_find(fn, c));
 	if (!(rule = font_gsub(fn, "liga", n + 1)))
 		return;
-	for (j = 0; j < n; j++)
+	for (j = 0; j < n; j++) {
 		rule->pats[j].g = g[j];
-	rule->pats[n].g = font_idx(fn, font_glyph(fn, lig));
-	rule->pats[n].rep = 1;
+		rule->pats[j].flg = GF_PAT;
+	}
+	rule->pats[n].g = font_idx(fn, font_find(fn, lig));
+	rule->pats[n].flg = GF_REP;
 }
 
 static void skipline(FILE* filp)
