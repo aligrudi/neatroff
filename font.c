@@ -211,6 +211,7 @@ int font_layout(struct font *fn, struct glyph **gsrc, int nsrc, int sz,
 {
 	int src[WORDLEN], dst[WORDLEN];
 	int ndst = 0;
+	int didx = 0;
 	int i, j;
 	for (i = 0; i < nsrc; i++)
 		src[i] = font_idx(fn, gsrc[i]);
@@ -242,10 +243,15 @@ int font_layout(struct font *fn, struct glyph **gsrc, int nsrc, int sz,
 		if (!rule)
 			continue;
 		for (j = 0; j < rule->len; j++) {
-			x[i + j] = rule->pats[j].x;
-			y[i + j] = rule->pats[j].y;
-			xadv[i + j] = rule->pats[j].xadv;
-			yadv[i + j] = rule->pats[j].yadv;
+			if (rule->pats[j].g == dst[didx]) {
+				x[i + didx] = rule->pats[j].x;
+				y[i + didx] = rule->pats[j].y;
+				xadv[i + didx] = rule->pats[j].xadv;
+				yadv[i + didx] = rule->pats[j].yadv;
+				didx++;
+				while (rule->pats[j].flg & GF_ALT)
+					j++;
+			}
 		}
 	}
 	return ndst;
@@ -386,9 +392,12 @@ static int font_readgpos(struct font *fn, FILE *fin)
 		col = strchr(tok, ':');
 		if (col)
 			*col = '\0';
-		if (!(g = font_glyph(fn, tok)))
+		if (!(g = font_glyph(fn, tok + 1)))
 			return 0;
 		rule->pats[i].g = font_idx(fn, g);
+		rule->pats[i].flg = GF_PAT;
+		if (tok[0] == '|' && i > 0)
+			rule->pats[i - 1].flg |= GF_ALT;
 		if (col)
 			sscanf(col + 1, "%hd%hd%hd%hd",
 				&rule->pats[i].x, &rule->pats[i].y,
