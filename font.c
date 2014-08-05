@@ -23,6 +23,7 @@ struct grule {
 	struct gpat *pats;
 	short len;	/* pats[] length */
 	short feat;	/* feature owning this rule */
+	short pos;	/* position of this rule in the file */
 	int hash;	/* hash of this rule for sorting and comparison */
 };
 
@@ -113,9 +114,12 @@ static int font_idx(struct font *fn, struct glyph *g)
 	return g ? g - fn->glyphs : -1;
 }
 
+/* compare their hashes, then their positions to make qsort() stable */
 static int grulecmp(void *v1, void *v2)
 {
-	return ((struct grule *) v1)->hash - ((struct grule *) v2)->hash;
+	struct grule *r1 = v1;
+	struct grule *r2 = v2;
+	return r1->hash == r2->hash ? r1->pos - r2->pos : r1->hash - r2->hash;
 }
 
 /* the hashing function for grule structs, based on their first two glyphs */
@@ -193,14 +197,21 @@ static struct grule *font_findrule(struct font *fn, struct grule *rules, int n,
 		int *src, int slen, int *dst, int dlen)
 {
 	int hash[] = {GHASH(-1, -1), GHASH(src[0], -1), GHASH(src[0], src[1])};
+	int idx[] = {-1, -1, -1};
 	int i, j;
-	for (j = 0; j < LEN(hash) && j <= slen; j++) {
-		int idx = grule_find(rules, n, hash[j]);
-		if (idx < 0)
-			continue;
-		for (i = idx; i < n && rules[i].hash == hash[j]; i++)
-			if (font_rulematches(fn, rules + i, src, slen, dst, dlen))
-				return rules + i;
+	for (j = 0; j < LEN(hash) && j <= slen; j++)
+		idx[j] = grule_find(rules, n, hash[j]);
+	while (1) {
+		i = -1;			/* finding the first position */
+		for (j = 0; j < LEN(hash); j++)
+			if (idx[j] >= 0 && idx[j] < n && hash[j] == rules[idx[j]].hash &&
+					(i < 0 || rules[idx[i]].pos < rules[idx[j]].pos))
+				i = j;
+		if (i < 0)
+			break;
+		if (font_rulematches(fn, rules + idx[i], src, slen, dst, dlen))
+			return rules + idx[i];
+		idx[i]++;
 	}
 	return NULL;
 }
@@ -306,7 +317,7 @@ static int font_findfeat(struct font *fn, char *feat, int mk)
 static struct gpat *font_gpat(struct font *fn, int len)
 {
 	int pos = fn->pats_pos;
-	if (pos + 9 > LEN(fn->pats) && pos + 6 < LEN(fn->pats))
+	if (pos < LEN(fn->pats) - 10 && pos + len > LEN(fn->pats) - 10)
 		errmsg("neatroff: NGPATS too low\n");
 	if (pos + len > LEN(fn->pats))
 		return NULL;
@@ -503,6 +514,10 @@ struct font *font_open(char *path)
 	for (i = 0; i < ligs_n; i++)
 		font_lig(fn, ligs[i]);
 	fclose(fin);
+	for (i = 0; i < fn->gsub_n; i++)
+		fn->gsub[i].pos = i;
+	for (i = 0; i < fn->gpos_n; i++)
+		fn->gpos[i].pos = i;
 	for (i = 0; i < fn->gsub_n; i++)
 		fn->gsub[i].hash = grule_hash(&fn->gsub[i]);
 	for (i = 0; i < fn->gpos_n; i++)
