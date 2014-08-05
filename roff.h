@@ -50,8 +50,7 @@
 #define NHCODES		512	/* number of .hcode characters */
 #define WORDLEN		256	/* word length (for hyph.c) */
 #define NFEATS		128	/* number of features per font */
-#define NGRULES		1024	/* number of gsub/gpos rules per font */
-#define NGPATS		4096	/* number of gsub/gpos pattern glyphs */
+#define NGRULES		4096	/* number of gsub/gpos rules per font */
 
 /* converting scales */
 #define SC_IN		(dev_res)	/* inch in units */

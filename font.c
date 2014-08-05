@@ -47,8 +47,6 @@ struct font {
 	int feat_set[NFEATS];		/* feature enabled */
 	int feat_n;
 	/* glyph substitution and positioning */
-	struct gpat pats[NGPATS];	/* glyph pattern space */
-	int pats_pos;			/* current position in pats[] */
 	struct grule gsub[NGRULES];	/* glyph substitution rules */
 	int gsub_n;
 	struct grule gpos[NGRULES];	/* glyph positioning rules */
@@ -316,14 +314,9 @@ static int font_findfeat(struct font *fn, char *feat, int mk)
 
 static struct gpat *font_gpat(struct font *fn, int len)
 {
-	int pos = fn->pats_pos;
-	if (pos < LEN(fn->pats) - 10 && pos + len > LEN(fn->pats) - 10)
-		errmsg("neatroff: NGPATS too low\n");
-	if (pos + len > LEN(fn->pats))
-		return NULL;
-	memset(fn->pats + pos, 0, sizeof(fn->pats[0]) * len);
-	fn->pats_pos += len;
-	return fn->pats + pos;
+	struct gpat *pats = xmalloc(len * sizeof(pats[0]));
+	memset(pats, 0, len * sizeof(pats[0]));
+	return pats;
 }
 
 static struct grule *font_gsub(struct font *fn, char *feat, int len)
@@ -529,6 +522,11 @@ struct font *font_open(char *path)
 
 void font_close(struct font *fn)
 {
+	int i;
+	for (i = 0; i < fn->gsub_n; i++)
+		free(fn->gsub[i].pats);
+	for (i = 0; i < fn->gpos_n; i++)
+		free(fn->gpos[i].pats);
 	dict_done(&fn->gdict);
 	dict_done(&fn->cdict);
 	free(fn);
