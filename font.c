@@ -106,6 +106,23 @@ int font_mapped(struct font *fn, char *name)
 	return i >= 0 && fn->g_map[i];
 }
 
+/* enable/disable ligatures; first bit for liga and the second bit for rlig */
+static int font_featlg(struct font *fn, int val)
+{
+	int ret = 0;
+	if (val & 1)
+		ret |= font_feat(fn, "liga", val);
+	if (val & 2)
+		ret |= font_feat(fn, "rlig", val) << 1;
+	return ret;
+}
+
+/* enable/disable pairwise kerning */
+static int font_featkn(struct font *fn, int val)
+{
+	return font_feat(fn, "kern", n_kn);
+}
+
 /* glyph index in fn->glyphs[] */
 static int font_idx(struct font *fn, struct glyph *g)
 {
@@ -216,14 +233,17 @@ static struct grule *font_findrule(struct font *fn, struct grule *rules, int n,
 
 int font_layout(struct font *fn, struct glyph **gsrc, int nsrc, int sz,
 		struct glyph **gdst, int *dmap,
-		int *x, int *y, int *xadv, int *yadv)
+		int *x, int *y, int *xadv, int *yadv, int lg, int kn)
 {
 	int src[WORDLEN], dst[WORDLEN];
 	int ndst = 0;
 	int didx = 0;
 	int i, j;
+	int featlg, featkn;
 	for (i = 0; i < nsrc; i++)
 		src[i] = font_idx(fn, gsrc[i]);
+	if (lg)
+		featlg = font_featlg(fn, 3);
 	for (i = 0; i < nsrc; i++) {
 		struct grule *rule = font_findrule(fn, fn->gsub, fn->gsub_n,
 				src + i, nsrc - i, dst + ndst, ndst);
@@ -240,12 +260,16 @@ int font_layout(struct font *fn, struct glyph **gsrc, int nsrc, int sz,
 			dst[ndst++] = src[i];
 		}
 	}
+	if (lg)
+		font_featlg(fn, featlg);
 	memset(x, 0, ndst * sizeof(x[0]));
 	memset(y, 0, ndst * sizeof(y[0]));
 	memset(xadv, 0, ndst * sizeof(xadv[0]));
 	memset(yadv, 0, ndst * sizeof(yadv[0]));
 	for (i = 0; i < ndst; i++)
 		gdst[i] = fn->glyphs + dst[i];
+	if (kn)
+		font_featkn(fn, 1);
 	for (i = 0; i < ndst; i++) {
 		struct grule *rule = font_findrule(fn, fn->gpos, fn->gpos_n,
 				dst + i, ndst - i, dst + i, i);
@@ -263,6 +287,8 @@ int font_layout(struct font *fn, struct glyph **gsrc, int nsrc, int sz,
 			}
 		}
 	}
+	if (kn)
+		font_featkn(fn, featkn);
 	return ndst;
 }
 
@@ -568,6 +594,6 @@ int font_feat(struct font *fn, char *name, int val)
 	int idx = font_findfeat(fn, name, 0);
 	int old = idx >= 0 ? fn->feat_set[idx] : 0;
 	if (idx >= 0)
-		fn->feat_set[idx] = val;
+		fn->feat_set[idx] = val != 0;
 	return old;
 }

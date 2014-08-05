@@ -213,7 +213,6 @@ static void wb_flushsub(struct wb *wb)
 	char src_hyph[WORDLEN];
 	char hc[GNLEN];
 	int dst_n, i;
-	int feat_kern, feat_liga;
 	if (!wb->sub_n || !wb->sub_collect)
 		return;
 	wb->sub_collect = 0;
@@ -222,12 +221,8 @@ static void wb_flushsub(struct wb *wb)
 		memset(src_hyph, 0, sizeof(src_hyph));
 	for (i = 0; i < wb->sub_n; i++)
 		gsrc[i] = font_find(fn, wb->sub_c[i]);
-	feat_kern = font_feat(fn, "kern", n_kn);
-	feat_liga = font_feat(fn, "liga", n_lg);
 	dst_n = font_layout(fn, gsrc, wb->sub_n, wb->s,
-			gdst, dmap, x, y, xadv, yadv);
-	font_feat(fn, "kern", feat_kern);
-	font_feat(fn, "liga", feat_liga);
+			gdst, dmap, x, y, xadv, yadv, n_lg, n_kn);
 	charnext_str(hc, c_hc);
 	for (i = 0; i < dst_n; i++) {
 		if (x[i])

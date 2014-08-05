@@ -176,7 +176,7 @@ int font_getbd(struct font *fn);
 int font_feat(struct font *fn, char *name, int val);
 int font_layout(struct font *fn, struct glyph **src, int nsrc, int sz,
 		struct glyph **dst, int *dmap,
-		int *x, int *y, int *xadv, int *yadv);
+		int *x, int *y, int *xadv, int *yadv, int lg, int kn);
 
 /* glyph handling functions */
 struct glyph *dev_glyph(char *c, int fn);
