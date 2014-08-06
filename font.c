@@ -9,7 +9,7 @@
 #define GF_PAT		1	/* gsub/gpos pattern glyph */
 #define GF_REP		2	/* gsub replacement glyph */
 #define GF_CON		4	/* context glyph */
-#define GF_ALT		8	/* pattern followed by alternative patterns */
+#define GF_ALT		8	/* glyph followed by alternative glyphs */
 
 /* glyph pattern for gsub and gpos tables; each grule has some gpats */
 struct gpat {
@@ -142,13 +142,18 @@ static int grule_hash(struct grule *rule)
 {
 	int g1 = -1, g2 = -1;
 	int i = 0;
-	while (i < rule->len && rule->pats[i].flg == GF_REP)
+	/* finding the first glyph; -1 if it matches more than one glyph */
+	while (i < rule->len && rule->pats[i].flg & (GF_REP | GF_CON))
+		i++;		/* skipping replacement and context glyphs */
+	g1 = i < rule->len && rule->pats[i].flg == GF_PAT ? rule->pats[i].g : -1;
+	while (g1 < 0 && i < rule->len && rule->pats[i].flg & GF_ALT)
 		i++;
-	g1 = i < rule->len && rule->pats[i].flg == GF_PAT ? rule->pats[i++].g : -1;
-	while (i < rule->len && rule->pats[i].flg == GF_REP)
-		i++;
+	i++;
+	/* finding the second glyph; -1 if it matches more than one glyph */
+	while (i < rule->len && rule->pats[i].flg & GF_REP)
+		i++;		/* skipping replacement glyphs */
 	g2 = i < rule->len && rule->pats[i].flg == GF_PAT ? rule->pats[i++].g : -1;
-	return GHASH(g1, g1 < 0 ? -1 : g2);
+	return GHASH(g1, g2);
 }
 
 static int grule_find(struct grule *rules, int n, int hash)
@@ -211,17 +216,19 @@ static int font_rulematches(struct font *fn, struct grule *rule,
 static struct grule *font_findrule(struct font *fn, struct grule *rules, int n,
 		int *src, int slen, int *dst, int dlen)
 {
-	int hash[] = {GHASH(-1, -1), GHASH(src[0], -1), GHASH(src[0], src[1])};
-	int idx[] = {-1, -1, -1};
+	int idx[4] = {-1, -1, -1, -1};
+	int hash[4];
 	int i, j;
-	for (j = 0; j < LEN(hash) && j <= slen; j++)
+	for (j = 0; j < 4 && j < (slen << 1); j++) {
+		hash[j] = GHASH(j & 1 ? src[0] : -1, j & 2 ? src[1] : -1);
 		idx[j] = grule_find(rules, n, hash[j]);
+	}
 	while (1) {
-		i = -1;			/* finding the first position */
-		for (j = 0; j < LEN(hash); j++)
-			if (idx[j] >= 0 && idx[j] < n && hash[j] == rules[idx[j]].hash &&
-					(i < 0 || rules[idx[i]].pos < rules[idx[j]].pos))
-				i = j;
+		i = -1;		/* finding the first rule among idx[] */
+		for (j = 0; j < 4; j++)
+			if (idx[j] >= 0 && idx[j] < n && rules[idx[j]].hash == hash[j])
+				if (i < 0 || rules[idx[j]].pos <= rules[idx[i]].pos)
+					i = j;
 		if (i < 0)
 			break;
 		if (font_rulematches(fn, rules + idx[i], src, slen, dst, dlen))
