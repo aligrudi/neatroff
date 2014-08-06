@@ -226,9 +226,9 @@ static void wb_flushsub(struct wb *wb)
 	charnext_str(hc, c_hc);
 	for (i = 0; i < dst_n; i++) {
 		if (x[i])
-			wb_hmov(wb, x[i]);
+			wb_hmov(wb, DEVWID(wb->s, x[i]));
 		if (y[i])
-			wb_vmov(wb, y[i]);
+			wb_vmov(wb, DEVWID(wb->s, y[i]));
 		if (src_hyph[dmap[i]])
 			sbuf_printf(&wb->sbuf, "%s", hc);
 		if (gdst[i] == gsrc[dmap[i]])
@@ -236,9 +236,9 @@ static void wb_flushsub(struct wb *wb)
 		else
 			wb_putbuf(wb, gdst[i]->name);
 		if (x[i] || xadv[i])
-			wb_hmov(wb, xadv[i] - x[i]);
+			wb_hmov(wb, DEVWID(wb->s, xadv[i] - x[i]));
 		if (y[i] || yadv[i])
-			wb_vmov(wb, yadv[i] - y[i]);
+			wb_vmov(wb, DEVWID(wb->s, yadv[i] - y[i]));
 	}
 	wb->sub_n = 0;
 	wb->icleft = 0;
