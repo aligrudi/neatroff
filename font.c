@@ -244,7 +244,6 @@ int font_layout(struct font *fn, struct glyph **gsrc, int nsrc, int sz,
 {
 	int src[WORDLEN], dst[WORDLEN];
 	int ndst = 0;
-	int didx = 0;
 	int i, j;
 	int featlg, featkn;
 	for (i = 0; i < nsrc; i++)
@@ -278,16 +277,17 @@ int font_layout(struct font *fn, struct glyph **gsrc, int nsrc, int sz,
 	if (kn)
 		font_featkn(fn, 1);
 	for (i = 0; i < ndst; i++) {
+		int didx = i;
 		struct grule *rule = font_findrule(fn, fn->gpos, fn->gpos_n,
 				dst + i, ndst - i, dst + i, i);
 		if (!rule)
 			continue;
 		for (j = 0; j < rule->len; j++) {
 			if (rule->pats[j].g == dst[didx]) {
-				x[i + didx] = rule->pats[j].x;
-				y[i + didx] = rule->pats[j].y;
-				xadv[i + didx] = rule->pats[j].xadv;
-				yadv[i + didx] = rule->pats[j].yadv;
+				x[didx] = rule->pats[j].x;
+				y[didx] = rule->pats[j].y;
+				xadv[didx] = rule->pats[j].xadv;
+				yadv[didx] = rule->pats[j].yadv;
 				didx++;
 				while (rule->pats[j].flg & GF_ALT)
 					j++;
