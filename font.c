@@ -99,6 +99,8 @@ int font_mapped(struct font *fn, char *name)
 	return dict_get(fn->ch_map, name) != -1;
 }
 
+static int font_findfeat(struct font *fn, char *feat);
+
 /* enable/disable ligatures; first bit for liga and the second bit for rlig */
 static int font_featlg(struct font *fn, int val)
 {
@@ -183,24 +185,41 @@ static void font_performgpos(struct font *fn, int *src, int slen,
 {
 	struct grule *gpos = fn->gpos;
 	struct gpat *pats;
+	int curs_feat = font_findfeat(fn, "curs");
+	int curs_beg = -1;
+	int curs_dif = 0;
 	int i, k;
 	for (i = 0; i < slen; i++) {
 		int idx = -1;
+		int curs_cur = 0;
 		while (1) {
 			int r = font_findrule(fn, 0, 0, src + i, slen - i,
 						src + i, i, &idx);
 			if (r < 0)
 				break;
 			pats = gpos[r].pats;
-			/* we should accumulate the values... */
 			for (k = 0; k < gpos[r].len; k++) {
 				x[i + k] += pats[k].x;
 				y[i + k] += pats[k].y;
 				xadv[i + k] += pats[k].xadv;
 				yadv[i + k] += pats[k].yadv;
 			}
+			if (gpos[r].feat == curs_feat) {
+				curs_cur = 1;
+				if (curs_beg < 0)
+					curs_beg = i;
+				for (k = 0; k < gpos[r].len; k++)
+					curs_dif += pats[k].yadv;
+			}
+		}
+		if (curs_beg >= 0 && !curs_cur) {
+			yadv[curs_beg] -= curs_dif;
+			curs_beg = -1;
+			curs_dif = 0;
 		}
 	}
+	if (curs_beg >= 0)
+		yadv[curs_beg] -= curs_dif;
 }
 
 /* find the first gsub rule after pos that matches any glyph in src */
