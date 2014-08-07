@@ -211,7 +211,6 @@ static void wb_flushsub(struct wb *wb)
 	int x[WORDLEN], y[WORDLEN], xadv[WORDLEN], yadv[WORDLEN];
 	int dmap[WORDLEN];
 	char src_hyph[WORDLEN];
-	char hc[GNLEN];
 	int dst_n, i;
 	if (!wb->sub_n || !wb->sub_collect)
 		return;
@@ -223,14 +222,13 @@ static void wb_flushsub(struct wb *wb)
 		gsrc[i] = font_find(fn, wb->sub_c[i]);
 	dst_n = font_layout(fn, gsrc, wb->sub_n, wb->s,
 			gdst, dmap, x, y, xadv, yadv, n_lg, n_kn);
-	charnext_str(hc, c_hc);
 	for (i = 0; i < dst_n; i++) {
 		if (x[i])
 			wb_hmov(wb, DEVWID(wb->s, x[i]));
 		if (y[i])
 			wb_vmov(wb, DEVWID(wb->s, y[i]));
 		if (src_hyph[dmap[i]])
-			sbuf_printf(&wb->sbuf, "%s", hc);
+			wb_putbuf(wb, c_hc);
 		if (gdst[i] == gsrc[dmap[i]])
 			wb_putbuf(wb, wb->sub_c[dmap[i]]);
 		else
