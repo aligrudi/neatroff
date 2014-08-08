@@ -21,7 +21,6 @@ static struct inbuf *buf;
 static char files[NFILES][PATHLEN];
 static int nfiles;
 static int cfile;
-static int in_last[2] = {'\n'};	/* the last chars returned from in_next() */
 
 static char **args_init(char **args);
 static void args_free(char **args);
@@ -106,7 +105,7 @@ static int in_nextfile(void)
 	return !buf;
 }
 
-static int in_read(void)
+int in_next(void)
 {
 	int c;
 	while (buf || !in_nextfile()) {
@@ -124,21 +123,10 @@ static int in_read(void)
 	return buf ? (unsigned char) buf->buf[buf->pos++] : -1;
 }
 
-int in_next(void)
-{
-	int c = in_read();
-	if (c >= 0) {
-		in_last[1] = in_last[0];
-		in_last[0] = c;
-	}
-	return c;
-}
-
 void in_back(int c)
 {
 	if (c < 0)
 		return;
-	in_last[0] = in_last[1];
 	if (buf)
 		buf->unbuf[buf->un++] = c;
 }
