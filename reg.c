@@ -242,7 +242,7 @@ void env_init(void)
 	init_globals();
 	for (i = 0; i < LEN(eregs); i++)
 		eregs_idx[map(eregs[i])] = i + 1;
-	env_set(0);
+	env_set(map("0"));
 }
 
 void env_done(void)
