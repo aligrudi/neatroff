@@ -493,9 +493,10 @@ void tr_pn(char **args)
 
 static void ren_ps(char *s)
 {
-	int ps = !s || !*s || !strcmp("0", s) ? n_s0 : eval_re(s, n_s, 0);
+	int ps = !s || !*s || !strcmp("0", s) ?
+		n_s0 * SC_PT : eval_re(s, n_s * SC_PT, 'p');
 	n_s0 = n_s;
-	n_s = MAX(1, ps);
+	n_s = MAX(1, (ps + SC_PT / 2) / SC_PT);
 }
 
 void tr_ps(char **args)
