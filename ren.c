@@ -840,6 +840,8 @@ void ren_tl(int (*next)(void), void (*back)(int))
 	wb_init(&wb);
 	wb_init(&wb2);
 	charnext(delim, next, back);
+	if (!strcmp("\n", delim))
+		back('\n');
 	/* the left-adjusted string */
 	ren_until(&wb2, delim, NULL, next, back);
 	wb_cpy(&wb, &wb2, 0);
