@@ -147,12 +147,14 @@ static int grule_hash(struct grule *rule)
 	/* finding the first glyph; -1 if FG_GRP */
 	while (i < rule->len && rule->pats[i].flg & (GF_REP | GF_CON))
 		i++;		/* skipping replacement and context glyphs */
-	g1 = i < rule->len && rule->pats[i].flg == GF_PAT ? rule->pats[i].g : -1;
+	if (i < rule->len && rule->pats[i].flg == GF_PAT)
+		g1 = rule->pats[i].g;
 	i++;
 	/* finding the second glyph; -1 if FG_GRP */
 	while (i < rule->len && rule->pats[i].flg & GF_REP)
 		i++;		/* skipping replacement glyphs */
-	g2 = i < rule->len && rule->pats[i].flg == GF_PAT ? rule->pats[i].g : -1;
+	if (i < rule->len && rule->pats[i].flg == GF_PAT)
+		g2 = rule->pats[i].g;
 	return GHASH(g1, g2);
 }
 
@@ -376,8 +378,11 @@ static struct grule *font_gpos(struct font *fn, char *feat, int len)
 static int font_readgpat(struct font *fn, struct gpat *p, char *s)
 {
 	if (s[0] == '@') {
-		p->flg |= GF_GRP;
 		p->g = atoi(s + 1);
+		if (fn->ggrp_len[p->g] == 1)
+			p->g = fn->ggrp[p->g][0];
+		else
+			p->flg |= GF_GRP;
 	} else {
 		p->g = font_idx(fn, font_glyph(fn, s));
 	}
