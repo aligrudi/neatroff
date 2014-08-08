@@ -90,6 +90,8 @@ char *num_str(int id)
 	}
 	if (s[0] == '.' && !strcmp(".neat", s))
 		return "1";
+	if (s[0] == '.' && s[1] == 'e' && s[2] == 'v' && !s[3])
+		return map_name(env_id);
 	if (s[0] == '$' && s[1] == '$' && !s[2]) {
 		sprintf(numbuf, "%d", getpid());
 		return numbuf;
