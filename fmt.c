@@ -2,9 +2,10 @@
  * line formatting buffer for line adjustment and hyphenation
  *
  * The line formatting buffer does two main functions: breaking
- * words into lines (possibly after hyphenating some of them),
- * and, if requested, adjusting the space between words in a line.
- * In this file the first step is referred to as filling.
+ * words into lines (possibly after breaking them at their
+ * hyphenation points), and, if requested, adjusting the space
+ * between words in a line.  In this file the first step is
+ * referred to as filling.
  *
  * Functions like fmt_word() return nonzero on failure, which
  * means the call should be repeated after fetching previously
