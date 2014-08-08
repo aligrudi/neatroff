@@ -4,9 +4,9 @@
 #include <string.h>
 #include "roff.h"
 
-static int cp_nblk;		/* input block depth (text in \{ and \}) */
-static int cp_sblk[NIES];	/* skip \} escape at this depth, if set */
+static int cp_blkdep;		/* input block depth (text in \{ and \}) */
 static int cp_cpmode;		/* disable the interpretation \w and \E */
+static int cp_preblk;		/* prefix \{ with this character until an EOL */
 
 static void cparg(char *d, int len)
 {
@@ -168,14 +168,21 @@ static int cp_raw(void)
 			in_back('');
 			return c_ni;
 		}
-		if (c == '{' && cp_nblk < LEN(cp_sblk))
-			cp_sblk[cp_nblk++] = 0;
-		if (c == '}' && cp_nblk > 0)
-			if (cp_sblk[--cp_nblk])
-				return cp_raw();
+		if (c == '}' && cp_blkdep > 0)
+			cp_blkdep--;
+		if (c == '{') {
+			cp_blkdep++;
+			if (cp_preblk > 0) {
+				in_back(c);
+				in_back(c_ec);
+				return cp_preblk;
+			}
+		}
 		in_back(c);
 		return c_ec;
 	}
+	if (c == '\n')
+		cp_preblk = 0;
 	return c;
 }
 
@@ -224,24 +231,28 @@ int cp_next(void)
 void cp_blk(int skip)
 {
 	int c;
-	int nblk = cp_nblk;
 	do {
 		c = skip ? cp_raw() : cp_next();
 	} while (c == ' ' || c == '\t');
 	if (skip) {
-		while (c >= 0 && (c != '\n' || cp_nblk > nblk))
+		int dep = c == c_ec && in_top() == '{' ? cp_blkdep - 1 : cp_blkdep;
+		while (c >= 0 && (c != '\n' || cp_blkdep > dep))
 			c = cp_raw();
 	} else {
-		if (c == c_ec && in_top() == '{') {	/* a troff \{ \} block */
-			cp_sblk[nblk] = 1;
+		if (c == c_ec && in_top() == '{')	/* a troff \{ \} block */
 			cp_raw();
-		} else {
+		else
 			cp_back(c);
-		}
 	}
 }
 
 void cp_copymode(int mode)
 {
 	cp_cpmode = mode;
+}
+
+/* prefix \{ with c until an EOL; the main reason is handling .ie\{ */
+void cp_prefixblock(int c)
+{
+	cp_preblk = c;
 }

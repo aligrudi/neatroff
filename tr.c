@@ -966,6 +966,7 @@ int tr_nextreq(void)
 	args[0] = cmd;
 	cmd[0] = c;
 	req = NULL;
+	cp_prefixblock(' ');
 	read_regname(cmd + 1);
 	sbuf_init(&sbuf);
 	req = str_dget(map(cmd + 1));
