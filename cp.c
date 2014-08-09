@@ -6,7 +6,8 @@
 
 static int cp_blkdep;		/* input block depth (text in \{ and \}) */
 static int cp_cpmode;		/* disable the interpretation \w and \E */
-static int cp_preblk;		/* prefix \{ with this character until an EOL */
+static int cp_reqln;		/* a request line; replace \{ with an space */
+static int cp_reqdep;		/* the block depth of current request line */
 
 static void cparg(char *d, int len)
 {
@@ -168,21 +169,19 @@ static int cp_raw(void)
 			in_back('');
 			return c_ni;
 		}
-		if (c == '}' && cp_blkdep > 0)
+		if (c == '}' && !cp_cpmode) {
 			cp_blkdep--;
-		if (c == '{') {
+			return cp_raw();
+		}
+		if (c == '{' && !cp_cpmode) {
 			cp_blkdep++;
-			if (cp_preblk > 0) {
-				in_back(c);
-				in_back(c_ec);
-				return cp_preblk;
-			}
+			return cp_reqln ? ' ' : cp_raw();
 		}
 		in_back(c);
 		return c_ec;
 	}
 	if (c == '\n')
-		cp_preblk = 0;
+		cp_reqln = 0;
 	return c;
 }
 
@@ -230,18 +229,16 @@ int cp_next(void)
 
 void cp_blk(int skip)
 {
-	int c;
-	do {
-		c = skip ? cp_raw() : cp_next();
-	} while (c == ' ' || c == '\t');
 	if (skip) {
-		int dep = c == c_ec && in_top() == '{' ? cp_blkdep - 1 : cp_blkdep;
-		while (c >= 0 && (c != '\n' || cp_blkdep > dep))
+		int c = cp_raw();
+		while (c >= 0 && (c != '\n' || cp_blkdep > cp_reqdep))
 			c = cp_raw();
 	} else {
-		if (c == c_ec && in_top() == '{')	/* a troff \{ \} block */
-			cp_raw();
-		else
+		int c = cp_next();
+		while ((c == ' ' || c == '\t') && cp_blkdep <= cp_reqdep)
+			c = cp_next();
+		/* push back if the space is not inserted because of cp_reqln */
+		if (c != ' ' && c != '\t')
 			cp_back(c);
 	}
 }
@@ -251,8 +248,9 @@ void cp_copymode(int mode)
 	cp_cpmode = mode;
 }
 
-/* prefix \{ with c until an EOL; the main reason is handling .ie\{ */
-void cp_prefixblock(int c)
+/* beginning of a request line; replace \{ with a space until an EOL */
+void cp_reqline(void)
 {
-	cp_preblk = c;
+	cp_reqln = 1;
+	cp_reqdep = cp_blkdep;
 }

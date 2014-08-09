@@ -235,8 +235,7 @@ static int if_eval(int (*next)(void), void (*back)(int))
 	struct sbuf sbuf;
 	int ret;
 	sbuf_init(&sbuf);
-	if (!read_until(&sbuf, NULL, next, back))
-		back(' ');
+	read_until(&sbuf, NULL, next, back);
 	ret = eval(sbuf_buf(&sbuf), '\0') > 0;
 	sbuf_done(&sbuf);
 	return ret;
@@ -966,7 +965,7 @@ int tr_nextreq(void)
 	args[0] = cmd;
 	cmd[0] = c;
 	req = NULL;
-	cp_prefixblock(' ');
+	cp_reqline();
 	read_regname(cmd + 1);
 	sbuf_init(&sbuf);
 	req = str_dget(map(cmd + 1));

@@ -688,9 +688,6 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 	case ',':
 		wb_italiccorrectionleft(wb);
 		break;
-	case '{':
-	case '}':
-		break;
 	}
 }
 
