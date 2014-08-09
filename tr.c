@@ -46,8 +46,8 @@ static void tr_nr(char **args)
 	if (!args[2])
 		return;
 	id = map(args[1]);
-	num_set(id, eval_re(args[2], num_get(id, 0), 'u'));
-	num_inc(id, args[3] ? eval(args[3], 'u') : 0);
+	num_set(id, eval_re(args[2], num_get(id), 'u'));
+	num_setinc(id, args[3] ? eval(args[3], 'u') : 0);
 }
 
 static void tr_rr(char **args)

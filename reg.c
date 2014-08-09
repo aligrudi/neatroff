@@ -57,6 +57,8 @@ char *num_str(int id)
 {
 	static char numbuf[128];
 	char *s = map_name(id);
+	if (!nregs_fmt[id])
+		nregs_fmt[id] = '0';
 	numbuf[0] = '\0';
 	if (s[0] == '.' && !s[2]) {
 		switch (s[1]) {
@@ -97,7 +99,7 @@ char *num_str(int id)
 		return numbuf;
 	}
 	if (s[0] == 'y' && s[1] == 'r' && !s[2]) {
-		sprintf(numbuf, "%02d", nregs[id]);
+		sprintf(numbuf, "%02d", *nreg(id));
 		return numbuf;
 	}
 	if (!nregs_fmt[id] || num_fmt(numbuf, *nreg(id), nregs_fmt[id]))
@@ -107,12 +109,19 @@ char *num_str(int id)
 
 void num_set(int id, int val)
 {
+	if (!nregs_fmt[id])
+		nregs_fmt[id] = '0';
 	*nreg(id) = val;
 }
 
-void num_inc(int id, int val)
+void num_setinc(int id, int val)
 {
 	nregs_inc[id] = val;
+}
+
+void num_inc(int id, int pos)
+{
+	*nreg(id) += pos > 0 ? nregs_inc[id] : -nregs_inc[id];
 }
 
 void num_del(int id)
@@ -120,13 +129,6 @@ void num_del(int id)
 	*nreg(id) = 0;
 	nregs_inc[id] = 0;
 	nregs_fmt[id] = 0;
-}
-
-int num_get(int id, int inc)
-{
-	if (inc)
-		*nreg(id) += inc > 0 ? nregs_inc[id] : -nregs_inc[id];
-	return *nreg(id);
 }
 
 void str_set(int id, char *s)
@@ -376,12 +378,12 @@ char *num_getfmt(int id)
 	static char fmtbuf[128];
 	char *s = fmtbuf;
 	int i;
-	if (!nregs_fmt[id] || (nregs_fmt[id] & NF_FMT) == '0') {
+	if ((nregs_fmt[id] & NF_FMT) == '0') {
 		*s++ = '0';
 		i = nregs_fmt[id] >> NF_LSH;
 		while (i-- > 1)
 			*s++ = '0';
-	} else {
+	} else if (nregs_fmt[id]) {
 		*s++ = nregs_fmt[id] & NF_FMT;
 	}
 	*s = '\0';

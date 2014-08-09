@@ -43,7 +43,7 @@ static void cp_num(void)
 		cp_back(c);
 	id = regid();
 	if (c == '-' || c == '+')
-		num_get(id, c == '+' ? 1 : -1);
+		num_inc(id, c == '+');
 	if (num_str(id))
 		in_push(num_str(id), NULL);
 }
@@ -110,7 +110,7 @@ static void cp_numdef(void)
 	if (!*s)
 		return;
 	*s++ = '\0';
-	num_set(map(arg), eval_re(s, num_get(map(arg), 0), 'u'));
+	num_set(map(arg), eval_re(s, num_get(map(arg)), 'u'));
 }
 
 /* conditional interpolation as \?'cond@expr1@expr2@' */

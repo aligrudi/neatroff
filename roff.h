@@ -77,13 +77,14 @@ extern int c_c2;	/* no-break control character (') */
 #define c_bp	"\\:"	/* zero-width word break point */
 
 /* number registers */
-int num_get(int id, int inc);
+#define num_get(id)	(*nreg(id))
 void num_set(int id, int val);
-void num_inc(int id, int val);
+void num_inc(int id, int pos);
 void num_del(int id);
 char *num_str(int id);
 char *num_getfmt(int id);
 void num_setfmt(int id, char *fmt);
+void num_setinc(int id, int val);
 int *nreg(int id);
 int eval(char *s, int unit);
 int eval_up(char **s, int unit);
