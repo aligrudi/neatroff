@@ -169,7 +169,7 @@ static int grule_find(struct grule *rules, int n, int hash)
 		else
 			l = m + 1;
 	}
-	return rules[l].hash == hash ? l : -1;
+	return l;
 }
 
 static int font_gpatmatch(struct font *fn, struct gpat *p, int g)
@@ -212,83 +212,137 @@ static int font_rulematch(struct font *fn, struct grule *rule,
 	return 1;
 }
 
-static struct grule *font_findrule(struct font *fn, struct grule *rules, int n,
-		int *src, int slen, int *dst, int dlen)
+/* perform all possible gpos rules on src */
+static void font_performgpos(struct font *fn, int *src, int slen,
+		int *x, int *y, int *xadv, int *yadv)
 {
-	int idx[4] = {-1, -1, -1, -1};
-	int hash[4];
+	struct grule *gpos = fn->gpos;
+	int n = fn->gpos_n;
+	int i, j, k;
+	for (i = 0; i < slen; i++) {
+		/* possible hash values for matching gpos rules at src + slen */
+		for (j = 0; j < 4 && j < (slen << 1); j++) {
+			int hash = GHASH(j & 1 ? src[i] : -1, j & 2 ? src[i + 1] : -1);
+			int idx = grule_find(gpos, n, hash);
+			while (idx < n && gpos[idx].hash == hash) {
+				if (font_rulematch(fn, &gpos[idx],
+						src + i, slen - i, src + i, i)) {
+					struct gpat *pats = gpos[idx].pats;
+					/* we should accumulate the values... */
+					for (k = 0; k < gpos[idx].len; k++) {
+						x[i + k] = pats[k].x;
+						y[i + k] = pats[k].y;
+						xadv[i + k] = pats[k].xadv;
+						yadv[i + k] = pats[k].yadv;
+					}
+				}
+				idx++;
+			}
+		}
+	}
+}
+
+/* find the first gsub rule after pos that matches any glyph in src */
+static struct grule *font_firstgsub(struct font *fn, int pos, int *src, int slen)
+{
+	struct grule *rules = fn->gsub;
+	int n = fn->gsub_n;
+	struct grule *best = NULL;
 	int i, j;
-	for (j = 0; j < 4 && j < (slen << 1); j++) {
-		hash[j] = GHASH(j & 1 ? src[0] : -1, j & 2 ? src[1] : -1);
-		idx[j] = grule_find(rules, n, hash[j]);
+	for (i = 0; i < slen; i++) {
+		/* possible hash values for matching gsub rules at src + slen */
+		for (j = 0; j < 2 && i + j < slen; j++) {
+			int hash = GHASH(src[i], j ? src[i + 1] : -1);
+			int idx = grule_find(rules, n, hash);
+			while (idx < n && rules[idx].hash == hash &&
+					(!best || rules[idx].pos < best->pos)) {
+				if (rules[idx].pos >= pos)
+					if (font_rulematch(fn, &rules[idx],
+							src + i, slen - i, src + i, i))
+						best = &rules[idx];
+				idx++;
+			}
+		}
 	}
-	while (1) {
-		i = -1;		/* finding the first rule among idx[] */
-		for (j = 0; j < 4; j++)
-			if (idx[j] >= 0 && idx[j] < n && rules[idx[j]].hash == hash[j])
-				if (i < 0 || rules[idx[j]].pos <= rules[idx[i]].pos)
-					i = j;
-		if (i < 0)
-			break;
-		if (font_rulematch(fn, rules + idx[i], src, slen, dst, dlen))
-			return rules + idx[i];
-		idx[i]++;
+	return best;
+}
+
+/* apply the given gsub rule to all matches in src */
+static int font_gsubapply(struct font *fn, struct grule *rule,
+			int *src, int slen, int *smap)
+{
+	int dst[WORDLEN];
+	int dlen = 0;
+	int dmap[WORDLEN];
+	int i, j;
+	memset(dmap, 0, slen * sizeof(dmap[i]));
+	for (i = 0; i < slen; i++) {
+		int hash1 = GHASH(src[i], -1);
+		int hash2 = GHASH(src[i], i + 1 < slen ? src[i + 1] : -1);
+		int hmatch = rule->hash == hash1 || rule->hash == hash2;
+		dmap[dlen] = smap[i];
+		if (hmatch && font_rulematch(fn, rule, src + i,
+					slen - i, dst + dlen, dlen)) {
+			for (j = 0; j < rule->len; j++) {
+				if (rule->pats[j].flg & GF_REP)
+					dst[dlen++] = rule->pats[j].g;
+				if (rule->pats[j].flg & GF_PAT)
+					i++;
+			}
+			i--;
+		} else {
+			dst[dlen++] = src[i];
+		}
 	}
-	return NULL;
+	memcpy(src, dst, dlen * sizeof(dst[0]));
+	memcpy(smap, dmap, dlen * sizeof(dmap[0]));
+	return dlen;
+}
+
+/* perform all possible gsub rules on src */
+static int font_performgsub(struct font *fn, int *src, int slen, int *smap)
+{
+	int i = 0;
+	while (i >= 0) {
+		struct grule *rule = font_firstgsub(fn, i, src, slen);
+		if (rule)
+			slen = font_gsubapply(fn, rule, src, slen, smap);
+		i = rule ? rule->pos + 1 : -1;
+	}
+	return slen;
 }
 
 int font_layout(struct font *fn, struct glyph **gsrc, int nsrc, int sz,
 		struct glyph **gdst, int *dmap,
 		int *x, int *y, int *xadv, int *yadv, int lg, int kn)
 {
-	int src[WORDLEN], dst[WORDLEN];
-	int ndst = 0;
-	int i, j;
+	int dst[WORDLEN];
+	int ndst = nsrc;
+	int i;
 	int featlg, featkn;
+	/* initialising dst */
 	for (i = 0; i < nsrc; i++)
-		src[i] = font_idx(fn, gsrc[i]);
-	if (lg)
-		featlg = font_featlg(fn, 3);
-	for (i = 0; i < nsrc; i++) {
-		struct grule *rule = font_findrule(fn, fn->gsub, fn->gsub_n,
-				src + i, nsrc - i, dst + ndst, ndst);
-		dmap[ndst] = i;
-		if (rule) {
-			for (j = 0; j < rule->len; j++) {
-				if (rule->pats[j].flg & GF_REP)
-					dst[ndst++] = rule->pats[j].g;
-				if (rule->pats[j].flg & GF_PAT)
-					i++;
-			}
-			i--;
-		} else {
-			dst[ndst++] = src[i];
-		}
-	}
-	if (lg)
-		font_featlg(fn, featlg);
+		dst[i] = font_idx(fn, gsrc[i]);
+	for (i = 0; i < ndst; i++)
+		dmap[i] = i;
 	memset(x, 0, ndst * sizeof(x[0]));
 	memset(y, 0, ndst * sizeof(y[0]));
 	memset(xadv, 0, ndst * sizeof(xadv[0]));
 	memset(yadv, 0, ndst * sizeof(yadv[0]));
-	for (i = 0; i < ndst; i++)
-		gdst[i] = fn->gl + dst[i];
+	/* substitution rules */
+	if (lg)
+		featlg = font_featlg(fn, 3);
+	ndst = font_performgsub(fn, dst, ndst, dmap);
+	if (lg)
+		font_featlg(fn, featlg);
+	/* positioning rules */
 	if (kn)
 		featkn = font_featkn(fn, 1);
-	for (i = 0; i < ndst; i++) {
-		struct grule *rule = font_findrule(fn, fn->gpos, fn->gpos_n,
-				dst + i, ndst - i, dst + i, i);
-		if (!rule)
-			continue;
-		for (j = 0; j < rule->len; j++) {
-			x[i + j] = rule->pats[j].x;
-			y[i + j] = rule->pats[j].y;
-			xadv[i + j] = rule->pats[j].xadv;
-			yadv[i + j] = rule->pats[j].yadv;
-		}
-	}
+	font_performgpos(fn, dst, ndst, x, y, xadv, yadv);
 	if (kn)
 		font_featkn(fn, featkn);
+	for (i = 0; i < ndst; i++)
+		gdst[i] = fn->gl + dst[i];
 	return ndst;
 }
 
