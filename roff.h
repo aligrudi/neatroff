@@ -160,6 +160,7 @@ int dev_mnt(int pos, char *id, char *name);
 int dev_pos(char *id);
 struct font *dev_font(int pos);
 int dev_fontpos(struct font *fn);
+struct glyph *dev_glyph(char *c, int fn);
 
 /* font-related functions */
 struct font *font_open(char *path);
@@ -169,25 +170,19 @@ struct glyph *font_find(struct font *fn, char *name);
 int font_map(struct font *fn, char *name, struct glyph *gl);
 int font_mapped(struct font *fn, char *name);
 int font_special(struct font *fn);
-int font_spacewid(struct font *fn);
+int font_wid(struct font *fn, int sz, int w);
+int font_gwid(struct font *fn, struct font *cfn, int sz, int w);
+int font_swid(struct font *fn, int sz, int ss);
 void font_setcs(struct font *fn, int cs);
 int font_getcs(struct font *fn);
 void font_setbd(struct font *fn, int bd);
 int font_getbd(struct font *fn);
+void font_setzoom(struct font *fn, int zoom);
+int font_zoom(struct font *fn, int sz);
 int font_feat(struct font *fn, char *name, int val);
 int font_layout(struct font *fn, struct glyph **src, int nsrc, int sz,
 		struct glyph **dst, int *dmap,
 		int *x, int *y, int *xadv, int *yadv, int lg, int kn);
-
-/* glyph handling functions */
-struct glyph *dev_glyph(char *c, int fn);
-int charwid(int fn, int sz, int wid);
-
-/* convert wid in device unitwidth size to size sz */
-#define DEVWID(sz, wid)		(((wid) * (sz) + (dev_uwid / 2)) / dev_uwid)
-/* the amount of word and sentence space for the given font and size */
-#define N_SS(fn, sz)	(charwid((fn), (sz), (font_spacewid(dev_font(fn)) * n_ss + 6) / 12))
-#define N_SSS(fn, sz)	(charwid((fn), (sz), (font_spacewid(dev_font(fn)) * n_sss + 6) / 12))
 
 /* different layers of neatroff */
 int in_next(void);		/* input layer */

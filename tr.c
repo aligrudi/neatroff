@@ -450,18 +450,22 @@ static void tr_ssh(char **args)
 
 static void tr_cs(char **args)
 {
-	if (!args[1])
-		return;
-	font_setcs(dev_font(dev_pos(args[1])), args[2] ? eval(args[2], 0) : 0);
+	struct font *fn = args[1] ? dev_font(dev_pos(args[1])) : NULL;
+	if (fn)
+		font_setcs(fn, args[2] ? eval(args[2], 0) : 0);
+}
+
+static void tr_fzoom(char **args)
+{
+	struct font *fn = args[1] ? dev_font(dev_pos(args[1])) : NULL;
+	if (fn)
+		font_setzoom(fn, args[2] ? eval(args[2], 0) : 0);
 }
 
 static void tr_ff(char **args)
 {
-	struct font *fn;
+	struct font *fn = args[1] ? dev_font(dev_pos(args[1])) : NULL;
 	int i;
-	if (!args[2])
-		return;
-	fn = dev_font(dev_pos(args[1]));
 	for (i = 2; i <= NARGS; i++)
 		if (fn && args[i] && args[i][0] && args[i][1])
 			font_feat(fn, args[i] + 1, args[i][0] == '+');
@@ -888,6 +892,7 @@ static struct cmd {
 	{"fp", tr_fp},
 	{"fspecial", tr_fspecial},
 	{"ft", tr_ft},
+	{"fzoom", tr_fzoom},
 	{"hc", tr_hc},
 	{"hcode", tr_hcode},
 	{"hpf", tr_hpf},

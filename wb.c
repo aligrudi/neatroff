@@ -12,8 +12,6 @@
 /* italic correction */
 #define glyph_ic(g)	(MAX(0, (g)->urx - (g)->wid))
 #define glyph_icleft(g)	(MAX(0, -(g)->llx))
-/* like DEVWID() but handles negative w */
-#define SDEVWID(sz, w)	((w) >= 0 ? DEVWID((sz), (w)) : -DEVWID((sz), -(w)))
 /* the maximum and minimum values of bounding box coordinates */
 #define BBMAX		(1 << 29)
 #define BBMIN		-BBMAX
@@ -136,7 +134,7 @@ static void wb_putbuf(struct wb *wb, char *c)
 		g = dev_glyph(c, wb->f);
 	}
 	if (g && !zerowidth && wb->icleft && glyph_icleft(g))
-		wb_hmov(wb, SDEVWID(wb->s, glyph_icleft(g)));
+		wb_hmov(wb, font_wid(g->font, wb->s, glyph_icleft(g)));
 	wb->icleft = 0;
 	if (!c[1] || c[0] == c_ec || c[0] == c_ni || utf8one(c)) {
 		if (c[0] == c_ni && c[1] == c_ec)
@@ -151,11 +149,11 @@ static void wb_putbuf(struct wb *wb, char *c)
 	}
 	if (!zerowidth) {
 		if (!n_cp && g)
-			wb_bbox(wb, SDEVWID(wb->s, g->llx),
-				SDEVWID(wb->s, g->lly),
-				SDEVWID(wb->s, g->urx),
-				SDEVWID(wb->s, g->ury));
-		wb->h += charwid(wb->f, wb->s, g ? g->wid : 0);
+			wb_bbox(wb, font_wid(g->font, wb->s, g->llx),
+				font_wid(g->font, wb->s, g->lly),
+				font_wid(g->font, wb->s, g->urx),
+				font_wid(g->font, wb->s, g->ury));
+		wb->h += g ? font_gwid(g->font, dev_font(wb->f), wb->s, g->wid) : 0;
 		wb->ct |= g ? g->type : 0;
 		wb_stsb(wb);
 	}
@@ -224,9 +222,9 @@ static void wb_flushsub(struct wb *wb)
 			gdst, dmap, x, y, xadv, yadv, n_lg, n_kn);
 	for (i = 0; i < dst_n; i++) {
 		if (x[i])
-			wb_hmov(wb, SDEVWID(wb->s, x[i]));
+			wb_hmov(wb, font_wid(fn, wb->s, x[i]));
 		if (y[i])
-			wb_vmov(wb, SDEVWID(wb->s, y[i]));
+			wb_vmov(wb, font_wid(fn, wb->s, y[i]));
 		if (src_hyph[dmap[i]])
 			wb_putbuf(wb, c_hc);
 		if (gdst[i] == gsrc[dmap[i]])
@@ -234,9 +232,9 @@ static void wb_flushsub(struct wb *wb)
 		else
 			wb_putbuf(wb, gdst[i]->name);
 		if (x[i] || xadv[i])
-			wb_hmov(wb, SDEVWID(wb->s, xadv[i] - x[i]));
+			wb_hmov(wb, font_wid(fn, wb->s, xadv[i] - x[i]));
 		if (y[i] || yadv[i])
-			wb_vmov(wb, SDEVWID(wb->s, yadv[i] - y[i]));
+			wb_vmov(wb, font_wid(fn, wb->s, yadv[i] - y[i]));
 	}
 	wb->sub_n = 0;
 	wb->icleft = 0;
@@ -251,7 +249,7 @@ void wb_put(struct wb *wb, char *c)
 	}
 	if (c[0] == ' ') {
 		wb_flushsub(wb);
-		wb_hmov(wb, N_SS(R_F(wb), R_S(wb)));
+		wb_hmov(wb, font_swid(dev_font(R_F(wb)), R_S(wb), n_ss));
 		return;
 	}
 	if (wb_pendingfont(wb) || wb->sub_n == LEN(wb->sub_c))
@@ -468,7 +466,7 @@ void wb_italiccorrection(struct wb *wb)
 {
 	struct glyph *g = wb_prevglyph(wb);
 	if (g && glyph_ic(g))
-		wb_hmov(wb, SDEVWID(wb->s, glyph_ic(g)));
+		wb_hmov(wb, font_wid(g->font, wb->s, glyph_ic(g)));
 }
 
 void wb_italiccorrectionleft(struct wb *wb)
@@ -507,5 +505,5 @@ void wb_catstr(struct wb *wb, char *s, char *end)
 int wb_dashwid(struct wb *wb)
 {
 	struct glyph *g = dev_glyph("hy", wb->f);
-	return charwid(wb->f, wb->s, g ? g->wid : 0);
+	return g ? font_gwid(g->font, dev_font(wb->f), wb->s, g->wid) : 0;
 }

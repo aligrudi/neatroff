@@ -85,14 +85,6 @@ void tr_di(char **args)
 	}
 }
 
-int charwid(int fn, int sz, int wid)
-{
-	struct font *f = dev_font(fn);
-	if (font_getcs(f))
-		return font_getcs(f) * SC_EM / 36;
-	return DEVWID(sz, wid) + (font_getbd(f) ? font_getbd(f) - 1 : 0);
-}
-
 int f_divreg(void)
 {
 	return cdiv ? cdiv->reg : -1;
@@ -270,7 +262,7 @@ static void ren_transparent(char *s)
 static int zwid(void)
 {
 	struct glyph *g = dev_glyph("0", n_f);
-	return charwid(n_f, n_s, g ? g->wid : 0);
+	return g ? font_gwid(g->font, dev_font(n_f), n_s, g->wid) : 0;
 }
 
 /* append the line number to the output line */
@@ -609,7 +601,7 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 {
 	switch (c) {
 	case ' ':
-		wb_hmov(wb, N_SS(n_f, n_s));
+		wb_hmov(wb, font_swid(dev_font(n_f), n_s, n_ss));
 		break;
 	case 'b':
 		ren_bcmd(wb, arg);

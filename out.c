@@ -111,15 +111,18 @@ static void out_draw(char *s)
 	outnn("\n");
 }
 
-static void outg(char *c, int fn)
+static void outg(char *c, int fn, int sz)
 {
 	int ofn = o_f;
+	int osz = o_s;
 	out_ft(fn);
+	out_ps(sz);
 	if (utf8one(c))
 		outnn("c%s%s", c, c[1] ? "\n" : "");
 	else
 		out("C%s\n", c[0] == c_ec && c[1] == '(' ? c + 2 : c);
 	out_ft(ofn);
+	out_ps(osz);
 }
 
 static void outc(char *c)
@@ -129,16 +132,16 @@ static void outc(char *c)
 	int cwid, bwid;
 	if (!g)
 		return;
-	cwid = charwid(o_f, o_s, g->wid);
-	bwid = DEVWID(o_s, g->wid);
+	cwid = font_gwid(g->font, dev_font(o_f), o_s, g->wid);
+	bwid = font_wid(g->font, o_s, g->wid);
 	if (font_mapped(g->font, c))
 		c = g->name;
 	if (font_getcs(fn))
 		outnn("h%d", (cwid - bwid) / 2);
-	outg(c, dev_fontpos(g->font));
+	outg(c, dev_fontpos(g->font), font_zoom(g->font, o_s));
 	if (font_getbd(fn)) {
 		outnn("h%d", font_getbd(fn) - 1);
-		outg(c, dev_fontpos(g->font));
+		outg(c, dev_fontpos(g->font), font_zoom(g->font, o_s));
 		outnn("h%d", -font_getbd(fn) + 1);
 	}
 	if (font_getcs(fn))
@@ -177,7 +180,7 @@ void out_line(char *s)
 				out_clr(clr_get(c));
 			break;
 		case 's':
-			out_ps(eval_re(c, o_s, '\0'));
+			out_ps(eval(c, 0));
 			break;
 		case 'v':
 			outnn("v%d", eval(c, 'v'));

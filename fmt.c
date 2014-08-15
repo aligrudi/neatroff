@@ -200,7 +200,7 @@ int fmt_br(struct fmt *f)
 
 void fmt_space(struct fmt *fmt)
 {
-	fmt->gap += N_SS(n_f, n_s);
+	fmt->gap += font_swid(dev_font(n_f), n_s, n_ss);
 }
 
 int fmt_newline(struct fmt *f)
@@ -301,10 +301,11 @@ static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 static int fmt_wordgap(struct fmt *f)
 {
 	int nls = f->nls || f->nls_sup;
+	int swid = font_swid(dev_font(n_f), n_s, n_ss);
 	if (f->eos && f->nwords)
-		if ((nls && !f->gap) || (!nls && f->gap == 2 * N_SS(n_f, n_s)))
-			return N_SS(n_f, n_s) + N_SSS(n_f, n_s);
-	return (nls && !f->gap && f->nwords) ? N_SS(n_f, n_s) : f->gap;
+		if ((nls && !f->gap) || (!nls && f->gap == 2 * swid))
+			return swid + font_swid(dev_font(n_f), n_s, n_sss);
+	return (nls && !f->gap && f->nwords) ? swid : f->gap;
 }
 
 /* insert wb into fmt */

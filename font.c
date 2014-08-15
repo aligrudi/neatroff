@@ -4,6 +4,8 @@
 #include <string.h>
 #include "roff.h"
 
+/* convert wid in device unitwidth size to size sz */
+#define DEVWID(sz, wid)		(((wid) * (sz) + (dev_uwid / 2)) / dev_uwid)
 #define GHASH(g1, g2)		((((g2) + 1) << 16) | ((g1) + 1))
 
 #define GF_PAT		1	/* gsub/gpos pattern glyph */
@@ -32,7 +34,7 @@ struct font {
 	char fontname[FNLEN];
 	int spacewid;
 	int special;
-	int cs, bd;			/* for .cs and .bd requests */
+	int cs, bd, zoom;		/* for .cs, .bd, .fzoom requests */
 	struct glyph gl[NGLYPHS];	/* glyphs present in the font */
 	int gl_n;			/* number of glyphs in the font */
 	struct dict gl_dict;		/* mapping from gl[i].id to i */
@@ -648,9 +650,25 @@ int font_special(struct font *fn)
 	return fn->special;
 }
 
-int font_spacewid(struct font *fn)
+/* return width w for the given font and size */
+int font_wid(struct font *fn, int sz, int w)
 {
-	return fn->spacewid;
+	sz = font_zoom(fn, sz);
+	return w >= 0 ? DEVWID(sz, w) : -DEVWID(sz, -w);
+}
+
+/* glyph width, where cfn is the current font and fn is glyph's font */
+int font_gwid(struct font *fn, struct font *cfn, int sz, int w)
+{
+	if (cfn->cs)
+		return cfn->cs * (font_zoom(fn, sz) * SC_IN / 72) / 36;
+	return font_wid(fn, sz, w) + (font_getbd(cfn) ? font_getbd(cfn) - 1 : 0);
+}
+
+/* space width for the give word space or sentence space */
+int font_swid(struct font *fn, int sz, int ss)
+{
+	return font_gwid(fn, fn, sz, (fn->spacewid * ss + 6) / 12);
 }
 
 int font_getcs(struct font *fn)
@@ -671,6 +689,16 @@ int font_getbd(struct font *fn)
 void font_setbd(struct font *fn, int bd)
 {
 	fn->bd = bd;
+}
+
+int font_zoom(struct font *fn, int sz)
+{
+	return fn->zoom ? (sz * fn->zoom + 500) / 1000 : sz;
+}
+
+void font_setzoom(struct font *fn, int zoom)
+{
+	fn->zoom = zoom;
 }
 
 /* enable/disable font features; returns the previous value */
