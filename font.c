@@ -112,10 +112,8 @@ int font_mapped(struct font *fn, char *name)
 static int font_featlg(struct font *fn, int val)
 {
 	int ret = 0;
-	if (val & 1)
-		ret |= font_feat(fn, "liga", val);
-	if (val & 2)
-		ret |= font_feat(fn, "rlig", val) << 1;
+	ret |= font_feat(fn, "liga", val & 1);
+	ret |= font_feat(fn, "rlig", val & 2) << 1;
 	return ret;
 }
 
