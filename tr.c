@@ -452,7 +452,8 @@ static void tr_cs(char **args)
 {
 	struct font *fn = args[1] ? dev_font(dev_pos(args[1])) : NULL;
 	if (fn)
-		font_setcs(fn, args[2] ? eval(args[2], 0) : 0);
+		font_setcs(fn, args[2] ? eval(args[2], 0) : 0,
+				args[3] ? eval(args[3], 0) : 0);
 }
 
 static void tr_fzoom(char **args)

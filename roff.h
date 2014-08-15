@@ -173,7 +173,7 @@ int font_special(struct font *fn);
 int font_wid(struct font *fn, int sz, int w);
 int font_gwid(struct font *fn, struct font *cfn, int sz, int w);
 int font_swid(struct font *fn, int sz, int ss);
-void font_setcs(struct font *fn, int cs);
+void font_setcs(struct font *fn, int cs, int ps);
 int font_getcs(struct font *fn);
 void font_setbd(struct font *fn, int bd);
 int font_getbd(struct font *fn);

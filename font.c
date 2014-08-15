@@ -34,7 +34,7 @@ struct font {
 	char fontname[FNLEN];
 	int spacewid;
 	int special;
-	int cs, bd, zoom;		/* for .cs, .bd, .fzoom requests */
+	int cs, cs_ps, bd, zoom;	/* for .cs, .bd, .fzoom requests */
 	struct glyph gl[NGLYPHS];	/* glyphs present in the font */
 	int gl_n;			/* number of glyphs in the font */
 	struct dict gl_dict;		/* mapping from gl[i].id to i */
@@ -661,7 +661,8 @@ int font_wid(struct font *fn, int sz, int w)
 int font_gwid(struct font *fn, struct font *cfn, int sz, int w)
 {
 	if (cfn->cs)
-		return cfn->cs * (font_zoom(fn, sz) * SC_IN / 72) / 36;
+		return cfn->cs * (font_zoom(fn, cfn->cs_ps ? cfn->cs_ps : sz)
+					* SC_IN / 72) / 36;
 	return font_wid(fn, sz, w) + (font_getbd(cfn) ? font_getbd(cfn) - 1 : 0);
 }
 
@@ -676,9 +677,10 @@ int font_getcs(struct font *fn)
 	return fn->cs;
 }
 
-void font_setcs(struct font *fn, int cs)
+void font_setcs(struct font *fn, int cs, int ps)
 {
 	fn->cs = cs;
+	fn->cs_ps = ps;
 }
 
 int font_getbd(struct font *fn)
