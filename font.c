@@ -38,12 +38,8 @@ struct font {
 	struct glyph gl[NGLYPHS];	/* glyphs present in the font */
 	int gl_n;			/* number of glyphs in the font */
 	struct dict gl_dict;		/* mapping from gl[i].id to i */
-	/* charset mapping */
-	char ch[NGLYPHS][GNLEN];	/* character names in charset */
-	short ch_g[NGLYPHS];		/* ch[i] is mapped to ch_g[i] */
-	short ch_map[NGLYPHS];		/* character remapped via font_map() */
-	int ch_n;			/* number of characters in charset */
-	struct dict ch_dict;		/* mapping from ch[i] to i */
+	struct dict ch_dict;		/* charset mapping */
+	struct dict ch_map;		/* characters mapped via font_map() */
 	/* font features */
 	char feat_name[NFEATS][8];	/* feature names */
 	int feat_set[NFEATS];		/* feature enabled */
@@ -60,10 +56,10 @@ struct font {
 /* find a glyph by its name */
 struct glyph *font_find(struct font *fn, char *name)
 {
-	int i = dict_get(&fn->ch_dict, name);
-	if (i < 0)
-		return NULL;
-	return fn->gl + (fn->ch_map[i] >= 0 ? fn->ch_map[i] : fn->ch_g[i]);
+	int i = dict_get(&fn->ch_map, name);
+	if (i == -1)
+		i = dict_get(&fn->ch_dict, name);
+	return i >= 0 ? fn->gl + i : NULL;
 }
 
 /* find a glyph by its device-dependent identifier */
@@ -86,28 +82,20 @@ static struct glyph *font_glyphput(struct font *fn, char *id, char *name, int ty
 	return g;
 }
 
-/* map character name to the given glyph */
-int font_map(struct font *fn, char *name, struct glyph *g)
+/* map character name to the given glyph; remove the mapping if id is NULL */
+int font_map(struct font *fn, char *name, char *id)
 {
-	int i = dict_get(&fn->ch_dict, name);
-	if (g && g->font != fn)
-		return 1;
-	if (i < 0) {
-		if (fn->ch_n >= NGLYPHS)
-			return 1;
-		i = fn->ch_n++;
-		strcpy(fn->ch[i], name);
-		dict_put(&fn->ch_dict, fn->ch[i], i);
-	}
-	fn->ch_map[i] = g - fn->gl;
+	int gidx = -1;
+	if (id)
+		gidx = font_glyph(fn, id) ? font_glyph(fn, id) - fn->gl : -2;
+	dict_put(&fn->ch_map, name, gidx);
 	return 0;
 }
 
 /* return nonzero if character name has been mapped with font_map() */
 int font_mapped(struct font *fn, char *name)
 {
-	int i = dict_get(&fn->ch_dict, name);
-	return i >= 0 && fn->ch_map[i] >= 0;
+	return dict_get(&fn->ch_map, name) != -1;
 }
 
 /* enable/disable ligatures; first bit for liga and the second bit for rlig */
@@ -346,39 +334,32 @@ int font_layout(struct font *fn, struct glyph **gsrc, int nsrc, int sz,
 	return ndst;
 }
 
-static int font_readchar(struct font *fn, FILE *fin)
+static int font_readchar(struct font *fn, FILE *fin, int *n, struct glyph **g)
 {
 	char tok[ILNLEN];
 	char name[ILNLEN];
 	char id[ILNLEN];
-	struct glyph *glyph = NULL;
 	int type;
-	if (fn->ch_n + 1 == NGLYPHS)
+	if (*n + 1 == NGLYPHS)
 		errmsg("neatroff: NGLYPHS too low\n");
-	if (fn->ch_n >= NGLYPHS)
+	if (*n >= NGLYPHS)
 		return 0;
 	if (fscanf(fin, "%s %s", name, tok) != 2)
 		return 1;
 	if (!strcmp("---", name))
-		sprintf(name, "c%04d", fn->ch_n);
-	if (!strcmp("\"", tok)) {
-		glyph = fn->gl + fn->ch_g[fn->ch_n - 1];
-	} else {
+		sprintf(name, "c%04d", *n);
+	if (strcmp("\"", tok)) {
 		if (fscanf(fin, "%d %s", &type, id) != 2)
 			return 1;
-		glyph = font_glyph(fn, id);
-		if (!glyph) {
-			glyph = font_glyphput(fn, id, name, type);
-			sscanf(tok, "%hd,%hd,%hd,%hd,%hd", &glyph->wid,
-				&glyph->llx, &glyph->lly,
-				&glyph->urx, &glyph->ury);
+		*g = font_glyph(fn, id);
+		if (!*g) {
+			*g = font_glyphput(fn, id, name, type);
+			sscanf(tok, "%hd,%hd,%hd,%hd,%hd", &(*g)->wid,
+				&(*g)->llx, &(*g)->lly, &(*g)->urx, &(*g)->ury);
 		}
 	}
-	strcpy(fn->ch[fn->ch_n], name);
-	fn->ch_g[fn->ch_n] = glyph - fn->gl;
-	fn->ch_map[fn->ch_n] = -1;
-	dict_put(&fn->ch_dict, fn->ch[fn->ch_n], fn->ch_n);
-	fn->ch_n++;
+	dict_put(&fn->ch_dict, name, *g - fn->gl);
+	(*n)++;
 	return 0;
 }
 
@@ -566,6 +547,8 @@ static void skipline(FILE* filp)
 struct font *font_open(char *path)
 {
 	struct font *fn;
+	struct glyph *ch_g = NULL;	/* last glyph in the charset */
+	int ch_n = 0;			/* number of glyphs in the charset */
 	char tok[ILNLEN];
 	FILE *fin;
 	char ligs[512][GNLEN];
@@ -581,10 +564,11 @@ struct font *font_open(char *path)
 	}
 	memset(fn, 0, sizeof(*fn));
 	dict_init(&fn->gl_dict, NGLYPHS, -1, 0, 0);
-	dict_init(&fn->ch_dict, NGLYPHS, -1, 0, 0);
+	dict_init(&fn->ch_dict, NGLYPHS, -1, 1, 0);
+	dict_init(&fn->ch_map, NGLYPHS, -1, 1, 0);
 	while (fscanf(fin, "%s", tok) == 1) {
 		if (!strcmp("char", tok)) {
-			font_readchar(fn, fin);
+			font_readchar(fn, fin, &ch_n, &ch_g);
 		} else if (!strcmp("kern", tok)) {
 			font_readkern(fn, fin);
 		} else if (!strcmp("ligatures", tok)) {
@@ -609,7 +593,7 @@ struct font *font_open(char *path)
 		} else if (!strcmp("fontname", tok)) {
 			fscanf(fin, "%s", fn->fontname);
 		} else if (!strcmp("charset", tok)) {
-			while (!font_readchar(fn, fin))
+			while (!font_readchar(fn, fin, &ch_n, &ch_g))
 				;
 			break;
 		}
@@ -642,6 +626,7 @@ void font_close(struct font *fn)
 		free(fn->ggrp[i]);
 	dict_done(&fn->gl_dict);
 	dict_done(&fn->ch_dict);
+	dict_done(&fn->ch_map);
 	free(fn);
 }
 

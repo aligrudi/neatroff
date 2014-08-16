@@ -132,7 +132,6 @@ void dict_init(struct dict *d, int size, long notfound, int dupkeys, int level2)
 void dict_done(struct dict *d);
 void dict_put(struct dict *d, char *key, long val);
 long dict_get(struct dict *d, char *key);
-long dict_pop(struct dict *d, char *key);
 int dict_idx(struct dict *d, char *key);
 char *dict_key(struct dict *d, int idx);
 long dict_val(struct dict *d, int idx);
@@ -167,7 +166,7 @@ struct font *font_open(char *path);
 void font_close(struct font *fn);
 struct glyph *font_glyph(struct font *fn, char *id);
 struct glyph *font_find(struct font *fn, char *name);
-int font_map(struct font *fn, char *name, struct glyph *gl);
+int font_map(struct font *fn, char *name, char *id);
 int font_mapped(struct font *fn, char *name);
 int font_special(struct font *fn);
 int font_wid(struct font *fn, int sz, int w);

@@ -682,12 +682,9 @@ static void tr_ochar(char **args)
 
 static void tr_fmap(char **args)
 {
-	struct font *fn;
-	if (!args[2])
-		return;
-	fn = dev_font(dev_pos(args[1]));
-	if (fn)
-		font_map(fn, args[2], args[3] ? font_glyph(fn, args[3]) : NULL);
+	struct font *fn = args[1] ? dev_font(dev_pos(args[1])) : NULL;
+	if (fn && args[2])
+		font_map(fn, args[2], args[3]);
 }
 
 static void arg_regname(struct sbuf *sbuf)
