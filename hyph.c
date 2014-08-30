@@ -162,7 +162,7 @@ static void hcode_strcpy(char *d, char *s, int *map, int dots)
 	int di = 0, si = 0, len;
 	if (dots)
 		d[di++] = '.';
-	while (s[si]) {
+	while (di < WORDLEN - GNLEN && s[si]) {
 		len = utf8len((unsigned char) s[si]);
 		map[di] = si;
 		memcpy(d + di, s + si, len);
