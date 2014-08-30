@@ -98,7 +98,6 @@ int main(int argc, char **argv)
 		in_queue(NULL);	/* reading from standard input */
 	for (; i < argc; i++)
 		in_queue(!strcmp("-", argv[i]) ? NULL : argv[i]);
-	str_set(map(".P"), macrodir);
 	out("s%d\n", n_s);
 	out("f%d\n", n_f);
 	ret = render();

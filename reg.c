@@ -50,6 +50,19 @@ int *nreg(int id)
 	return &nregs[id];
 }
 
+static char *directory(char *path)
+{
+	static char dst[PATHLEN];
+	char *s = strrchr(path, '/');
+	if (!s)
+		return ".";
+	if (path == s)
+		return "/";
+	memcpy(dst, path, s - path);
+	dst[s - path] = '\0';
+	return dst;
+}
+
 static int num_fmt(char *s, int n, int fmt);
 
 /* the contents of a number register (returns a static buffer) */
@@ -84,6 +97,9 @@ char *num_str(int id)
 			return numbuf;
 		case 'F':
 			sprintf(numbuf, "%s", in_filename());
+			return numbuf;
+		case 'D':
+			sprintf(numbuf, "%s", directory(in_filename()));
 			return numbuf;
 		case '$':
 			sprintf(numbuf, "%d", in_nargs());
