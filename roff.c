@@ -69,6 +69,8 @@ int main(int argc, char **argv)
 			sprintf(path, "%s/%s.tmac", macrodir, argv[i] + 2);
 			if (!xopens(path))
 				sprintf(path, "%s/tmac.%s", macrodir, argv[i] + 2);
+			if (!xopens(path))
+				sprintf(path, "%s/%s", macrodir, argv[i] + 2);
 			in_queue(path);
 			break;
 		case 'F':
