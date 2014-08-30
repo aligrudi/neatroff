@@ -168,7 +168,7 @@ int in_lnum(void)
 	struct inbuf *cur = buf;
 	while (cur && !cur->fin)
 		cur = cur->prev;
-	return cur->lnum;
+	return cur ? cur->lnum : 0;
 }
 
 static char **args_init(char **args)
