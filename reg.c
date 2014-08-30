@@ -225,10 +225,10 @@ static void init_time(void)
 {
 	time_t t = time(NULL);
 	struct tm *tm = localtime(&t);
-	nregs[map("dw")] = tm->tm_wday + 1;
-	nregs[map("dy")] = tm->tm_mday;
-	nregs[map("mo")] = tm->tm_mon + 1;
-	nregs[map("yr")] = tm->tm_year % 100;
+	num_set(map("dw"), tm->tm_wday + 1);
+	num_set(map("dy"), tm->tm_mday);
+	num_set(map("mo"), tm->tm_mon + 1);
+	num_set(map("yr"), tm->tm_year % 100);
 }
 
 static void init_globals(void)
@@ -237,6 +237,8 @@ static void init_globals(void)
 	n_p = SC_IN * 11;
 	n_lg = 1;
 	n_kn = 0;
+	num_set(map(".H"), 1);
+	num_set(map(".V"), 1);
 }
 
 void env_init(void)
