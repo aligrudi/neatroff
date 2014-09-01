@@ -1060,7 +1060,7 @@ void tr_wh(char **args)
 		return;
 	}
 	reg = map(args[2]);
-	if (id < 0)
+	if (id < 0)		/* find an unused position in treg[] */
 		id = trap_byreg(-1);
 	if (id < 0)
 		id = ntraps++;
@@ -1076,8 +1076,12 @@ void tr_ch(char **args)
 		return;
 	reg = map(args[1]);
 	id = trap_byreg(reg);
-	if (id >= 0)
-		tpos[id] = args[2] ? eval(args[2], 'v') : -1;
+	if (id >= 0) {
+		if (args[2])
+			tpos[id] = eval(args[2], 'v');
+		else
+			treg[id] = -1;
+	}
 }
 
 void tr_dt(char **args)
