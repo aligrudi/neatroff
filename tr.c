@@ -382,12 +382,12 @@ static void tr_ec(char **args)
 
 static void tr_cc(char **args)
 {
-	c_ec = args[1] ? args[1][0] : '.';
+	c_cc = args[1] ? args[1][0] : '.';
 }
 
 static void tr_c2(char **args)
 {
-	c_ec = args[1] ? args[1][0] : '\'';
+	c_c2 = args[1] ? args[1][0] : '\'';
 }
 
 static void tr_eo(char **args)
