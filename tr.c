@@ -734,6 +734,10 @@ static int mkargs_arg(struct sbuf *sbuf, int (*next)(void), void (*back)(int))
 			if (c != '"')
 				break;
 		}
+		if (c == c_ec) {
+			sbuf_add(sbuf, c);
+			c = next();
+		}
 		sbuf_add(sbuf, c);
 		c = next();
 	}
