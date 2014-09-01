@@ -182,6 +182,8 @@ void str_rm(int id)
 
 void str_rn(int src, int dst)
 {
+	if (!sregs[src] && !sregs_dat[src])
+		return;
 	str_rm(dst);
 	sregs[dst] = sregs[src];
 	sregs_dat[dst] = sregs_dat[src];
