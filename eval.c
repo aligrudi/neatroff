@@ -119,9 +119,9 @@ static int evalexpr(char **s)
 		else if (!evaljmp(s, '=') + !evaljmp(s, '='))
 			ret = ret == evalatom(s);
 		else if (!evaljmp(s, '&'))
-			ret = ret && evalatom(s);
+			ret = ret > 0 && evalatom(s) > 0;
 		else if (!evaljmp(s, ':'))
-			ret = ret || evalatom(s);
+			ret = ret > 0 || evalatom(s) > 0;
 		else
 			break;
 	}
