@@ -235,7 +235,7 @@ void cp_blk(int skip)
 			c = cp_raw();
 	} else {
 		int c = cp_next();
-		while ((c == ' ' || c == '\t') && cp_blkdep <= cp_reqdep)
+		while ((c == ' ' || c == '\t'))
 			c = cp_next();
 		/* push back if the space is not inserted because of cp_reqln */
 		if (c != ' ' && c != '\t')
