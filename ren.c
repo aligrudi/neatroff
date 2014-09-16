@@ -376,9 +376,18 @@ static void ren_fmtpopall(struct fmt *fmt)
 	ren_fmtpop(fmt);
 }
 
+/* pass the given word buffer to the current line buffer (cfmt) */
+static void ren_fmtword(struct wb *wb)
+{
+	while (fmt_word(cfmt, wb))
+		ren_fmtpop(cfmt);
+	wb_reset(wb);
+}
+
 /* output current line; returns 1 if triggered a trap */
 static int ren_br(void)
 {
+	ren_fmtword(cwb);
 	ren_fmtpopall(cfmt);
 	while (fmt_br(cfmt))
 		ren_fmtpop(cfmt);
@@ -963,9 +972,7 @@ static int render_rec(int level)
 		/* add cwb (the current word) to cfmt */
 		if (c == ' ' || c == '\n') {
 			if (!wb_part(cwb)) {	/* not after a \c */
-				while (fmt_word(cfmt, cwb))
-					ren_fmtpop(cfmt);
-				wb_reset(cwb);
+				ren_fmtword(cwb);
 				if (c == '\n')
 					while (fmt_newline(cfmt))
 						ren_fmtpop(cfmt);
