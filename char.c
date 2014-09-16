@@ -71,6 +71,7 @@ void unquotednext(char *d, int cmd, int (*next)(void), void (*back)(int))
 {
 	int c = next();
 	if (cmd == 's' && (c == '-' || c == '+')) {
+		cmd = c;
 		*d++ = c;
 		c = next();
 	}
