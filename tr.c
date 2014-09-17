@@ -890,6 +890,7 @@ static struct cmd {
 	{"fc", tr_fc},
 	{"ff", tr_ff},
 	{"fi", tr_fi},
+	{"fl", tr_br},
 	{"fmap", tr_fmap},
 	{"fp", tr_fp},
 	{"fspecial", tr_fspecial},
