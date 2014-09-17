@@ -466,6 +466,7 @@ void tr_ne(char **args)
 
 static void ren_ejectpage(int br)
 {
+	ren_first();
 	bp_ejected = bp_count;
 	if (br)
 		ren_br();
