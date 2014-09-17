@@ -387,6 +387,7 @@ static void ren_fmtword(struct wb *wb)
 /* output current line; returns 1 if triggered a trap */
 static int ren_br(void)
 {
+	ren_first();
 	ren_fmtword(cwb);
 	ren_fmtpopall(cfmt);
 	while (fmt_br(cfmt))
