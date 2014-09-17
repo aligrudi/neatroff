@@ -409,7 +409,7 @@ void tr_sp(char **args)
 	int n = args[1] ? eval(args[1], 'v') : n_v;
 	if (args[0][0] == c_cc)
 		traps = ren_br();
-	if (n && !n_ns && !traps)
+	if (n && (!n_ns || ren_div) && !traps)
 		down(n);
 }
 
