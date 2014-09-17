@@ -5,6 +5,7 @@
 #include <string.h>
 #include "roff.h"
 
+#define NOPAGE		0x40000000	/* undefined bp_next */
 #define cfmt		env_fmt()	/* current formatter */
 #define cwb		env_wb()	/* current word buffer */
 
@@ -32,7 +33,7 @@ static int ren_un;
 static int ren_aborted;		/* .ab executed */
 
 static int bp_first = 1;	/* prior to the first page */
-static int bp_next = 1;		/* next page number */
+static int bp_next = NOPAGE;	/* next page number */
 static int bp_count;		/* number of pages so far */
 static int bp_ejected;		/* current ejected page */
 static int bp_final;		/* 1: executing em, 2: the final page, 3: the 2nd final page */
@@ -113,17 +114,17 @@ static int trap_reg(int pos);
 static int trap_pos(int pos);
 static void trap_exec(int reg);
 
-static void ren_page(int pg, int force)
+static void ren_page(int force)
 {
 	if (!force && bp_final >= 2)
 		return;
 	n_nl = 0;
 	n_d = 0;
 	n_h = 0;
-	n_pg = pg;
-	bp_next = n_pg + 1;
+	n_pg = bp_next != NOPAGE ? bp_next : n_pg + 1;
+	bp_next = NOPAGE;
 	bp_count++;
-	out("p%d\n", pg);
+	out("p%d\n", n_pg);
 	out("V%d\n", 0);
 	if (trap_pos(-1) == 0)
 		trap_exec(trap_reg(-1));
@@ -133,7 +134,7 @@ static int ren_first(void)
 {
 	if (bp_first && !cdiv) {
 		bp_first = 0;
-		ren_page(bp_next, 1);
+		ren_page(1);
 		return 0;
 	}
 	return 1;
@@ -203,7 +204,7 @@ static int detect_pagelimit(int ne)
 static int ren_pagelimit(int ne)
 {
 	if (detect_pagelimit(ne)) {
-		ren_page(bp_next, 0);
+		ren_page(0);
 		return 1;
 	}
 	return 0;
@@ -473,7 +474,7 @@ static void ren_ejectpage(int br)
 			ren_traps(n_d, n_p, 1);
 		} else {
 			bp_ejected = 0;
-			ren_page(bp_next, 0);
+			ren_page(0);
 		}
 	}
 }
@@ -1012,7 +1013,7 @@ int render(void)
 	render_rec(0);
 	bp_final = 3;
 	if (fmt_morewords(cfmt))
-		ren_page(bp_next, 1);
+		ren_page(1);
 	ren_br();
 	return 0;
 }
