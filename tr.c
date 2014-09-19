@@ -112,11 +112,13 @@ static void read_regname(char *s)
 {
 	int c = cp_next();
 	int n = n_cp ? 2 : NMLEN - 1;
-	while (c == ' ' || c == '\t')
+	while (c == ' ' || c == '\t' || c == c_ni)
 		c = cp_next();
 	while (c >= 0 && c != ' ' && c != '\t' && c != '\n' && --n >= 0) {
 		*s++ = c;
-		c = cp_next();
+		do {
+			c = cp_next();
+		} while (n && c == c_ni);
 	}
 	if (c >= 0)
 		cp_back(c);
@@ -182,6 +184,8 @@ static int read_until(struct sbuf *sbuf, char *stop,
 	char cs[GNLEN], cs2[GNLEN];
 	int c;
 	while ((c = next()) >= 0) {
+		if (c == c_ni)
+			continue;
 		back(c);
 		if (c == '\n')
 			return 1;
@@ -703,7 +707,8 @@ static void arg_string(struct sbuf *sbuf)
 	if (c == '"')
 		c = cp_next();
 	while (c > 0 && c != '\n') {
-		sbuf_add(sbuf, c);
+		if (c != c_ni)
+			sbuf_add(sbuf, c);
 		c = cp_next();
 	}
 	sbuf_add(sbuf, 0);
@@ -783,7 +788,8 @@ static int mkargs_req(char **args, struct sbuf *sbuf)
 		while (c == ' ' || c == '\t')
 			c = cp_next();
 		while (c >= 0 && c != '\n' && c != ' ' && c != '\t') {
-			sbuf_add(sbuf, c);
+			if (c != c_ni)
+				sbuf_add(sbuf, c);
 			c = cp_next();
 		}
 		if (sbuf_len(sbuf) > idx[n])
@@ -844,7 +850,8 @@ static int mkargs_eol(char **args, struct sbuf *sbuf)
 	while (c == ' ')
 		c = cp_next();
 	while (c >= 0 && c != '\n') {
-		sbuf_add(sbuf, c);
+		if (c != c_ni)
+			sbuf_add(sbuf, c);
 		c = cp_next();
 	}
 	cp_copymode(0);

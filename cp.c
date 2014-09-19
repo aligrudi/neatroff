@@ -9,18 +9,27 @@ static int cp_cpmode;		/* disable the interpretation \w and \E */
 static int cp_reqln;		/* a request line; replace \{ with an space */
 static int cp_reqdep;		/* the block depth of current request line */
 
-static void cparg(char *d, int len)
+/* just like cp_next(), but remove c_ni characters */
+static int cp_noninext(void)
 {
 	int c = cp_next();
+	while (c == c_ni)
+		c = cp_next();
+	return c;
+}
+
+static void cparg(char *d, int len)
+{
+	int c = cp_noninext();
 	int i = 0;
 	if (c == '(') {
-		d[i++] = cp_next();
-		d[i++] = cp_next();
+		d[i++] = cp_noninext();
+		d[i++] = cp_noninext();
 	} else if (!n_cp && c == '[') {
-		c = cp_next();
+		c = cp_noninext();
 		while (i < NMLEN - 1 && c >= 0 && c != ']') {
 			d[i++] = c;
-			c = cp_next();
+			c = cp_noninext();
 		}
 	} else {
 		d[i++] = c;
@@ -39,7 +48,7 @@ static int regid(void)
 static void cp_num(void)
 {
 	int id;
-	int c = cp_next();
+	int c = cp_noninext();
 	if (c != '-' && c != '+')
 		cp_back(c);
 	id = regid();
@@ -104,7 +113,7 @@ static void cp_numdef(void)
 {
 	char arg[ILNLEN];
 	char *s;
-	quotednext(arg, cp_next, cp_back);
+	quotednext(arg, cp_noninext, cp_back);
 	s = arg;
 	while (*s && *s != ' ')
 		s++;
@@ -122,7 +131,7 @@ static void cp_cond(void)
 	char *r, *s = arg;
 	char *s1, *s2;
 	int n;
-	quotednext(arg, cp_next, cp_back);
+	quotednext(arg, cp_noninext, cp_back);
 	n = eval_up(&s, '\0');
 	if (charread(&s, delim) < 0)
 		return;
