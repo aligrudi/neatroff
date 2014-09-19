@@ -839,6 +839,7 @@ static int mkargs_eol(char **args, struct sbuf *sbuf)
 {
 	int idx0 = sbuf_len(sbuf);
 	int c;
+	cp_copymode(1);
 	c = cp_next();
 	while (c == ' ')
 		c = cp_next();
@@ -846,6 +847,7 @@ static int mkargs_eol(char **args, struct sbuf *sbuf)
 		sbuf_add(sbuf, c);
 		c = cp_next();
 	}
+	cp_copymode(0);
 	args[0] = sbuf_buf(sbuf) + idx0;
 	return 1;
 }
