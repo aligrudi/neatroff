@@ -211,6 +211,7 @@ static int if_strcmp(int (*next)(void), void (*back)(int))
 	sbuf_init(&s2);
 	read_until(&s1, delim, next, back);
 	read_until(&s2, delim, next, back);
+	cp_reqbeg();
 	ret = !strcmp(sbuf_buf(&s1), sbuf_buf(&s2));
 	sbuf_done(&s1);
 	sbuf_done(&s2);
@@ -982,7 +983,7 @@ int tr_nextreq(void)
 	args[0] = cmd;
 	cmd[0] = c;
 	req = NULL;
-	cp_reqline();
+	cp_reqbeg();
 	read_regname(cmd + 1);
 	sbuf_init(&sbuf);
 	req = str_dget(map(cmd + 1));

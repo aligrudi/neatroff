@@ -5,8 +5,7 @@
 #include "roff.h"
 
 static int cp_blkdep;		/* input block depth (text in \{ and \}) */
-static int cp_cpmode;		/* disable the interpretation \w and \E */
-static int cp_reqln;		/* a request line; replace \{ with an space */
+static int cp_cpmode;		/* disable the interpretation of \w and \E */
 static int cp_reqdep;		/* the block depth of current request line */
 
 /* just like cp_next(), but remove c_ni characters */
@@ -178,19 +177,18 @@ static int cp_raw(void)
 			in_back('');
 			return c_ni;
 		}
+		/* replace \{ and \} with a space if not in copy mode */
 		if (c == '}' && !cp_cpmode) {
 			cp_blkdep--;
-			return cp_raw();
+			return ' ';
 		}
 		if (c == '{' && !cp_cpmode) {
 			cp_blkdep++;
-			return cp_reqln ? ' ' : cp_raw();
+			return ' ';
 		}
 		in_back(c);
 		return c_ec;
 	}
-	if (c == '\n')
-		cp_reqln = 0;
 	return c;
 }
 
@@ -246,7 +244,7 @@ void cp_blk(int skip)
 		int c = cp_next();
 		while ((c == ' ' || c == '\t'))
 			c = cp_next();
-		/* push back if the space is not inserted because of cp_reqln */
+		/* push back if the space is not inserted due to \{ and \} */
 		if (c != ' ' && c != '\t')
 			cp_back(c);
 	}
@@ -257,9 +255,8 @@ void cp_copymode(int mode)
 	cp_cpmode = mode;
 }
 
-/* beginning of a request line; replace \{ with a space until an EOL */
-void cp_reqline(void)
+/* beginning of a request; save current cp_blkdep */
+void cp_reqbeg(void)
 {
-	cp_reqln = 1;
 	cp_reqdep = cp_blkdep;
 }

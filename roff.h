@@ -202,7 +202,7 @@ char *in_filename(void);	/* current filename */
 int in_lnum(void);		/* current line number */
 
 void cp_blk(int skip);		/* skip or read the next line or block */
-void cp_reqline(void);		/* beginning of a request line */
+void cp_reqbeg(void);		/* beginning of a request line */
 void cp_copymode(int mode);	/* do not interpret \w and \E */
 #define cp_back		in_back	/* cp.c is stateless */
 int tr_nextreq(void);		/* read the next troff request */
