@@ -144,6 +144,7 @@ static int ren_first(void)
 static void ren_sp(int n, int nodiv)
 {
 	ren_first();
+	n_ns = 0;
 	/* ignore .sp without arguments when reading diversions */
 	if (!n && ren_div && !n_u)
 		return;
@@ -315,9 +316,9 @@ static int ren_line(char *line, int w, int ad, int body,
 	sbuf_init(&send);
 	lspc = MAX(1, n_L) * n_v;	/* line space, ignoreing \x */
 	prev_d = n_d;
-	if (els_neg)
-		ren_sp(-els_neg, 1);
 	if (!n_ns || line[0] || els_neg || els_pos) {
+		if (els_neg)
+			ren_sp(-els_neg, 1);
 		ren_sp(0, 0);
 		if (line[0] && n_nm && body)
 			ren_lnum(&sbeg);
@@ -326,11 +327,11 @@ static int ren_line(char *line, int w, int ad, int body,
 			ren_mc(&send, w, ljust);
 		ren_out(sbuf_buf(&sbeg), line, sbuf_buf(&send));
 		n_ns = 0;
+		if (els_pos)
+			ren_sp(els_pos, 1);
 	}
 	sbuf_done(&sbeg);
 	sbuf_done(&send);
-	if (els_pos)
-		ren_sp(els_pos, 1);
 	n_a = els_pos;
 	if (detect_traps(prev_d, n_d) || detect_pagelimit(lspc - n_v)) {
 		if (!ren_pagelimit(lspc - n_v))
