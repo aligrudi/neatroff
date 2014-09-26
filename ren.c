@@ -110,6 +110,14 @@ void tr_divend(char **args)
 	ren_div--;
 }
 
+void tr_transparent(char **args)
+{
+	if (cdiv)
+		sbuf_printf(&cdiv->sbuf, "%s\n", args[1]);
+	else
+		out("%s\n", args[1]);
+}
+
 static int trap_reg(int pos);
 static int trap_pos(int pos);
 static void trap_exec(int reg);
@@ -160,6 +168,7 @@ static void ren_sp(int n, int nodiv)
 }
 
 static int render_rec(int level);
+
 static void trap_exec(int reg)
 {
 	char cmd[16];
@@ -251,14 +260,6 @@ static void ren_out(char *beg, char *mid, char *end)
 		out_line(mid);
 		out_line(end);
 	}
-}
-
-static void ren_transparent(char *s)
-{
-	if (cdiv)
-		sbuf_printf(&cdiv->sbuf, "%s\n", s);
-	else
-		out("%s\n", s);
 }
 
 static int zwid(void)
@@ -703,8 +704,7 @@ static void ren_tab(struct wb *wb, char *tc, int (*next)(void), void (*back)(int
 static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int))
 {
 	char arg[ILNLEN];
-	char *s;
-	int w, n;
+	int w;
 	if (c[0] == ' ' || c[0] == '\n') {
 		wb_put(wb, c);
 		return;
@@ -724,20 +724,7 @@ static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int)
 			wb_hmov(wb, w - wb_wid(wb));
 			return;
 		}
-		if (c[1] == '!') {
-			if (ren_nl && next == ren_next) {
-				s = arg;
-				n = next();
-				while (n >= 0 && n != '\n') {
-					*s++ = n;
-					n = next();
-				}
-				*s = '\0';
-				ren_transparent(arg);
-			}
-			return;
-		}
-		if (strchr(" bCcDdefHhkLlmNoprSsuvXxZz0^|{}&/,", c[1])) {
+		if (strchr(" bCcDdefHhkLlmNoprSsuvXxZz0^|!{}&/,", c[1])) {
 			arg[0] = '\0';
 			if (strchr(ESC_P, c[1]))
 				unquotednext(arg, c[1], next, back);

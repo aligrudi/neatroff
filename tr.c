@@ -977,6 +977,20 @@ int tr_nextreq(void)
 	if (!tr_nl)
 		return 1;
 	c = cp_next();
+	if (c == c_ec) {
+		int c2 = cp_next();
+		if (c2 == '!') {
+			args[0] = "\\!";
+			sbuf_init(&sbuf);
+			cp_copymode(1);
+			mkargs_eol(args + 1, &sbuf);
+			cp_copymode(0);
+			tr_transparent(args);
+			sbuf_done(&sbuf);
+			return 0;
+		}
+		cp_back(c2);
+	}
 	if (c < 0 || (c != c_cc && c != c_c2)) {
 		cp_back(c);
 		return 1;

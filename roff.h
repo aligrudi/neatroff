@@ -373,6 +373,7 @@ void tr_ta(char **args);
 void tr_ti(char **args);
 void tr_wh(char **args);
 void tr_popren(char **args);
+void tr_transparent(char **args);
 
 void tr_init(void);
 int tr_readargs(char **args, struct sbuf *sbuf,
