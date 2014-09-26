@@ -9,7 +9,7 @@ struct inbuf {
 	FILE *fin;
 	char *buf;		/* for string buffers */
 	char **args;
-	int unbuf[8];		/* unread characters */
+	int unbuf[32];		/* unread characters */
 	int un;			/* number of unread characters */
 	int pos;
 	int len;
@@ -127,7 +127,7 @@ void in_back(int c)
 {
 	if (c < 0)
 		return;
-	if (buf)
+	if (buf && buf->un < sizeof(buf->unbuf))
 		buf->unbuf[buf->un++] = c;
 }
 
