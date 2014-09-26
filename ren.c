@@ -72,7 +72,6 @@ void tr_di(char **args)
 		n_mk = 0;
 		n_ns = 0;
 	} else if (cdiv) {
-		sbuf_putnl(&cdiv->sbuf);
 		sbuf_printf(&cdiv->sbuf, "%c%s\n", c_cc, TR_DIVEND);
 		str_set(cdiv->reg, sbuf_buf(&cdiv->sbuf));
 		sbuf_done(&cdiv->sbuf);
@@ -159,12 +158,10 @@ static void ren_sp(int n, int nodiv)
 	n_d += n ? n : n_v;
 	if (n_d > n_h)
 		n_h = n_d;
-	if (cdiv && !nodiv) {
-		sbuf_putnl(&cdiv->sbuf);
+	if (cdiv && !nodiv)
 		sbuf_printf(&cdiv->sbuf, "%csp %du\n", c_cc, n ? n : n_v);
-	} else {
+	else
 		n_nl = n_d;
-	}
 }
 
 static int render_rec(int level);
@@ -253,6 +250,7 @@ static void ren_out(char *beg, char *mid, char *end)
 		sbuf_append(&cdiv->sbuf, beg);
 		sbuf_append(&cdiv->sbuf, mid);
 		sbuf_append(&cdiv->sbuf, end);
+		sbuf_append(&cdiv->sbuf, "\n");
 	} else {
 		out("H%d\n", n_o);
 		out("V%d\n", n_d);

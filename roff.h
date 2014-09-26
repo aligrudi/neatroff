@@ -220,7 +220,6 @@ char *sbuf_buf(struct sbuf *sbuf);
 void sbuf_add(struct sbuf *sbuf, int c);
 void sbuf_append(struct sbuf *sbuf, char *s);
 void sbuf_printf(struct sbuf *sbuf, char *s, ...);
-void sbuf_putnl(struct sbuf *sbuf);
 void sbuf_cut(struct sbuf *sbuf, int n);
 int sbuf_len(struct sbuf *sbuf);
 int sbuf_empty(struct sbuf *sbuf);

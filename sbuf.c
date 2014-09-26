@@ -49,12 +49,6 @@ void sbuf_printf(struct sbuf *sbuf, char *s, ...)
 	sbuf_append(sbuf, buf);
 }
 
-void sbuf_putnl(struct sbuf *sbuf)
-{
-	if (sbuf->n && sbuf->s[sbuf->n - 1] != '\n')
-		sbuf_add(sbuf, '\n');
-}
-
 int sbuf_empty(struct sbuf *sbuf)
 {
 	return !sbuf->n;
