@@ -24,6 +24,7 @@ struct div {
 static struct div divs[NPREV];	/* diversion stack */
 static struct div *cdiv;	/* current diversion */
 static int ren_div;		/* rendering a diversion */
+static int ren_divvs;		/* the amount of .v in diversions */
 static int trap_em = -1;	/* end macro */
 
 static int ren_nl;		/* just after a newline */
@@ -109,6 +110,11 @@ void tr_divend(char **args)
 	ren_div--;
 }
 
+void tr_divvs(char **args)
+{
+	ren_divvs = eval(args[1], 'u');
+}
+
 void tr_transparent(char **args)
 {
 	if (cdiv)
@@ -151,16 +157,16 @@ static int ren_first(void)
 static void ren_sp(int n, int nodiv)
 {
 	ren_first();
+	if (!n && ren_div && ren_divvs && !n_u)
+		n = ren_divvs;	/* .v at the time of diversion */
+	ren_divvs = 0;
 	n_ns = 0;
-	/* ignore .sp without arguments when reading diversions */
-	if (!n && ren_div && !n_u)
-		return;
 	n_d += n ? n : n_v;
 	if (n_d > n_h)
 		n_h = n_d;
 	if (cdiv && !nodiv)
-		sbuf_printf(&cdiv->sbuf, "%csp %du\n", c_cc, n ? n : n_v);
-	else
+		sbuf_printf(&cdiv->sbuf, "%c%s %du\n", c_cc, TR_DIVVS, n_v);
+	if (!cdiv)
 		n_nl = n_d;
 }
 

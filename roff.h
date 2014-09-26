@@ -343,6 +343,7 @@ void tr_cl(char **args);
 void tr_di(char **args);
 void tr_divbeg(char **args);
 void tr_divend(char **args);
+void tr_divvs(char **args);
 void tr_dt(char **args);
 void tr_em(char **args);
 void tr_ev(char **args);
@@ -403,6 +404,7 @@ void sstr_back(int c);
 /* internal commands */
 #define TR_DIVBEG	"\07<"	/* diversion begins */
 #define TR_DIVEND	"\07>"	/* diversion ends */
+#define TR_DIVVS	"\07V"	/* the amount of \n(.v inside diversions */
 #define TR_POPREN	"\07P"	/* exit render_rec() */
 
 /* mapping register, macro and environment names to indices */

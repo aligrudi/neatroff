@@ -869,6 +869,7 @@ static struct cmd {
 } cmds[] = {
 	{TR_DIVBEG, tr_divbeg},
 	{TR_DIVEND, tr_divend},
+	{TR_DIVVS, tr_divvs},
 	{TR_POPREN, tr_popren},
 	{"ab", tr_ab, mkargs_eol},
 	{"ad", tr_ad},
