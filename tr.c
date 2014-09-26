@@ -144,7 +144,9 @@ static void macrobody(struct sbuf *sbuf, char *end)
 			read_regname(buf);
 			if ((n_cp && end[0] == buf[0] && end[1] == buf[1]) ||
 						!strcmp(end, buf)) {
-				jmp_eol();
+				for (i = strlen(buf) - 1; i >= 0; i--)
+					cp_back((unsigned char) buf[i]);
+				cp_back('.');
 				break;
 			}
 			if (sbuf) {
