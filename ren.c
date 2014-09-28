@@ -233,7 +233,7 @@ static int down(int n)
 {
 	if (ren_traps(n_d, n_d + (n ? n : n_v), 1))
 		return 1;
-	ren_sp(n, 0);
+	ren_sp(MAX(n, -n_d), 0);
 	return ren_pagelimit(0);
 }
 
