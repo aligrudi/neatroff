@@ -156,6 +156,7 @@ static int ren_first(void)
 /* when nodiv, do not append .sp to diversions */
 static void ren_sp(int n, int nodiv)
 {
+	int linevs = !n;	/* the vertical spacing before a line */
 	ren_first();
 	if (!n && ren_div && ren_divvs && !n_u)
 		n = ren_divvs;	/* .v at the time of diversion */
@@ -164,8 +165,12 @@ static void ren_sp(int n, int nodiv)
 	n_d += n ? n : n_v;
 	if (n_d > n_h)
 		n_h = n_d;
-	if (cdiv && !nodiv)
-		sbuf_printf(&cdiv->sbuf, "%c%s %du\n", c_cc, TR_DIVVS, n_v);
+	if (cdiv && !nodiv) {
+		if (linevs)
+			sbuf_printf(&cdiv->sbuf, "%c%s %du\n", c_cc, TR_DIVVS, n_v);
+		else
+			sbuf_printf(&cdiv->sbuf, "%csp %du\n", c_cc, n ? n : n_v);
+	}
 	if (!cdiv)
 		n_nl = n_d;
 }
