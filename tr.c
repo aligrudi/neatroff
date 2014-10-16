@@ -424,6 +424,11 @@ static void tr_hyp(char **args)
 	n_hyp = args[1] ? atoi(args[1]) : 1;
 }
 
+static void tr_pmll(char **args)
+{
+	n_pmll = args[1] ? atoi(args[1]) : 0;
+}
+
 static void tr_lg(char **args)
 {
 	if (args[1])
@@ -942,6 +947,7 @@ static struct cmd {
 	{"os", tr_os},
 	{"pc", tr_pc},
 	{"pl", tr_pl},
+	{"pmll", tr_pmll},
 	{"pn", tr_pn},
 	{"po", tr_po},
 	{"ps", tr_ps},

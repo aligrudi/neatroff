@@ -374,16 +374,18 @@ static int ren_passline(struct fmt *fmt)
 }
 
 /* output formatted lines in fmt */
-static void ren_fmtpop(struct fmt *fmt)
+static int ren_fmtpop(struct fmt *fmt)
 {
+	int ret = 0;
 	while (fmt_morelines(fmt))
-		ren_passline(fmt);
+		ret = ren_passline(fmt);
+	return ret;
 }
 
 /* format and output all lines in fmt */
 static void ren_fmtpopall(struct fmt *fmt)
 {
-	while (fmt_fill(fmt))
+	while (fmt_fill(fmt, 0))
 		ren_fmtpop(fmt);
 	ren_fmtpop(fmt);
 }
@@ -401,17 +403,17 @@ static int ren_br(void)
 {
 	ren_first();
 	ren_fmtword(cwb);
-	ren_fmtpopall(cfmt);
-	while (fmt_br(cfmt))
+	while (fmt_fill(cfmt, 1))
 		ren_fmtpop(cfmt);
-	return ren_passline(cfmt);
+	return ren_fmtpop(cfmt);
 }
 
 void tr_br(char **args)
 {
-	ren_fmtpopall(cfmt);	/* output the completed lines first */
 	if (args[0][0] == c_cc)
 		ren_br();
+	else
+		ren_fmtpopall(cfmt);	/* output the completed lines */
 }
 
 void tr_sp(char **args)

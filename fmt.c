@@ -20,6 +20,8 @@
 #define FMT_FILL(f)	(!n_ce && n_u)
 #define FMT_ADJ(f)	(n_u && !n_na && !n_ce && (n_j & AD_B) == AD_B)
 
+static int fmt_fillwords(struct fmt *f, int br);
+
 struct word {
 	char *s;
 	int wid;	/* word's width */
@@ -171,30 +173,57 @@ static struct line *fmt_mkline(struct fmt *f)
 	return l;
 }
 
+static int fmt_extractline(struct fmt *f, int beg, int end, int llen, int spread)
+{
+	int fmt_div, fmt_rem;
+	int w, i, nspc;
+	struct line *l;
+	if (!(l = fmt_mkline(f)))
+		return 1;
+	w = fmt_wordslen(f, beg, end);
+	nspc = fmt_spaces(f, beg, end);
+	/* stretch if (spread & 1) and shrink if (spread & 2) */
+	if (nspc && ((spread & 1 && w < llen) || (spread & 2 && w > llen))) {
+		fmt_div = (llen - w) / nspc;
+		fmt_rem = (llen - w) % nspc;
+		if (fmt_rem < 0) {
+			fmt_div--;
+			fmt_rem += nspc;
+		}
+		for (i = beg + 1; i < end; i++)
+			if (f->words[i].str)
+				f->words[i].gap += fmt_div + (fmt_rem-- > 0);
+	}
+	l->wid = fmt_wordscopy(f, beg, end, &l->sbuf, &l->elsn, &l->elsp);
+	return 0;
+}
+
 static int fmt_sp(struct fmt *f)
 {
-	struct line *l;
-	if (fmt_fill(f))
+	if (fmt_fillwords(f, 1))
 		return 1;
-	l = fmt_mkline(f);
-	if (!l)
+	if (fmt_extractline(f, 0, f->nwords, FMT_LLEN(f) * n_pmll / 100,
+			FMT_ADJ(f) && (n_j & AD_P) == AD_P) ? 1 : 0)
 		return 1;
 	f->filled = 0;
 	f->nls--;
 	f->nls_sup = 0;
-	l->wid = fmt_wordscopy(f, 0, f->nwords, &l->sbuf, &l->elsn, &l->elsp);
 	f->nwords = 0;
 	f->fillreq = 0;
 	return 0;
 }
 
-int fmt_br(struct fmt *f)
+/* fill as many lines as possible; if br, put the remaining words in a line */
+int fmt_fill(struct fmt *f, int br)
 {
-	if (fmt_fill(f))
+	if (fmt_fillwords(f, br))
 		return 1;
-	f->filled = 0;
-	if (f->nwords)
-		fmt_sp(f);
+	if (br) {
+		f->filled = 0;
+		if (f->nwords)
+			if (fmt_sp(f))
+				return 1;
+	}
 	return 0;
 }
 
@@ -224,7 +253,7 @@ int fmt_newline(struct fmt *f)
 int fmt_fillreq(struct fmt *f)
 {
 	if (f->fillreq > 0)
-		if (fmt_fill(f))
+		if (fmt_fillwords(f, 0))
 			return 1;
 	f->fillreq = f->nwords + 1;
 	return 0;
@@ -314,7 +343,7 @@ int fmt_word(struct fmt *f, struct wb *wb)
 	if (wb_empty(wb))
 		return 0;
 	if (f->nwords + NHYPHSWORD >= NWORDS || fmt_confchanged(f))
-		if (fmt_fill(f))
+		if (fmt_fillwords(f, 0))
 			return 1;
 	if (FMT_FILL(f) && f->nls && f->gap)
 		if (fmt_sp(f))
@@ -331,9 +360,13 @@ int fmt_word(struct fmt *f, struct wb *wb)
 	return 0;
 }
 
-/* assuming an empty line has cost 10000; take care of integer overflow */
-#define POW2(x)				((x) * (x))
-#define FMT_COST(lwid, llen, pen)	(POW2(((llen) - (lwid)) * 1000l / (llen)) / 100l + (pen) * 10l)
+/* assuming an empty line has cost 1000; takes care of integer overflow */
+#define POW2(x)			((x) * (x))
+/* the cost of putting lwid words in a line of length llen */
+#define FMT_COST(lwid, llen)	(POW2(((llen) - (lwid)) * 1000l / (llen)) / 1000l)
+/* the cost of formatting last lines; should prevent widows */
+#define FMT_LCOST(lwid, llen)	(n_pmll && (lwid) < (llen) * n_pmll / 100 ? \
+		FMT_COST((lwid) * 100 / (n_pmll), (llen)) : 0)
 
 /* the cost of putting a line break before word pos */
 static long fmt_findcost(struct fmt *f, int pos)
@@ -362,7 +395,7 @@ static long fmt_findcost(struct fmt *f, int pos)
 		if (lwid - (swid * n_ssh / 100) > llen)
 			if (pos - i > 1)
 				break;
-		cur = fmt_findcost(f, i) + FMT_COST(lwid, llen, pen);
+		cur = fmt_findcost(f, i) + FMT_COST(lwid, llen) + pen;
 		if (f->best_pos[pos] < 0 || cur < f->best[pos]) {
 			f->best_pos[pos] = i;
 			f->best_dep[pos] = f->best_dep[i] + 1;
@@ -386,10 +419,11 @@ static int fmt_bestdep(struct fmt *f, int pos)
 }
 
 /* return the last filled word */
-static int fmt_breakparagraph(struct fmt *f, int pos)
+static int fmt_breakparagraph(struct fmt *f, int pos, int br)
 {
 	int i;
 	int best = -1;
+	long cost, best_cost = 0;
 	int llen = FMT_LLEN(f);
 	int lwid = 0;
 	if (f->fillreq > 0 && f->fillreq <= f->nwords) {
@@ -410,8 +444,11 @@ static int fmt_breakparagraph(struct fmt *f, int pos)
 			lwid += f->words[i + 1].gap;
 		if (lwid > llen && i + 1 < pos)
 			break;
-		if (best < 0 || fmt_findcost(f, i) < fmt_findcost(f, best))
+		cost = fmt_findcost(f, i) + (br ? FMT_LCOST(lwid, llen) : 0);
+		if (best < 0 || cost < best_cost) {
 			best = i;
+			best_cost = cost;
+		}
 		i--;
 	}
 	return best;
@@ -449,32 +486,13 @@ static int fmt_head(struct fmt *f, int nreq, int pos)
 /* break f->words[0..end] into lines according to fmt_bestpos() */
 static int fmt_break(struct fmt *f, int end)
 {
-	int llen, fmt_div, fmt_rem, beg;
-	int w, i, nspc;
-	struct line *l;
-	int ret = 0;
+	int beg, ret = 0;
 	beg = fmt_bestpos(f, end);
 	if (beg > 0)
 		ret += fmt_break(f, beg);
-	l = fmt_mkline(f);
-	if (!l)
-		return ret;
-	llen = FMT_LLEN(f);
 	f->words[beg].gap = 0;
-	w = fmt_wordslen(f, beg, end);
-	nspc = fmt_spaces(f, beg, end);
-	if (FMT_ADJ(f) && nspc) {
-		fmt_div = (llen - w) / nspc;
-		fmt_rem = (llen - w) % nspc;
-		if (fmt_rem < 0) {
-			fmt_div--;
-			fmt_rem += nspc;
-		}
-		for (i = beg + 1; i < end; i++)
-			if (f->words[i].str)
-				f->words[i].gap += fmt_div + (fmt_rem-- > 0);
-	}
-	l->wid = fmt_wordscopy(f, beg, end, &l->sbuf, &l->elsn, &l->elsp);
+	if (fmt_extractline(f, beg, end, FMT_LLEN(f), FMT_ADJ(f) ? 3 : 0))
+		return ret;
 	if (beg > 0)
 		fmt_confupdate(f);
 	return ret + (end - beg);
@@ -488,7 +506,7 @@ static int fmt_safelines(void)
 }
 
 /* fill the words collected in the buffer */
-int fmt_fill(struct fmt *f)
+static int fmt_fillwords(struct fmt *f, int br)
 {
 	int nreq;	/* the number of lines until a trap */
 	int end;	/* the final line ends before this word */
@@ -509,7 +527,7 @@ int fmt_fill(struct fmt *f)
 	/* resetting positions */
 	for (i = 0; i < f->nwords + 1; i++)
 		f->best_pos[i] = -1;
-	end = fmt_breakparagraph(f, f->nwords);
+	end = fmt_breakparagraph(f, f->nwords, br);
 	if (nreq > 0) {
 		end_head = fmt_head(f, nreq - fmt_nlines(f), end);
 		head = end_head < end;

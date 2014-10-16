@@ -308,8 +308,7 @@ void fmt_suppressnl(struct fmt *fmt);
 int fmt_word(struct fmt *fmt, struct wb *wb);
 int fmt_newline(struct fmt *fmt);
 int fmt_fillreq(struct fmt *f);
-int fmt_br(struct fmt *fmt);
-int fmt_fill(struct fmt *fmt);
+int fmt_fill(struct fmt *fmt, int br);
 int fmt_morelines(struct fmt *fmt);
 int fmt_morewords(struct fmt *fmt);
 int fmt_nextline(struct fmt *fmt, struct sbuf *sbuf, int *w,
@@ -473,6 +472,7 @@ int clr_get(char *s);
 #define n_na		(*nreg(map(".na")))	/* .na mode */
 #define n_ns		(*nreg(map(".ns")))	/* .ns mode */
 #define n_o0		(*nreg(map(".o0")))	/* last .o */
+#define n_pmll		(*nreg(map(".pmll")))	/* minimum last line (.pmll) */
 #define n_ss		(*nreg(map(".ss")))	/* word space (.ss) */
 #define n_sss		(*nreg(map(".sss")))	/* sentence space (.ss) */
 #define n_ssh		(*nreg(map(".ssh")))	/* word space compression (.ssh) */
