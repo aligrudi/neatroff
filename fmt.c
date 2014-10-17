@@ -203,7 +203,7 @@ static int fmt_sp(struct fmt *f)
 	if (fmt_fillwords(f, 1))
 		return 1;
 	if (fmt_extractline(f, 0, f->nwords, FMT_LLEN(f) * n_pmll / 100,
-			FMT_ADJ(f) && (n_j & AD_P) == AD_P) ? 1 : 0)
+			FMT_ADJ(f) && n_j & AD_P))
 		return 1;
 	f->filled = 0;
 	f->nls--;
@@ -360,22 +360,32 @@ int fmt_word(struct fmt *f, struct wb *wb)
 	return 0;
 }
 
-/* assuming an empty line has cost 1000; takes care of integer overflow */
-#define POW2(x)			((x) * (x))
 /* the cost of putting lwid words in a line of length llen */
-#define FMT_COST(lwid, llen)	(POW2(((llen) - (lwid)) * 1000l / (llen)) / 1000l)
+static long FMT_COST(int llen, int lwid, int swid, int nspc)
+{
+	/* the ratio that the stretchable spaces of the line should be spread */
+	long ratio = abs((llen - lwid) * 100l / (swid ? swid : 1));
+	/* assigning a cost of 100 to each space stretching 100 percent */
+	return (ratio < 4000 ? ratio * ratio : 16000000) / 100l * (nspc ? nspc : 4);
+}
+
 /* the cost of formatting last lines; should prevent widows */
-#define FMT_LCOST(lwid, llen)	(n_pmll && (lwid) < (llen) * n_pmll / 100 ? \
-		FMT_COST((lwid) * 100 / (n_pmll), (llen)) : 0)
+static long FMT_LCOST(int llen, int lwid, int swid, int nspc)
+{
+	if (!n_pmll || lwid >= llen * n_pmll / 100)
+		return 0;
+	return FMT_COST(llen, llen * (100 - n_pmll) / 100 + lwid, swid, nspc);
+}
 
 /* the cost of putting a line break before word pos */
 static long fmt_findcost(struct fmt *f, int pos)
 {
 	int i, pen = 0;
 	long cur;
-	int lwid = 0;			/* current line length */
-	int swid = 0;			/* amount of spaces */
 	int llen = MAX(1, FMT_LLEN(f));
+	int lwid = 0;		/* current line length */
+	int swid = 0;		/* amount of stretchable spaces */
+	int nspc = 0;		/* number of stretchable spaces */
 	if (pos <= 0)
 		return 0;
 	if (f->best_pos[pos] >= 0)
@@ -390,12 +400,15 @@ static long fmt_findcost(struct fmt *f, int pos)
 		lwid += f->words[i].wid;
 		if (i + 1 < pos)
 			lwid += f->words[i + 1].gap;
-		if (i + 1 < pos && f->words[i + 1].str)
+		if (i + 1 < pos && f->words[i + 1].str) {
 			swid += f->words[i + 1].gap;
+			nspc++;
+		}
 		if (lwid - (swid * n_ssh / 100) > llen)
 			if (pos - i > 1)
 				break;
-		cur = fmt_findcost(f, i) + FMT_COST(lwid, llen) + pen;
+		cur = fmt_findcost(f, i) + FMT_COST(llen, lwid, swid, nspc) +
+			pen * (nspc ? nspc : 1);
 		if (f->best_pos[pos] < 0 || cur < f->best[pos]) {
 			f->best_pos[pos] = i;
 			f->best_dep[pos] = f->best_dep[i] + 1;
@@ -425,7 +438,9 @@ static int fmt_breakparagraph(struct fmt *f, int pos, int br)
 	int best = -1;
 	long cost, best_cost = 0;
 	int llen = FMT_LLEN(f);
-	int lwid = 0;
+	int lwid = 0;		/* current line length */
+	int swid = 0;		/* amount of stretchable spaces */
+	int nspc = 0;		/* number of stretchable spaces */
 	if (f->fillreq > 0 && f->fillreq <= f->nwords) {
 		fmt_findcost(f, f->fillreq);
 		return f->fillreq;
@@ -442,9 +457,14 @@ static int fmt_breakparagraph(struct fmt *f, int pos, int br)
 		lwid += f->words[i].wid;
 		if (i + 1 < pos)
 			lwid += f->words[i + 1].gap;
+		if (i + 1 < pos && f->words[i + 1].str) {
+			swid += f->words[i + 1].gap;
+			nspc++;
+		}
 		if (lwid > llen && i + 1 < pos)
 			break;
-		cost = fmt_findcost(f, i) + (br ? FMT_LCOST(lwid, llen) : 0);
+		cost = fmt_findcost(f, i) +
+			(br ? FMT_LCOST(llen, lwid, swid, nspc) : 0);
 		if (best < 0 || cost < best_cost) {
 			best = i;
 			best_cost = cost;
