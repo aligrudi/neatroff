@@ -366,7 +366,7 @@ static long FMT_COST(int llen, int lwid, int swid, int nspc)
 	/* the ratio that the stretchable spaces of the line should be spread */
 	long ratio = abs((llen - lwid) * 100l / (swid ? swid : 1));
 	/* assigning a cost of 100 to each space stretching 100 percent */
-	return (ratio < 4000 ? ratio * ratio : 16000000) / 100l * (nspc ? nspc : 4);
+	return (ratio < 4000 ? ratio * ratio : 16000000) / 100l * (nspc ? nspc : 1);
 }
 
 /* the cost of formatting last lines; should prevent widows */
@@ -374,7 +374,7 @@ static long FMT_LCOST(int llen, int lwid, int swid, int nspc)
 {
 	if (!n_pmll || lwid >= llen * n_pmll / 100)
 		return 0;
-	return FMT_COST(llen, llen * (100 - n_pmll) / 100 + lwid, swid, nspc);
+	return FMT_COST(llen * n_pmll / 100, lwid, swid, nspc);
 }
 
 /* the cost of putting a line break before word pos */
