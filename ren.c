@@ -961,7 +961,6 @@ static int render_rec(int level)
 				break;
 			if (bp_final == 0) {
 				bp_final = 1;
-				ren_fmtpopall(cfmt);
 				if (trap_em >= 0)
 					trap_exec(trap_em);
 			} else {
