@@ -311,6 +311,9 @@ static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 		fmt_wb2word(f, &f->words[f->nwords++], wb, 0, 1, gap);
 		return;
 	}
+	/* update f->fillreq considering the new sub-words */
+	if (f->fillreq == f->nwords + 1)
+		f->fillreq += n;
 	wb_init(&wbc);
 	for (i = 0; i <= n; i++) {
 		beg = src + (i > 0 ? hyidx[i - 1] : 0);
@@ -360,13 +363,26 @@ int fmt_word(struct fmt *f, struct wb *wb)
 	return 0;
 }
 
+/* approximate log2(cost) */
+static long scaledown(long cost)
+{
+	long ret = 0;
+	int i;
+	for (i = 0; i < 14; i++)
+		ret += ((cost >> (i * 2)) & 3) << (i + 3);
+	return ret < (1 << 13) ? ret : (1 << 13);
+}
+
 /* the cost of putting lwid words in a line of length llen */
 static long FMT_COST(int llen, int lwid, int swid, int nspc)
 {
 	/* the ratio that the stretchable spaces of the line should be spread */
 	long ratio = abs((llen - lwid) * 100l / (swid ? swid : 1));
+	/* ratio too large; scaling it down */
+	if (ratio > 4000)
+		ratio = 4000 + scaledown(ratio - 4000);
 	/* assigning a cost of 100 to each space stretching 100 percent */
-	return (ratio < 4000 ? ratio * ratio : 16000000) / 100l * (nspc ? nspc : 1);
+	return ratio * ratio / 100l * (nspc ? nspc : 1);
 }
 
 /* the cost of formatting last lines; should prevent widows */
@@ -491,7 +507,7 @@ static int fmt_head(struct fmt *f, int nreq, int pos)
 			fmt_bestdep(f, prev - 1) == nreq)
 		prev--;
 	while (next < pos && f->words[next - 1].hy &&
-			fmt_bestdep(f, next + 1) == nreq)
+			fmt_bestdep(f, next) == nreq)
 		next++;
 	/* choosing the best of them */
 	if (!f->words[prev - 1].hy && !f->words[next - 1].hy)
