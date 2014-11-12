@@ -6,7 +6,7 @@
 #include "roff.h"
 
 static int tr_nl = 1;		/* just read a newline */
-static int c_pc = '%';		/* page number character */
+int c_pc = '%';			/* page number character */
 int c_ec = '\\';
 int c_cc = '.';
 int c_c2 = '\'';
@@ -359,16 +359,6 @@ static void tr_pc(char **args)
 	c_pc = args[1] ? args[1][0] : -1;
 }
 
-static int tl_next(void)
-{
-	int c = cp_next();
-	if (c >= 0 && c == c_pc) {
-		in_push(num_str(map("%")), NULL);
-		c = cp_next();
-	}
-	return c;
-}
-
 static void tr_tl(char **args)
 {
 	int c;
@@ -376,7 +366,7 @@ static void tr_tl(char **args)
 		c = cp_next();
 	} while (c >= 0 && (c == ' ' || c == '\t'));
 	cp_back(c);
-	ren_tl(tl_next, cp_back);
+	ren_tl(cp_next, cp_back);
 	do {
 		c = cp_next();
 	} while (c >= 0 && c != '\n');

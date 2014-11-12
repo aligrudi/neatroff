@@ -810,8 +810,8 @@ int ren_wid(int (*next)(void), void (*back)(int))
 }
 
 /* return 1 if d1 was read and 2 if d2 was read */
-static int ren_until(struct wb *wb, char *d1, char *d2,
-			int (*next)(void), void (*back)(int))
+static int ren_until(struct wb *wb, int (*next)(void), void (*back)(int),
+			char *d1, char *d2)
 {
 	int c, ret;
 	c = next();
@@ -827,6 +827,19 @@ static int ren_until(struct wb *wb, char *d1, char *d2,
 	return 0;
 }
 
+/* like ren_until(); map src to dst */
+static int ren_untilmap(struct wb *wb, int (*next)(void), void (*back)(int),
+			char *end, char *src, char *dst)
+{
+	int ret;
+	while ((ret = ren_until(wb, next, back, src, end)) == 1) {
+		sstr_push(dst);
+		ren_until(wb, sstr_next, sstr_back, end, NULL);
+		sstr_pop();
+	}
+	return 0;
+}
+
 static void wb_cpy(struct wb *dst, struct wb *src, int left)
 {
 	wb_hmov(dst, left - wb_wid(dst));
@@ -836,6 +849,8 @@ static void wb_cpy(struct wb *dst, struct wb *src, int left)
 void ren_tl(int (*next)(void), void (*back)(int))
 {
 	struct wb wb, wb2;
+	char src[4] = {c_pc};
+	char *dst = num_str(map("%"));
 	char delim[GNLEN];
 	wb_init(&wb);
 	wb_init(&wb2);
@@ -843,13 +858,13 @@ void ren_tl(int (*next)(void), void (*back)(int))
 	if (!strcmp("\n", delim))
 		back('\n');
 	/* the left-adjusted string */
-	ren_until(&wb2, delim, NULL, next, back);
+	ren_untilmap(&wb2, next, back, delim, src, dst);
 	wb_cpy(&wb, &wb2, 0);
 	/* the centered string */
-	ren_until(&wb2, delim, NULL, next, back);
+	ren_untilmap(&wb2, next, back, delim, src, dst);
 	wb_cpy(&wb, &wb2, (n_lt - wb_wid(&wb2)) / 2);
 	/* the right-adjusted string */
-	ren_until(&wb2, delim, NULL, next, back);
+	ren_untilmap(&wb2, next, back, delim, src, dst);
 	wb_cpy(&wb, &wb2, n_lt - wb_wid(&wb2));
 	/* flushing the line */
 	ren_line(wb_buf(&wb), wb_wid(&wb), AD_L, 0,
@@ -867,7 +882,7 @@ static void ren_field(struct wb *wb, int (*next)(void), void (*back)(int))
 	int pad, rem;
 	while (n < LEN(wbs)) {
 		wb_init(&wbs[n]);
-		if (ren_until(&wbs[n++], c_fb, c_fa, next, back) != 1)
+		if (ren_until(&wbs[n++], next, back, c_fb, c_fa) != 1)
 			break;
 	}
 	left = wb == cwb ? f_hpos() : wb_wid(wb);
