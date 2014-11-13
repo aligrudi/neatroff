@@ -439,9 +439,9 @@ int wb_empty(struct wb *wb)
 int wb_eos(struct wb *wb)
 {
 	int i = wb->sub_n - 1;
-	while (i > 0 && strchr("'\")]*", wb->sub_c[i][0]))
+	while (i > 0 && c_eostran(wb->sub_c[i]))
 		i--;
-	return i >= 0 && strchr(".?!", wb->sub_c[i][0]);
+	return i >= 0 && c_eossent(wb->sub_c[i]);
 }
 
 void wb_wconf(struct wb *wb, int *ct, int *st, int *sb,

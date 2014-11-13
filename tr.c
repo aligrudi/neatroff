@@ -401,6 +401,48 @@ static void tr_hc(char **args)
 		strcpy(c_hc, "\\%");
 }
 
+/* sentence ending and their transparent characters */
+static char eos_sentc[NEOS][GNLEN] = { ".", "?", "!", };
+static int eos_sents = 3;
+static char eos_tranc[NEOS][GNLEN] = { "'", "\"", ")", "]", "*", };
+static int eos_trans = 5;
+
+static void tr_eos(char **args)
+{
+	eos_sents = 0;
+	eos_trans = 0;
+	if (args[1]) {
+		char *s = args[1];
+		while (s && charread(&s, eos_sentc[eos_sents]) >= 0)
+			if (eos_sents < NEOS - 1)
+				eos_sents++;
+	}
+	if (args[2]) {
+		char *s = args[2];
+		while (s && charread(&s, eos_tranc[eos_trans]) >= 0)
+			if (eos_trans < NEOS - 1)
+				eos_trans++;
+	}
+}
+
+int c_eossent(char *s)
+{
+	int i;
+	for (i = 0; i < eos_sents; i++)
+		if (!strcmp(eos_sentc[i], s))
+			return 1;
+	return 0;
+}
+
+int c_eostran(char *s)
+{
+	int i;
+	for (i = 0; i < eos_trans; i++)
+		if (!strcmp(eos_tranc[i], s))
+			return 1;
+	return 0;
+}
+
 static void tr_nh(char **args)
 {
 	n_hy = 0;
@@ -895,6 +937,7 @@ static struct cmd {
 	{"el", tr_el, mkargs_null},
 	{"em", tr_em},
 	{"eo", tr_eo},
+	{"eos", tr_eos},
 	{"ev", tr_ev},
 	{"ex", tr_ex},
 	{"fc", tr_fc},
