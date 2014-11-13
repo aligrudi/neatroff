@@ -363,7 +363,7 @@ int fmt_word(struct fmt *f, struct wb *wb)
 	return 0;
 }
 
-/* approximate log2(cost) */
+/* approximate 8 * sqrt(cost) */
 static long scaledown(long cost)
 {
 	long ret = 0;
