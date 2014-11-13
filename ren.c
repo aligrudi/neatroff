@@ -849,22 +849,23 @@ static void wb_cpy(struct wb *dst, struct wb *src, int left)
 void ren_tl(int (*next)(void), void (*back)(int))
 {
 	struct wb wb, wb2;
-	char src[4] = {c_pc};
-	char *dst = num_str(map("%"));
+	char *pgnum;
 	char delim[GNLEN];
+	ren_first();
+	pgnum = num_str(map("%"));
 	wb_init(&wb);
 	wb_init(&wb2);
 	charnext(delim, next, back);
 	if (!strcmp("\n", delim))
 		back('\n');
 	/* the left-adjusted string */
-	ren_untilmap(&wb2, next, back, delim, src, dst);
+	ren_untilmap(&wb2, next, back, delim, c_pc, pgnum);
 	wb_cpy(&wb, &wb2, 0);
 	/* the centered string */
-	ren_untilmap(&wb2, next, back, delim, src, dst);
+	ren_untilmap(&wb2, next, back, delim, c_pc, pgnum);
 	wb_cpy(&wb, &wb2, (n_lt - wb_wid(&wb2)) / 2);
 	/* the right-adjusted string */
-	ren_untilmap(&wb2, next, back, delim, src, dst);
+	ren_untilmap(&wb2, next, back, delim, c_pc, pgnum);
 	wb_cpy(&wb, &wb2, n_lt - wb_wid(&wb2));
 	/* flushing the line */
 	ren_line(wb_buf(&wb), wb_wid(&wb), AD_L, 0,

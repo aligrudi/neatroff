@@ -69,7 +69,7 @@
 extern int c_ec;	/* escape character (\) */
 extern int c_cc;	/* basic control character (.) */
 extern int c_c2;	/* no-break control character (') */
-extern int c_pc;	/* page number character */
+extern char c_pc[];	/* page number character (%) */
 #define c_ni	4	/* non-interpreted copy-mode escape */
 #define c_hc	env_hc()/* hyphenation character */
 #define c_mc	env_mc()/* margin character (.mc) */

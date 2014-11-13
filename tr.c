@@ -6,10 +6,10 @@
 #include "roff.h"
 
 static int tr_nl = 1;		/* just read a newline */
-int c_pc = '%';			/* page number character */
-int c_ec = '\\';
-int c_cc = '.';
-int c_c2 = '\'';
+char c_pc[GNLEN] = "%";		/* page number character */
+int c_ec = '\\';		/* escape character */
+int c_cc = '.';			/* control character */
+int c_c2 = '\'';		/* no-break control character */
 
 /* skip everything until the end of line */
 static void jmp_eol(void)
@@ -356,7 +356,9 @@ static void tr_lt(char **args)
 
 static void tr_pc(char **args)
 {
-	c_pc = args[1] ? args[1][0] : -1;
+	char *s = args[1];
+	if (!s || charread(&s, c_pc) < 0)
+		strcpy(c_pc, "");
 }
 
 static void tr_tl(char **args)
