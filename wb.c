@@ -159,7 +159,7 @@ static void wb_putbuf(struct wb *wb, char *c)
 	}
 }
 
-int c_isdash(char *c)
+int c_dash(char *c)
 {
 	return !strcmp("-", c) || !strcmp("em", c) || !strcmp("hy", c);
 }
@@ -177,7 +177,7 @@ static int wb_hyph(char src[][GNLEN], int src_n, char *src_hyph, int flg)
 	for (i = 0; i < src_n; i++) {
 		s = src[i];
 		smap[i] = d - word;
-		if (c_isdash(s) || !strcmp(c_hc, s))
+		if (c_dash(s) || !strcmp(c_hc, s))
 			return 1;
 		if (!strcmp(c_bp, s))
 			continue;

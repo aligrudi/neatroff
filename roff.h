@@ -276,7 +276,7 @@ char *wb_buf(struct wb *wb);
 void wb_fnszget(struct wb *wb, int *fn, int *sz, int *m);
 void wb_fnszset(struct wb *wb, int fn, int sz, int m);
 int wb_dashwid(struct wb *wb);
-int c_isdash(char *c);
+int c_dash(char *c);
 
 /* character translation (.tr) */
 void cmap_add(char *c1, char *c2);

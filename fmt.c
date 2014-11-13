@@ -288,7 +288,7 @@ static int fmt_hyphmarks(char *word, int *hyidx, int *hyins)
 			hyins[n] = 1;
 			hyidx[n++] = s - word;
 		}
-		if (!c && (!strcmp(c_bp, d) || c_isdash(d))) {
+		if (!c && (!strcmp(c_bp, d) || c_dash(d))) {
 			hyins[n] = 0;
 			hyidx[n++] = s - word;
 		}
