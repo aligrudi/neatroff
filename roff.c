@@ -25,7 +25,7 @@ void errdie(char *msg)
 	exit(1);
 }
 
-void *mextend(void *old, int oldsz, int newsz, int memsz)
+void *mextend(void *old, long oldsz, long newsz, int memsz)
 {
 	void *new = xmalloc(newsz * memsz);
 	memcpy(new, old, oldsz * memsz);

@@ -378,7 +378,7 @@ int tr_readargs(char **args, struct sbuf *sbuf,
 void errmsg(char *msg, ...);
 void errdie(char *msg);
 void *xmalloc(long len);
-void *mextend(void *old, int oldsz, int newsz, int memsz);
+void *mextend(void *old, long oldsz, long newsz, int memsz);
 /* utf-8 parsing */
 int utf8len(int c);
 int utf8next(char *s, int (*next)(void));
