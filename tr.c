@@ -607,27 +607,27 @@ static void tr_chop(char **args)
 }
 
 /* character translation (.tr) */
-static struct dict cmap;		/* character mapping */
+static struct dict *cmap;		/* character mapping */
 static char cmap_src[NCMAPS][GNLEN];	/* source character */
 static char cmap_dst[NCMAPS][GNLEN];	/* character mapping */
 static int cmap_n;			/* number of translated character */
 
 void cmap_add(char *c1, char *c2)
 {
-	int i = dict_get(&cmap, c1);
+	int i = dict_get(cmap, c1);
 	if (i >= 0) {
 		strcpy(cmap_dst[i], c2);
 	} else if (cmap_n < NCMAPS) {
 		strcpy(cmap_src[cmap_n], c1);
 		strcpy(cmap_dst[cmap_n], c2);
-		dict_put(&cmap, cmap_src[cmap_n], cmap_n);
+		dict_put(cmap, cmap_src[cmap_n], cmap_n);
 		cmap_n++;
 	}
 }
 
 char *cmap_map(char *c)
 {
-	int i = dict_get(&cmap, c);
+	int i = dict_get(cmap, c);
 	return i >= 0 ? cmap_dst[i] : c;
 }
 
@@ -1077,5 +1077,5 @@ void tr_init(void)
 	int i;
 	for (i = 0; i < LEN(cmds); i++)
 		str_dset(map(cmds[i].id), &cmds[i]);
-	dict_init(&cmap, NCMAPS, -1, 0, 0);
+	cmap = dict_make(-1, 0, 0);
 }

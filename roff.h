@@ -26,7 +26,6 @@
 #define PATHLEN		1024	/* path length */
 #define NFILES		16	/* number of input files */
 #define NFONTS		32	/* number of fonts */
-#define NGLYPHS		1024	/* glyphs in fonts */
 #define FNLEN		32	/* font name length */
 #define NMLEN		32	/* macro/register/environment/glyph name length */
 #define GNLEN		NMLEN	/* glyph name length */
@@ -51,7 +50,6 @@
 #define NHCODES		512	/* number of .hcode characters */
 #define WORDLEN		256	/* word length (for hyph.c) */
 #define NFEATS		128	/* number of features per font */
-#define NGRULES		4096	/* number of gsub/gpos rules per font */
 
 /* converting scales */
 #define SC_IN		(dev_res)	/* inch in units */
@@ -116,22 +114,16 @@ char *env_lc(void);
 int tab_next(int pos);
 int tab_type(int pos);
 
-/* dictionary */
-struct dict {
-	int *head;
-	char **key;
-	long *val;
-	int *next;
-	int size;
-	int n;
-	char *buf;		/* buffer for keys */
-	int buflen;
-	int level2;		/* use two characters for hashing */
-	long notfound;		/* the value returned for missing keys */
-};
+/* mapping integers to sets */
+struct iset *iset_make(void);
+void iset_free(struct iset *iset);
+int *iset_get(struct iset *iset, int key);
+void iset_put(struct iset *iset, int key, int ent);
+int iset_len(struct iset *iset, int key);
 
-void dict_init(struct dict *d, int size, long notfound, int dupkeys, int level2);
-void dict_done(struct dict *d);
+/* mapping strings to longs */
+struct dict *dict_make(long notfound, int dupkeys, int level2);
+void dict_free(struct dict *d);
 void dict_put(struct dict *d, char *key, long val);
 long dict_get(struct dict *d, char *key);
 int dict_idx(struct dict *d, char *key);
@@ -386,10 +378,13 @@ int tr_readargs(char **args, struct sbuf *sbuf,
 void errmsg(char *msg, ...);
 void errdie(char *msg);
 void *xmalloc(long len);
+void *mextend(void *old, int oldsz, int newsz, int memsz);
+/* utf-8 parsing */
 int utf8len(int c);
 int utf8next(char *s, int (*next)(void));
 int utf8read(char **s, char *d);
 int utf8one(char *s);
+/* reading escapes and characters */
 int charnext(char *c, int (*next)(void), void (*back)(int));
 int charread(char **s, char *c);
 int charnext_delim(char *c, int (*next)(void), void (*back)(int), char *delim);

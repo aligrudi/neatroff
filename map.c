@@ -6,8 +6,7 @@
 #define MAPBEG		256	/* the entries reserved for .x names */
 
 /* register, macro, or environments names */
-static struct dict mapdict;
-static int mapinit;
+static struct dict *mapdict;
 
 /* map register names to [0..NREGS] */
 int map(char *s)
@@ -15,14 +14,12 @@ int map(char *s)
 	int i;
 	if (s[0] == '.' && s[1] && !s[2])	/* ".x" is mapped to 'x' */
 		return (unsigned char) s[1];
-	if (!mapinit) {
-		dict_init(&mapdict, NREGS, -1, 1, 1);
-		mapinit = 1;
-	}
-	i = dict_idx(&mapdict, s);
+	if (!mapdict)
+		mapdict = dict_make(-1, 1, 1);
+	i = dict_idx(mapdict, s);
 	if (i < 0) {
-		dict_put(&mapdict, s, 0);
-		i = dict_idx(&mapdict, s);
+		dict_put(mapdict, s, 0);
+		i = dict_idx(mapdict, s);
 	}
 	return MAPBEG + i;
 }
@@ -32,7 +29,7 @@ char *map_name(int id)
 {
 	static char map_buf[NMLEN];
 	if (id >= MAPBEG)
-		return dict_key(&mapdict, id - MAPBEG);
+		return dict_key(mapdict, id - MAPBEG);
 	map_buf[0] = '.';
 	map_buf[1] = id;
 	map_buf[2] = '\0';

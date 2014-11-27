@@ -14,7 +14,7 @@ static void hcode_strcpy(char *d, char *s, int *map, int dots);
 static char hwword[HYPATLEN];	/* buffer for .hw words */
 static char hwhyph[HYPATLEN];	/* buffer for .hw hyphenations */
 static int hwword_len;		/* used hwword[] length */
-static struct dict hwdict;	/* map words to their index in hwoff[] */
+static struct dict *hwdict;	/* map words to their index in hwoff[] */
 static int hwoff[NHYPHS];	/* the offset of words in hwword[] */
 static int hw_n;		/* the number of dictionary words */
 
@@ -36,7 +36,7 @@ static void hw_add(char *s)
 	}
 	p[i] = '\0';
 	hwoff[hw_n] = hwword_len;
-	dict_put(&hwdict, hwword + hwoff[hw_n], hw_n);
+	dict_put(hwdict, hwword + hwoff[hw_n], hw_n);
 	hwword_len += i + 1;
 	hw_n++;
 }
@@ -48,7 +48,7 @@ static int hw_lookup(char *word, char *hyph)
 	int map[WORDLEN] = {0};
 	int i, j, idx = -1;
 	hcode_strcpy(word2, word, map, 0);
-	i = dict_prefix(&hwdict, word2, &idx);
+	i = dict_prefix(hwdict, word2, &idx);
 	if (i < 0)
 		return 1;
 	hyph2 = hwhyph + hwoff[i];
@@ -71,7 +71,7 @@ static int hyinit;		/* hyphenation data initialized */
 static char hypats[HYPATLEN];	/* hyphenation patterns */
 static char hynums[HYPATLEN];	/* hyphenation pattern numbers */
 static int hypats_len;		/* used hypats[] and hynums[] length */
-static struct dict hydict;	/* map patterns to their index in hyoff[] */
+static struct dict *hydict;	/* map patterns to their index in hyoff[] */
 static int hyoff[NHYPHS];	/* the offset of this pattern in hypats[] */
 static int hy_n;		/* the number of patterns */
 
@@ -82,7 +82,7 @@ static void hy_find(char *s, char *n)
 	char *p, *np;
 	int i, j;
 	int idx = -1;
-	while ((i = dict_prefix(&hydict, s, &idx)) >= 0) {
+	while ((i = dict_prefix(hydict, s, &idx)) >= 0) {
 		p = hypats + hyoff[i];
 		np = hynums + (p - hypats);
 		plen = strlen(p) + 1;
@@ -134,13 +134,13 @@ static void hy_add(char *s)
 	}
 	p[i] = '\0';
 	hyoff[hy_n] = hypats_len;
-	dict_put(&hydict, hypats + hyoff[hy_n], hy_n);
+	dict_put(hydict, hypats + hyoff[hy_n], hy_n);
 	hypats_len += i + 1;
 	hy_n++;
 }
 
 /* .hcode request */
-static struct dict hcodedict;
+static struct dict *hcodedict;
 static char hcodesrc[NHCODES][GNLEN];
 static char hcodedst[NHCODES][GNLEN];
 static int hcode_n;
@@ -148,7 +148,7 @@ static int hcode_n;
 /* replace the character in s after .hcode mapping; returns s's new length */
 static int hcode_mapchar(char *s)
 {
-	int i = dict_get(&hcodedict, s);
+	int i = dict_get(hcodedict, s);
 	if (i >= 0)
 		strcpy(s, hcodedst[i]);
 	else if (isalpha((unsigned char) *s))
@@ -176,13 +176,13 @@ static void hcode_strcpy(char *d, char *s, int *map, int dots)
 
 static void hcode_add(char *c1, char *c2)
 {
-	int i = dict_get(&hcodedict, c1);
+	int i = dict_get(hcodedict, c1);
 	if (i >= 0) {
 		strcpy(hcodedst[i], c2);
 	} else if (hcode_n < NHCODES) {
 		strcpy(hcodesrc[hcode_n], c1);
 		strcpy(hcodedst[hcode_n], c2);
-		dict_put(&hcodedict, hcodesrc[hcode_n], hcode_n);
+		dict_put(hcodedict, hcodesrc[hcode_n], hcode_n);
 		hcode_n++;
 	}
 }
@@ -273,9 +273,9 @@ void tr_hpfa(char **args)
 
 void hyph_init(void)
 {
-	dict_init(&hwdict, NHYPHS, -1, 0, 1);
-	dict_init(&hydict, NHYPHS, -1, 0, 1);
-	dict_init(&hcodedict, NHYPHS, -1, 0, 1);
+	hwdict = dict_make(-1, 0, 1);
+	hydict = dict_make(-1, 0, 1);
+	hcodedict = dict_make(-1, 0, 1);
 }
 
 void tr_hpf(char **args)
@@ -283,14 +283,14 @@ void tr_hpf(char **args)
 	/* reseting the patterns */
 	hypats_len = 0;
 	hy_n = 0;
-	dict_done(&hydict);
+	dict_free(hydict);
 	/* reseting the dictionary */
 	hwword_len = 0;
 	hw_n = 0;
-	dict_done(&hwdict);
+	dict_free(hwdict);
 	/* reseting hcode mappings */
 	hcode_n = 0;
-	dict_done(&hcodedict);
+	dict_free(hcodedict);
 	/* reading */
 	hyph_init();
 	tr_hpfa(args);

@@ -3,7 +3,26 @@
 #include <string.h>
 #include "roff.h"
 
-#define DHASH(d, s)	((d)->level2 ? (((unsigned char) (s)[1]) << 8) | (unsigned char) (s)[0] : (unsigned char) s[0])
+#define DHASH(d, s)	((d)->level2 && (s)[0] ? (((unsigned char) (s)[1]) << 8) | (unsigned char) (s)[0] : (unsigned char) s[0])
+#define CNTMIN		(1 << 10)
+
+struct dict {
+	struct iset *map;
+	char **key;
+	long *val;
+	int size;
+	int n;
+	long notfound;		/* the value returned for missing keys */
+	int level2;		/* use two characters for hashing */
+	int dupkeys;		/* duplicate keys if set */
+};
+
+static void dict_extend(struct dict *d, int size)
+{
+	d->key = mextend(d->key, d->size, size, sizeof(d->key[0]));
+	d->val = mextend(d->val, d->size, size, sizeof(d->val[0]));
+	d->size = size;
+}
 
 /*
  * initialise a dictionary
@@ -12,60 +31,56 @@
  * dupkeys: if nonzero, store a copy of keys inserted via dict_put().
  * level2: use two characters for hasing
  */
-void dict_init(struct dict *d, int size, long notfound, int dupkeys, int level2)
+struct dict *dict_make(long notfound, int dupkeys, int level2)
 {
-	int headsize = (level2 ? 256 * 256 : 256) * sizeof(d->head[0]);
+	struct dict *d = xmalloc(sizeof(*d));
 	memset(d, 0, sizeof(*d));
-	d->size = size;
 	d->n = 1;
 	d->level2 = level2;
+	d->dupkeys = dupkeys;
 	d->notfound = notfound;
-	d->key = xmalloc(size * sizeof(d->key[0]));
-	d->val = xmalloc(size * sizeof(d->val[0]));
-	d->next = xmalloc(size * sizeof(d->next[0]));
-	d->head = xmalloc(headsize);
-	memset(d->head, 0, headsize);
-	if (dupkeys)
-		d->buf = xmalloc(size * NMLEN);
+	d->map = iset_make();
+	dict_extend(d, CNTMIN);
+	return d;
 }
 
-void dict_done(struct dict *d)
+void dict_free(struct dict *d)
 {
+	int i;
+	if (d->dupkeys)
+		for (i = 0; i < d->size; i++)
+			free(d->key[i]);
 	free(d->val);
 	free(d->key);
-	free(d->next);
-	free(d->buf);
-	free(d->head);
+	iset_free(d->map);
+	free(d);
 }
 
 void dict_put(struct dict *d, char *key, long val)
 {
 	int idx;
 	if (d->n >= d->size)
-		return;
-	if (d->buf) {
+		dict_extend(d, d->n + CNTMIN);
+	if (d->dupkeys) {
 		int len = strlen(key) + 1;
-		if (d->buflen + len >= d->size * NMLEN)
-			return;
-		memcpy(d->buf + d->buflen, key, len);
-		key = d->buf + d->buflen;
-		d->buflen += len;
+		char *dup = xmalloc(len);
+		memcpy(dup, key, len);
+		key = dup;
 	}
 	idx = d->n++;
 	d->key[idx] = key;
 	d->val[idx] = val;
-	d->next[idx] = d->head[DHASH(d, key)];
-	d->head[DHASH(d, key)] = idx;
+	iset_put(d->map, DHASH(d, key), idx);
 }
 
 /* return the index of key in d */
 int dict_idx(struct dict *d, char *key)
 {
-	int idx = d->head[DHASH(d, key)];
-	while (idx > 0) {
-		if (!strcmp(d->key[idx], key))
-			return idx;
-		idx = d->next[idx];
+	int *r = iset_get(d->map, DHASH(d, key));
+	while (r && *r >= 0) {
+		if (!strcmp(d->key[*r], key))
+			return *r;
+		r++;
 	}
 	return -1;
 }
@@ -87,20 +102,14 @@ long dict_get(struct dict *d, char *key)
 }
 
 /* match a prefix of key; in the first call, *idx should be -1 */
-long dict_prefix(struct dict *d, char *key, int *idx)
+long dict_prefix(struct dict *d, char *key, int *pos)
 {
-	int plen;
-	if (!*idx)
-		return d->notfound;
-	if (*idx < 0)
-		*idx = d->head[DHASH(d, key)];
-	else
-		*idx = d->next[*idx];
-	while (*idx > 0) {
-		plen = strlen(d->key[*idx]);
-		if (!strncmp(d->key[*idx], key, plen))
-			return d->val[*idx];
-		*idx = d->next[*idx];
+	int *r = iset_get(d->map, DHASH(d, key));
+	while (r && r[++*pos] >= 0) {
+		int idx = r[*pos];
+		int plen = strlen(d->key[idx]);
+		if (!strncmp(d->key[idx], key, plen))
+			return d->val[idx];
 	}
 	return d->notfound;
 }
