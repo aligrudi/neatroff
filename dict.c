@@ -9,10 +9,10 @@
 struct dict {
 	struct iset *map;
 	char **key;
-	long *val;
+	int *val;
 	int size;
 	int n;
-	long notfound;		/* the value returned for missing keys */
+	int notfound;		/* the value returned for missing keys */
 	int level2;		/* use two characters for hashing */
 	int dupkeys;		/* duplicate keys if set */
 };
@@ -31,7 +31,7 @@ static void dict_extend(struct dict *d, int size)
  * dupkeys: if nonzero, store a copy of keys inserted via dict_put().
  * level2: use two characters for hasing
  */
-struct dict *dict_make(long notfound, int dupkeys, int level2)
+struct dict *dict_make(int notfound, int dupkeys, int level2)
 {
 	struct dict *d = xmalloc(sizeof(*d));
 	memset(d, 0, sizeof(*d));
@@ -56,7 +56,7 @@ void dict_free(struct dict *d)
 	free(d);
 }
 
-void dict_put(struct dict *d, char *key, long val)
+void dict_put(struct dict *d, char *key, int val)
 {
 	int idx;
 	if (d->n >= d->size)
@@ -90,19 +90,19 @@ char *dict_key(struct dict *d, int idx)
 	return d->key[idx];
 }
 
-long dict_val(struct dict *d, int idx)
+int dict_val(struct dict *d, int idx)
 {
 	return d->val[idx];
 }
 
-long dict_get(struct dict *d, char *key)
+int dict_get(struct dict *d, char *key)
 {
 	int idx = dict_idx(d, key);
 	return idx >= 0 ? d->val[idx] : d->notfound;
 }
 
 /* match a prefix of key; in the first call, *idx should be -1 */
-long dict_prefix(struct dict *d, char *key, int *pos)
+int dict_prefix(struct dict *d, char *key, int *pos)
 {
 	int *r = iset_get(d->map, DHASH(d, key));
 	while (r && r[++*pos] >= 0) {

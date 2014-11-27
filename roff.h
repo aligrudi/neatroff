@@ -122,14 +122,14 @@ void iset_put(struct iset *iset, int key, int ent);
 int iset_len(struct iset *iset, int key);
 
 /* mapping strings to longs */
-struct dict *dict_make(long notfound, int dupkeys, int level2);
+struct dict *dict_make(int notfound, int dupkeys, int level2);
 void dict_free(struct dict *d);
-void dict_put(struct dict *d, char *key, long val);
-long dict_get(struct dict *d, char *key);
+void dict_put(struct dict *d, char *key, int val);
+int dict_get(struct dict *d, char *key);
 int dict_idx(struct dict *d, char *key);
 char *dict_key(struct dict *d, int idx);
-long dict_val(struct dict *d, int idx);
-long dict_prefix(struct dict *d, char *key, int *idx);
+int dict_val(struct dict *d, int idx);
+int dict_prefix(struct dict *d, char *key, int *idx);
 
 /* device related variables */
 extern int dev_res;
