@@ -704,12 +704,12 @@ static void iset_free(struct iset *iset)
 
 static int *iset_get(struct iset *iset, int key)
 {
-	return iset->set[key];
+	return key >= 0 && key < iset->keycnt ? iset->set[key] : NULL;
 }
 
 static void iset_put(struct iset *iset, int key, int ent)
 {
-	if (iset->len[key] + 1 >= iset->sz[key]) {
+	if (key >= 0 && key < iset->keycnt && iset->len[key] + 1 >= iset->sz[key]) {
 		int olen = iset->sz[key];
 		int nlen = iset->sz[key] * 2 + 8;
 		void *nset = malloc(nlen * sizeof(iset->set[key][0]));
