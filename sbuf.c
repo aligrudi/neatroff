@@ -5,22 +5,19 @@
 #include <string.h>
 #include "roff.h"
 
-#define SBUF_SZ		512
+#define ALIGN(n, a)	(((n) + (a) - 1) & ~((a) - 1))
+#define SBUFSZ		512
 
 static void sbuf_extend(struct sbuf *sbuf, int amount)
 {
-	char *s = sbuf->s;
-	sbuf->sz = (MAX(1, amount) + SBUF_SZ - 1) & ~(SBUF_SZ - 1);
-	sbuf->s = xmalloc(sbuf->sz);
-	if (sbuf->n)
-		memcpy(sbuf->s, s, sbuf->n);
-	free(s);
+	sbuf->sz = ALIGN(amount, SBUFSZ);
+	sbuf->s = mextend(sbuf->s, sbuf->n, sbuf->sz, sizeof(sbuf->s[0]));
 }
 
 void sbuf_init(struct sbuf *sbuf)
 {
 	memset(sbuf, 0, sizeof(*sbuf));
-	sbuf_extend(sbuf, SBUF_SZ);
+	sbuf_extend(sbuf, SBUFSZ);
 }
 
 void sbuf_add(struct sbuf *sbuf, int c)
