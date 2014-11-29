@@ -41,7 +41,7 @@ void sbuf_printf(struct sbuf *sbuf, char *s, ...)
 	char buf[ILNLEN];
 	va_list ap;
 	va_start(ap, s);
-	vsprintf(buf, s, ap);
+	vsnprintf(buf, sizeof(buf), s, ap);
 	va_end(ap);
 	sbuf_append(sbuf, buf);
 }

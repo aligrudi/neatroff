@@ -44,16 +44,16 @@ int dev_mnt(int pos, char *id, char *name)
 	if (pos >= NFONTS)
 		return -1;
 	if (strchr(name, '/'))
-		strcpy(path, name);
+		snprintf(path, sizeof(path), "%s", name);
 	else
-		sprintf(path, "%s/dev%s/%s", dev_dir, dev_dev, name);
+		snprintf(path, sizeof(path), "%s/dev%s/%s", dev_dir, dev_dev, name);
 	fn = font_open(path);
 	if (!fn)
 		return -1;
 	if (fn_font[pos])
 		font_close(fn_font[pos]);
 	if (fn_name[pos] != name)	/* ignore if fn_name[pos] is passed */
-		strcpy(fn_name[pos], id);
+		snprintf(fn_name[pos], sizeof(fn_name[pos]), "%s", id);
 	fn_font[pos] = fn;
 	out("x font %d %s\n", pos, name);
 	return pos;
@@ -65,9 +65,9 @@ int dev_open(char *dir, char *dev)
 	char tok[ILNLEN];
 	int i;
 	FILE *desc;
-	strcpy(dev_dir, dir);
-	strcpy(dev_dev, dev);
-	sprintf(path, "%s/dev%s/DESC", dir, dev);
+	snprintf(dev_dir, sizeof(dev_dir), "%s", dir);
+	snprintf(dev_dev, sizeof(dev_dev), "%s", dev);
+	snprintf(path, sizeof(path), "%s/dev%s/DESC", dir, dev);
 	desc = fopen(path, "r");
 	if (!desc)
 		return 1;
@@ -213,8 +213,10 @@ void tr_fspecial(char **args)
 	}
 	for (i = 2; i < NARGS; i++) {
 		if (args[i] && fspecial_n < LEN(fspecial_fn)) {
-			strcpy(fspecial_fn[fspecial_n], fn);
-			strcpy(fspecial_sp[fspecial_n], args[i]);
+			snprintf(fspecial_fn[fspecial_n],
+				sizeof(fspecial_fn[fspecial_n]), "%s", fn);
+			snprintf(fspecial_sp[fspecial_n],
+				sizeof(fspecial_sp[fspecial_n]), "%s", args[i]);
 			fspecial_n++;
 		}
 	}

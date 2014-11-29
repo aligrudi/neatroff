@@ -73,8 +73,8 @@ static int font_glyphput(struct font *fn, char *id, char *name, int type)
 		fn->gl = mextend(fn->gl, fn->gl_n, fn->gl_sz, sizeof(fn->gl[0]));
 	}
 	g = &fn->gl[fn->gl_n];
-	strcpy(g->id, id);
-	strcpy(g->name, name);
+	snprintf(g->id, sizeof(g->id), "%s", id);
+	snprintf(g->name, sizeof(g->name), "%s", name);
 	g->type = type;
 	g->font = fn;
 	dict_put(fn->gl_dict, g->id, fn->gl_n);
@@ -315,8 +315,10 @@ static int font_findfeat(struct font *fn, char *feat, int mk)
 	for (i = 0; i < fn->feat_n; i++)
 		if (!strcmp(feat, fn->feat_name[i]))
 			return i;
-	if (mk)
-		strcpy(fn->feat_name[fn->feat_n], feat);
+	if (mk) {
+		snprintf(fn->feat_name[fn->feat_n],
+			sizeof(fn->feat_name[fn->feat_n]), "%s", feat);
+	}
 	return mk ? fn->feat_n++ : -1;
 }
 

@@ -686,7 +686,7 @@ static void cdef_add(char *fn, char *cs, char *def)
 	if (i < 0 && cdef_n < NCDEFS)
 		i = cdef_n++;
 	if (i >= 0) {
-		strncpy(cdef_src[i], c, sizeof(cdef_src[i]) - 1);
+		snprintf(cdef_src[i], sizeof(cdef_src[i]), "%s", c);
 		cdef_dst[i] = xmalloc(strlen(def) + 1);
 		strcpy(cdef_dst[i], def);
 		cdef_fn[i] = fn ? dev_pos(fn) : 0;

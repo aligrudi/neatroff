@@ -61,10 +61,10 @@ static char *usage =
 
 int main(int argc, char **argv)
 {
-	char fontdir[PATHLEN] = TROFFFDIR;
-	char macrodir[PATHLEN] = TROFFMDIR;
-	char dev[PATHLEN] = "utf";
 	char path[PATHLEN];
+	char *fontdir = TROFFFDIR;
+	char *macrodir = TROFFMDIR;
+	char *dev = "utf";
 	int i;
 	int ret;
 	for (i = 1; i < argc; i++) {
@@ -75,21 +75,24 @@ int main(int argc, char **argv)
 			n_cp = 1;
 			break;
 		case 'm':
-			sprintf(path, "%s/%s.tmac", macrodir, argv[i] + 2);
+			snprintf(path, sizeof(path), "%s/%s.tmac",
+				macrodir, argv[i] + 2);
 			if (!xopens(path))
-				sprintf(path, "%s/tmac.%s", macrodir, argv[i] + 2);
+				snprintf(path, sizeof(path), "%s/tmac.%s",
+					macrodir, argv[i] + 2);
 			if (!xopens(path))
-				sprintf(path, "%s/%s", macrodir, argv[i] + 2);
+				snprintf(path, sizeof(path), "%s/%s",
+					macrodir, argv[i] + 2);
 			in_queue(path);
 			break;
 		case 'F':
-			strcpy(fontdir, argv[i][2] ? argv[i] + 2 : argv[++i]);
+			fontdir = argv[i][2] ? argv[i] + 2 : argv[++i];
 			break;
 		case 'M':
-			strcpy(macrodir, argv[i][2] ? argv[i] + 2 : argv[++i]);
+			macrodir = argv[i][2] ? argv[i] + 2 : argv[++i];
 			break;
 		case 'T':
-			strcpy(dev, argv[i][2] ? argv[i] + 2 : argv[++i]);
+			dev = argv[i][2] ? argv[i] + 2 : argv[++i];
 			break;
 		default:
 			printf("%s", usage);
