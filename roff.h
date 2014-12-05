@@ -287,6 +287,7 @@ int cdef_expand(struct wb *wb, char *c, int fn);
 
 void hyphenate(char *hyphs, char *word, int flg);
 void hyph_init(void);
+void hyph_done(void);
 
 /* adjustment types */
 #define AD_C		0	/* center */
@@ -371,6 +372,7 @@ void tr_popren(char **args);
 void tr_transparent(char **args);
 
 void tr_init(void);
+void tr_done(void);
 int tr_readargs(char **args, struct sbuf *sbuf,
 		int (*next)(void), void (*back)(int));
 
@@ -411,6 +413,7 @@ void sstr_back(int c);
 
 int map(char *s);		/* map name s to an index */
 char *map_name(int id);		/* return the name mapped to id */
+void map_done(void);
 
 /* colors */
 #define CLR_R(c)		(((c) >> 16) & 0xff)

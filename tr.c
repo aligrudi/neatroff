@@ -1079,3 +1079,8 @@ void tr_init(void)
 		str_dset(map(cmds[i].id), &cmds[i]);
 	cmap = dict_make(-1, 0, 0);
 }
+
+void tr_done(void)
+{
+	dict_free(cmap);
+}

@@ -278,6 +278,16 @@ void hyph_init(void)
 	hcodedict = dict_make(-1, 0, 1);
 }
 
+void hyph_done(void)
+{
+	if (hwdict)
+		dict_free(hwdict);
+	if (hydict)
+		dict_free(hydict);
+	if (hcodedict)
+		dict_free(hcodedict);
+}
+
 void tr_hpf(char **args)
 {
 	/* reseting the patterns */

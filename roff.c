@@ -114,7 +114,10 @@ int main(int argc, char **argv)
 	out("f%d\n", n_f);
 	ret = render();
 	out("V%d\n", n_p);
+	hyph_done();
+	tr_done();
 	env_done();
 	dev_close();
+	map_done();
 	return ret;
 }

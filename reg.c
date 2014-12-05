@@ -275,6 +275,8 @@ void env_done(void)
 	for (i = 0; i < LEN(envs); i++)
 		if (envs[i])
 			env_free(envs[i]);
+	for (i = 0; i < LEN(sregs); i++)
+		free(sregs[i]);
 }
 
 static int oenv[NPREV];		/* environment stack */

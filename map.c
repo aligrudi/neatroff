@@ -35,3 +35,9 @@ char *map_name(int id)
 	map_buf[2] = '\0';
 	return map_buf;
 }
+
+void map_done(void)
+{
+	if (mapdict)
+		dict_free(mapdict);
+}
