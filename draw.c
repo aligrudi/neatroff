@@ -41,8 +41,8 @@ void ren_hline(struct wb *wb, int l, char *c)
 		wb_hmov(wb, l);
 		l = -l;
 	}
-	n = l / w;
-	rem = l % w;
+	n = w ? l / w : 0;
+	rem = w ? l % w : l;
 	/* length less than character width */
 	if (l < w) {
 		n = 1;
@@ -76,8 +76,8 @@ static void ren_vline(struct wb *wb, int l, char *c)
 		wb_vmov(wb, l);
 		l = -l;
 	}
-	n = l / w;
-	rem = l % w;
+	n = w ? l / w : 0;
+	rem = w ? l % w : l;
 	/* length less than character width */
 	if (l < w) {
 		n = 1;
