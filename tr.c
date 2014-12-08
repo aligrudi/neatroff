@@ -592,8 +592,6 @@ static void tr_chop(char **args)
 {
 	struct sbuf sbuf;
 	int id;
-	if (args[1])
-		in_lf(args[2], eval(args[1], 0));
 	id = map(args[1]);
 	if (str_get(id)) {
 		sbuf_init(&sbuf);
