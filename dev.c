@@ -174,7 +174,7 @@ int dev_pos(char *id)
 	if (isdigit(id[0])) {
 		int num = atoi(id);
 		if (num < 0 || num >= NFONTS || !fn_font[num]) {
-			errmsg("bad font position\n");
+			errmsg("neatroff: bad font position %s\n", id);
 			return -1;
 		}
 		return num;
