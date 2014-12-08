@@ -46,13 +46,15 @@ void in_push(char *s, char **args)
 void in_so(char *path)
 {
 	FILE *fin = path && path[0] ? fopen(path, "r") : stdin;
-	if (fin) {
-		in_new();
-		buf->fin = fin;
-		buf->lnum = 1;
-		if (path)
-			snprintf(buf->path, sizeof(buf->path), "%s", path);
+	if (!fin) {
+		errmsg("neatroff: failed to open <%s>\n", path);
+		return;
 	}
+	in_new();
+	buf->fin = fin;
+	buf->lnum = 1;
+	if (path)
+		snprintf(buf->path, sizeof(buf->path), "%s", path);
 }
 
 void in_lf(char *path, int lnum)
