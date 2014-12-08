@@ -455,7 +455,7 @@ static void tr_hy(char **args)
 
 static void tr_hyp(char **args)
 {
-	n_hyp = args[1] ? atoi(args[1]) : 1;
+	n_hyp = args[1] ? atoi(args[1]) : 0;
 }
 
 static void tr_pmll(char **args)
