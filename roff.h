@@ -463,7 +463,7 @@ int clr_get(char *s);
 #define n_f0		(*nreg(map(".f0")))	/* last .f */
 #define n_lg		(*nreg(map(".lg")))	/* .lg mode */
 #define n_hy		(*nreg(map(".hy")))	/* .hy mode */
-#define n_hyp		(*nreg(map(".hyp")))	/* hyphenation penalty  */
+#define n_hycost	(*nreg(map(".hycost")))	/* hyphenation cost */
 #define n_i0		(*nreg(map(".i0")))	/* last .i */
 #define n_ti		(*nreg(map(".ti")))	/* pending .ti */
 #define n_kn		(*nreg(map(".kn")))	/* .kn mode */
@@ -474,7 +474,8 @@ int clr_get(char *s);
 #define n_na		(*nreg(map(".na")))	/* .na mode */
 #define n_ns		(*nreg(map(".ns")))	/* .ns mode */
 #define n_o0		(*nreg(map(".o0")))	/* last .o */
-#define n_pmll		(*nreg(map(".pmll")))	/* minimum last line (.pmll) */
+#define n_pmll		(*nreg(map(".pmll")))	/* minimum line length (.pmll) */
+#define n_pmllcost	(*nreg(map(".pmllcost")))	/* short line cost */
 #define n_ss		(*nreg(map(".ss")))	/* word space (.ss) */
 #define n_sss		(*nreg(map(".sss")))	/* sentence space (.ss) */
 #define n_ssh		(*nreg(map(".ssh")))	/* word space compression (.ssh) */

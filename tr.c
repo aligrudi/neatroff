@@ -455,12 +455,13 @@ static void tr_hy(char **args)
 
 static void tr_hyp(char **args)
 {
-	n_hyp = args[1] ? atoi(args[1]) : 0;
+	n_hycost = args[1] ? atoi(args[1]) : 0;
 }
 
 static void tr_pmll(char **args)
 {
 	n_pmll = args[1] ? atoi(args[1]) : 0;
+	n_pmllcost = args[2] ? atoi(args[2]) : 100;
 }
 
 static void tr_lg(char **args)

@@ -173,7 +173,7 @@ static struct line *fmt_mkline(struct fmt *f)
 	return l;
 }
 
-static int fmt_extractline(struct fmt *f, int beg, int end, int llen, int spread)
+static int fmt_extractline(struct fmt *f, int beg, int end, int llen)
 {
 	int fmt_div, fmt_rem;
 	int w, i, nspc;
@@ -183,7 +183,7 @@ static int fmt_extractline(struct fmt *f, int beg, int end, int llen, int spread
 	w = fmt_wordslen(f, beg, end);
 	nspc = fmt_spaces(f, beg, end);
 	/* stretch if (spread & 1) and shrink if (spread & 2) */
-	if (nspc && ((spread & 1 && w < llen) || (spread & 2 && w > llen))) {
+	if (nspc && llen) {
 		fmt_div = (llen - w) / nspc;
 		fmt_rem = (llen - w) % nspc;
 		if (fmt_rem < 0) {
@@ -202,8 +202,7 @@ static int fmt_sp(struct fmt *f)
 {
 	if (fmt_fillwords(f, 1))
 		return 1;
-	if (fmt_extractline(f, 0, f->nwords, FMT_LLEN(f) * n_pmll / 100,
-			FMT_ADJ(f) && n_j & AD_P))
+	if (fmt_extractline(f, 0, f->nwords, 0))
 		return 1;
 	f->filled = 0;
 	f->nls--;
@@ -385,14 +384,6 @@ static long FMT_COST(int llen, int lwid, int swid, int nspc)
 	return ratio * ratio / 100l * (nspc ? nspc : 1);
 }
 
-/* the cost of formatting last lines; should prevent widows */
-static long FMT_LCOST(int llen, int lwid, int swid, int nspc)
-{
-	if (!n_pmll || lwid >= llen * n_pmll / 100)
-		return 0;
-	return FMT_COST(llen * n_pmll / 100, lwid, swid, nspc);
-}
-
 /* the cost of putting a line break before word pos */
 static long fmt_findcost(struct fmt *f, int pos)
 {
@@ -411,7 +402,7 @@ static long fmt_findcost(struct fmt *f, int pos)
 	if (f->words[i].hy)	/* the last word is hyphenated */
 		lwid += f->words[i].hy;
 	if (f->words[i].hy)
-		pen = n_hyp;
+		pen = n_hycost;
 	while (i >= 0) {
 		lwid += f->words[i].wid;
 		if (i + 1 < pos)
@@ -479,8 +470,10 @@ static int fmt_breakparagraph(struct fmt *f, int pos, int br)
 		}
 		if (lwid > llen && i + 1 < pos)
 			break;
-		cost = fmt_findcost(f, i) +
-			(br ? FMT_LCOST(llen, lwid, swid, nspc) : 0);
+		cost = fmt_findcost(f, i);
+		/* the cost of formatting short lines; should prevent widows */
+		if (br && n_pmll && lwid < llen * n_pmll / 100)
+			cost += n_pmllcost;
 		if (best < 0 || cost < best_cost) {
 			best = i;
 			best_cost = cost;
@@ -527,7 +520,7 @@ static int fmt_break(struct fmt *f, int end)
 	if (beg > 0)
 		ret += fmt_break(f, beg);
 	f->words[beg].gap = 0;
-	if (fmt_extractline(f, beg, end, FMT_LLEN(f), FMT_ADJ(f) ? 3 : 0))
+	if (fmt_extractline(f, beg, end, FMT_ADJ(f) ? FMT_LLEN(f) : 0))
 		return ret;
 	if (beg > 0)
 		fmt_confupdate(f);
