@@ -472,8 +472,10 @@ static int fmt_breakparagraph(struct fmt *f, int pos, int br)
 			break;
 		cost = fmt_findcost(f, i);
 		/* the cost of formatting short lines; should prevent widows */
-		if (br && n_pmll && lwid < llen * n_pmll / 100)
-			cost += n_pmllcost;
+		if (br && n_pmll && lwid < llen * n_pmll / 100) {
+			int pmll = llen * n_pmll / 100;
+			cost += (long) n_pmllcost * (pmll - lwid) / pmll;
+		}
 		if (best < 0 || cost < best_cost) {
 			best = i;
 			best_cost = cost;
