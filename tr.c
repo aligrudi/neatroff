@@ -450,30 +450,30 @@ static void tr_nh(char **args)
 
 static void tr_hy(char **args)
 {
-	n_hy = args[1] ? atoi(args[1]) : 1;
+	n_hy = args[1] ? eval_re(args[1], n_hy, '\0') : 1;
 }
 
 static void tr_hycost(char **args)
 {
-	n_hycost = args[1] ? atoi(args[1]) : 0;
+	n_hycost = args[1] ? eval_re(args[1], n_hycost, '\0') : 0;
 }
 
 static void tr_pmll(char **args)
 {
-	n_pmll = args[1] ? atoi(args[1]) : 0;
-	n_pmllcost = args[2] ? atoi(args[2]) : 100;
+	n_pmll = args[1] ? eval_re(args[1], n_pmll, '\0') : 0;
+	n_pmllcost = args[2] ? eval_re(args[2], n_pmllcost, '\0') : 100;
 }
 
 static void tr_lg(char **args)
 {
 	if (args[1])
-		n_lg = atoi(args[1]);
+		n_lg = eval(args[1], '\0');
 }
 
 static void tr_kn(char **args)
 {
 	if (args[1])
-		n_kn = atoi(args[1]);
+		n_kn = eval(args[1], '\0');
 }
 
 static void tr_cp(char **args)
