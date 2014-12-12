@@ -453,7 +453,7 @@ static void tr_hy(char **args)
 	n_hy = args[1] ? atoi(args[1]) : 1;
 }
 
-static void tr_hyp(char **args)
+static void tr_hycost(char **args)
 {
 	n_hycost = args[1] ? atoi(args[1]) : 0;
 }
@@ -953,7 +953,7 @@ static struct cmd {
 	{"hpf", tr_hpf},
 	{"hpfa", tr_hpfa},
 	{"hy", tr_hy},
-	{"hyp", tr_hyp},
+	{"hycost", tr_hycost},
 	{"hw", tr_hw},
 	{"ie", tr_if, mkargs_null},
 	{"if", tr_if, mkargs_null},
