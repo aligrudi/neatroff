@@ -42,7 +42,7 @@
 #define NCMAPS		512	/* number of character translations (.tr) */
 #define NSSTR		32	/* number of nested sstr_push() calls */
 #define NFIELDS		32	/* number of fields */
-#define NEOS		32	/* number of end of sentence characters */
+#define NCHARS		32	/* number of characters for .eos, .hydash, .hystop */
 #define MAXFRAC		100000	/* maximum value of the fractional part */
 #define NCDEFS		128	/* number of character definitions (.char) */
 #define NHYPHS		16384	/* hyphenation dictionary/patterns (.hw) */
@@ -268,10 +268,11 @@ void wb_reset(struct wb *wb);
 char *wb_buf(struct wb *wb);
 void wb_fnszget(struct wb *wb, int *fn, int *sz, int *m);
 void wb_fnszset(struct wb *wb, int fn, int sz, int m);
-int wb_dashwid(struct wb *wb);
-int c_dash(char *c);
+int wb_hywid(struct wb *wb);
 int c_eossent(char *s);
 int c_eostran(char *s);
+int c_hydash(char *s);
+int c_hystop(char *s);
 
 /* character translation (.tr) */
 void cmap_add(char *c1, char *c2);

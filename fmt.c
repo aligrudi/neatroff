@@ -267,7 +267,7 @@ static void fmt_wb2word(struct fmt *f, struct word *word, struct wb *wb,
 	word->wid = wb_wid(wb);
 	word->elsn = wb->els_neg;
 	word->elsp = wb->els_pos;
-	word->hy = hy ? wb_dashwid(wb) : 0;
+	word->hy = hy ? wb_hywid(wb) : 0;
 	word->str = str;
 	word->gap = gap;
 }
@@ -287,7 +287,7 @@ static int fmt_hyphmarks(char *word, int *hyidx, int *hyins)
 			hyins[n] = 1;
 			hyidx[n++] = s - word;
 		}
-		if (!c && (!strcmp(c_bp, d) || c_dash(d))) {
+		if (!c && c_hydash(d)) {
 			hyins[n] = 0;
 			hyidx[n++] = s - word;
 		}

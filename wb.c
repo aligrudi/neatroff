@@ -159,11 +159,6 @@ static void wb_putbuf(struct wb *wb, char *c)
 	}
 }
 
-int c_dash(char *c)
-{
-	return !strcmp("-", c) || !strcmp("em", c) || !strcmp("hy", c);
-}
-
 /* return nonzero if it cannot be hyphenated */
 static int wb_hyph(char src[][GNLEN], int src_n, char *src_hyph, int flg)
 {
@@ -177,7 +172,7 @@ static int wb_hyph(char src[][GNLEN], int src_n, char *src_hyph, int flg)
 	for (i = 0; i < src_n; i++) {
 		s = src[i];
 		smap[i] = d - word;
-		if (c_dash(s) || !strcmp(c_hc, s))
+		if (c_hystop(s))
 			return 1;
 		if (!strcmp(c_bp, s))
 			continue;
@@ -502,7 +497,7 @@ void wb_catstr(struct wb *wb, char *s, char *end)
 }
 
 /* return the size of \(hy if appended to wb */
-int wb_dashwid(struct wb *wb)
+int wb_hywid(struct wb *wb)
 {
 	struct glyph *g = dev_glyph("hy", wb->f);
 	return g ? font_gwid(g->font, dev_font(wb->f), wb->s, g->wid) : 0;

@@ -402,34 +402,34 @@ static void tr_hc(char **args)
 }
 
 /* sentence ending and their transparent characters */
-static char eos_sentc[NEOS][GNLEN] = { ".", "?", "!", };
-static int eos_sents = 3;
-static char eos_tranc[NEOS][GNLEN] = { "'", "\"", ")", "]", "*", };
-static int eos_trans = 5;
+static char eos_sent[NCHARS][GNLEN] = { ".", "?", "!", };
+static int eos_sentcnt = 3;
+static char eos_tran[NCHARS][GNLEN] = { "'", "\"", ")", "]", "*", };
+static int eos_trancnt = 5;
 
 static void tr_eos(char **args)
 {
-	eos_sents = 0;
-	eos_trans = 0;
+	eos_sentcnt = 0;
+	eos_trancnt = 0;
 	if (args[1]) {
 		char *s = args[1];
-		while (s && charread(&s, eos_sentc[eos_sents]) >= 0)
-			if (eos_sents < NEOS - 1)
-				eos_sents++;
+		while (s && charread(&s, eos_sent[eos_sentcnt]) >= 0)
+			if (eos_sentcnt < NCHARS - 1)
+				eos_sentcnt++;
 	}
 	if (args[2]) {
 		char *s = args[2];
-		while (s && charread(&s, eos_tranc[eos_trans]) >= 0)
-			if (eos_trans < NEOS - 1)
-				eos_trans++;
+		while (s && charread(&s, eos_tran[eos_trancnt]) >= 0)
+			if (eos_trancnt < NCHARS - 1)
+				eos_trancnt++;
 	}
 }
 
 int c_eossent(char *s)
 {
 	int i;
-	for (i = 0; i < eos_sents; i++)
-		if (!strcmp(eos_sentc[i], s))
+	for (i = 0; i < eos_sentcnt; i++)
+		if (!strcmp(eos_sent[i], s))
 			return 1;
 	return 0;
 }
@@ -437,11 +437,17 @@ int c_eossent(char *s)
 int c_eostran(char *s)
 {
 	int i;
-	for (i = 0; i < eos_trans; i++)
-		if (!strcmp(eos_tranc[i], s))
+	for (i = 0; i < eos_trancnt; i++)
+		if (!strcmp(eos_tran[i], s))
 			return 1;
 	return 0;
 }
+
+/* hyphenation dashes and hyphenation inhibiting character */
+static char hy_dash[NCHARS][GNLEN] = { c_bp, "-", "em", "en", "\\-", "--", "hy", };
+static int hy_dashcnt = 7;
+static char hy_stop[NCHARS][GNLEN];
+static int hy_stopcnt = 0;
 
 static void tr_nh(char **args)
 {
@@ -456,6 +462,46 @@ static void tr_hy(char **args)
 static void tr_hycost(char **args)
 {
 	n_hycost = args[1] ? eval_re(args[1], n_hycost, '\0') : 0;
+}
+
+static void tr_hydash(char **args)
+{
+	hy_dashcnt = 1;		/* c_bp should always be present */
+	if (args[1]) {
+		char *s = args[1];
+		while (s && charread(&s, hy_dash[hy_dashcnt]) >= 0)
+			if (hy_dashcnt < NCHARS - 1)
+				hy_dashcnt++;
+	}
+}
+
+static void tr_hystop(char **args)
+{
+	hy_stopcnt = 0;
+	if (args[1]) {
+		char *s = args[1];
+		while (s && charread(&s, hy_stop[hy_stopcnt]) >= 0)
+			if (hy_stopcnt < NCHARS - 1)
+				hy_stopcnt++;
+	}
+}
+
+int c_hydash(char *s)
+{
+	int i;
+	for (i = 0; i < hy_dashcnt; i++)
+		if (!strcmp(hy_dash[i], s))
+			return 1;
+	return 0;
+}
+
+int c_hystop(char *s)
+{
+	int i;
+	for (i = 0; i < hy_stopcnt; i++)
+		if (!strcmp(hy_stop[i], s))
+			return 1;
+	return 0;
 }
 
 static void tr_pmll(char **args)
@@ -954,6 +1000,8 @@ static struct cmd {
 	{"hpfa", tr_hpfa},
 	{"hy", tr_hy},
 	{"hycost", tr_hycost},
+	{"hydash", tr_hydash},
+	{"hystop", tr_hystop},
 	{"hw", tr_hw},
 	{"ie", tr_if, mkargs_null},
 	{"if", tr_if, mkargs_null},
