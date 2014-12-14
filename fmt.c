@@ -393,10 +393,18 @@ static int fmt_hydepth(struct fmt *f, int pos)
 	return n;
 }
 
+static long hycost(int depth)
+{
+	if (depth >= 3)
+		return n_hycost + n_hycost2 + n_hycost3;
+	if (depth == 2)
+		return n_hycost + n_hycost2;
+	return depth ? n_hycost : 0;
+}
+
 /* the cost of putting a line break before word pos */
 static long fmt_findcost(struct fmt *f, int pos)
 {
-	int hycost[] = {0, n_hycost2, n_hycost2 + n_hycost3};
 	int i, hyphenated;
 	long cur;
 	int llen = MAX(1, FMT_LLEN(f));
@@ -423,7 +431,7 @@ static long fmt_findcost(struct fmt *f, int pos)
 				break;
 		cur = fmt_findcost(f, i) + FMT_COST(llen, lwid, swid, nspc);
 		if (hyphenated)
-			cur += n_hycost + hycost[fmt_hydepth(f, i)];
+			cur += hycost(1 + fmt_hydepth(f, i));
 		if (f->best_pos[pos] < 0 || cur < f->best[pos]) {
 			f->best_pos[pos] = i;
 			f->best_dep[pos] = f->best_dep[i] + 1;
