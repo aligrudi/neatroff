@@ -465,6 +465,8 @@ int clr_get(char *s);
 #define n_lg		(*nreg(map(".lg")))	/* .lg mode */
 #define n_hy		(*nreg(map(".hy")))	/* .hy mode */
 #define n_hycost	(*nreg(map(".hycost")))	/* hyphenation cost */
+#define n_hycost2	(*nreg(map(".hycost2")))	/* hyphenation cost #2 */
+#define n_hycost3	(*nreg(map(".hycost3")))	/* hyphenation cost #3 */
 #define n_i0		(*nreg(map(".i0")))	/* last .i */
 #define n_ti		(*nreg(map(".ti")))	/* pending .ti */
 #define n_kn		(*nreg(map(".kn")))	/* .kn mode */

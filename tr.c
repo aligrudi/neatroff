@@ -462,6 +462,8 @@ static void tr_hy(char **args)
 static void tr_hycost(char **args)
 {
 	n_hycost = args[1] ? eval_re(args[1], n_hycost, '\0') : 0;
+	n_hycost2 = args[2] ? eval_re(args[2], n_hycost2, '\0') : 0;
+	n_hycost3 = args[3] ? eval_re(args[3], n_hycost3, '\0') : 0;
 }
 
 static void tr_hydash(char **args)

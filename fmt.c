@@ -384,10 +384,20 @@ static long FMT_COST(int llen, int lwid, int swid, int nspc)
 	return ratio * ratio / 100l * (nspc ? nspc : 1);
 }
 
+/* the number of hyphenations in consecutive lines ending at pos (2 at most) */
+static int fmt_hydepth(struct fmt *f, int pos)
+{
+	int n = 0;
+	while (pos > 0 && f->words[pos - 1].hy && ++n < 2)
+		pos = f->best_pos[pos];
+	return n;
+}
+
 /* the cost of putting a line break before word pos */
 static long fmt_findcost(struct fmt *f, int pos)
 {
-	int i, pen = 0;
+	int hycost[] = {0, n_hycost2, n_hycost2 + n_hycost3};
+	int i, hyphenated;
 	long cur;
 	int llen = MAX(1, FMT_LLEN(f));
 	int lwid = 0;		/* current line length */
@@ -397,12 +407,9 @@ static long fmt_findcost(struct fmt *f, int pos)
 		return 0;
 	if (f->best_pos[pos] >= 0)
 		return f->best[pos];
+	lwid = f->words[pos - 1].hy;	/* non-zero if the last word is hyphenated */
+	hyphenated = f->words[pos - 1].hy != 0;
 	i = pos - 1;
-	lwid = 0;
-	if (f->words[i].hy)	/* the last word is hyphenated */
-		lwid += f->words[i].hy;
-	if (f->words[i].hy)
-		pen = n_hycost;
 	while (i >= 0) {
 		lwid += f->words[i].wid;
 		if (i + 1 < pos)
@@ -414,8 +421,9 @@ static long fmt_findcost(struct fmt *f, int pos)
 		if (lwid - (swid * n_ssh / 100) > llen)
 			if (pos - i > 1)
 				break;
-		cur = fmt_findcost(f, i) + FMT_COST(llen, lwid, swid, nspc) +
-			pen * (nspc ? nspc : 1);
+		cur = fmt_findcost(f, i) + FMT_COST(llen, lwid, swid, nspc);
+		if (hyphenated)
+			cur += n_hycost + hycost[fmt_hydepth(f, i)];
 		if (f->best_pos[pos] < 0 || cur < f->best[pos]) {
 			f->best_pos[pos] = i;
 			f->best_dep[pos] = f->best_dep[i] + 1;
