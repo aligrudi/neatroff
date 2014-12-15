@@ -109,7 +109,7 @@ static void hy_dohyph(char *hyph, char *word, int flg)
 		hy_find(w + c[i], n + c[i]);
 	memset(hyph, 0, wlen * sizeof(hyph[0]));
 	for (i = 3; i < nc - 2; i++)
-		if (n[c[i]] % 2 && w[c[i - 1]] != '.' &&
+		if (n[c[i]] % 2 && w[c[i - 1]] != '.' && w[c[i]] != '.' &&
 				w[c[i - 2]] != '.' && w[c[i + 1]] != '.' &&
 				(~flg & HY_FINAL2 || w[c[i + 2]] != '.') &&
 				(~flg & HY_FIRST2 || w[c[i - 3]] != '.'))
