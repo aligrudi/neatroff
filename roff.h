@@ -273,6 +273,7 @@ int c_eossent(char *s);
 int c_eostran(char *s);
 int c_hydash(char *s);
 int c_hystop(char *s);
+int c_hymark(char *s);
 
 /* character translation (.tr) */
 void cmap_add(char *c1, char *c2);

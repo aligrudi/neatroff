@@ -128,7 +128,7 @@ static void wb_putbuf(struct wb *wb, char *c)
 		return;
 	}
 	g = dev_glyph(c, wb->f);
-	zerowidth = !strcmp(c_hc, c) || !strcmp(c_bp, c);
+	zerowidth = c_hymark(c);
 	if (!g && c[0] == c_ec && !zerowidth) {	/* unknown escape */
 		memmove(c, c + 1, strlen(c));
 		g = dev_glyph(c, wb->f);
@@ -174,7 +174,7 @@ static int wb_hyph(char src[][GNLEN], int src_n, char *src_hyph, int flg)
 		smap[i] = d - word;
 		if (c_hystop(s))
 			return 1;
-		if (!strcmp(c_bp, s))
+		if (c_hymark(s))
 			continue;
 		if (!utf8one(s))
 			strcpy(d, ".");

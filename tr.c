@@ -444,10 +444,10 @@ int c_eostran(char *s)
 }
 
 /* hyphenation dashes and hyphenation inhibiting character */
-static char hy_dash[NCHARS][GNLEN] = { c_bp, "-", "em", "en", "\\-", "--", "hy", };
+static char hy_dash[NCHARS][GNLEN] = { "\\:", "-", "em", "en", "\\-", "--", "hy", };
 static int hy_dashcnt = 7;
-static char hy_stop[NCHARS][GNLEN];
-static int hy_stopcnt = 0;
+static char hy_stop[NCHARS][GNLEN] = { "\\%", };
+static int hy_stopcnt = 1;
 
 static void tr_nh(char **args)
 {
@@ -468,7 +468,7 @@ static void tr_hycost(char **args)
 
 static void tr_hydash(char **args)
 {
-	hy_dashcnt = 1;		/* c_bp should always be present */
+	hy_dashcnt = 0;
 	if (args[1]) {
 		char *s = args[1];
 		while (s && charread(&s, hy_dash[hy_dashcnt]) >= 0)
@@ -504,6 +504,11 @@ int c_hystop(char *s)
 		if (!strcmp(hy_stop[i], s))
 			return 1;
 	return 0;
+}
+
+int c_hymark(char *s)
+{
+	return !strcmp(c_bp, s) || !strcmp(c_hc, s);
 }
 
 static void tr_pmll(char **args)

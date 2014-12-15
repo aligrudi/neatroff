@@ -159,8 +159,7 @@ void out_line(char *s)
 				c[0] = c[1];
 				c[1] = '\0';
 			}
-			if (c[0] == '\t' || c[0] == '' ||
-					!strcmp(c_hc, c) || !strcmp(c_bp, c))
+			if (c[0] == '\t' || c[0] == '' || c_hymark(c))
 				continue;
 			outc(cmap_map(c));
 			continue;
