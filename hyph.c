@@ -151,8 +151,8 @@ static int hcode_mapchar(char *s)
 	int i = dict_get(hcodedict, s);
 	if (i >= 0)
 		strcpy(s, hcodedst[i]);
-	else if (isalpha((unsigned char) *s))
-		*s = tolower(*s);
+	else if (!s[1])
+		*s = isalpha((unsigned char) *s) ? tolower((unsigned char) *s) : '.';
 	return strlen(s);
 }
 

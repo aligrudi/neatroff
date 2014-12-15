@@ -176,7 +176,7 @@ static int wb_hyph(char src[][GNLEN], int src_n, char *src_hyph, int flg)
 			return 1;
 		if (!strcmp(c_bp, s))
 			continue;
-		if (!utf8one(s) || (!s[1] && !isalpha((unsigned char) s[0])))
+		if (!utf8one(s))
 			strcpy(d, ".");
 		else
 			strcpy(d, s);
