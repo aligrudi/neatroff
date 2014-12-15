@@ -196,6 +196,7 @@ static int wb_collect(struct wb *wb, int val)
 	return old;
 }
 
+/* output the collected characters; only for those present in wb->f font */
 static void wb_flushsub(struct wb *wb)
 {
 	struct font *fn;
@@ -205,31 +206,38 @@ static void wb_flushsub(struct wb *wb)
 	int dmap[WORDLEN];
 	char src_hyph[WORDLEN];
 	int dst_n, i;
+	int sidx = 0;
 	if (!wb->sub_n || !wb->sub_collect)
 		return;
 	wb->sub_collect = 0;
 	fn = dev_font(wb->f);
 	if (!n_hy || wb_hyph(wb->sub_c, wb->sub_n, src_hyph, n_hy))
 		memset(src_hyph, 0, sizeof(src_hyph));
-	for (i = 0; i < wb->sub_n; i++)
-		gsrc[i] = font_find(fn, wb->sub_c[i]);
-	dst_n = font_layout(fn, gsrc, wb->sub_n, wb->s,
-			gdst, dmap, x, y, xadv, yadv, n_lg, n_kn);
-	for (i = 0; i < dst_n; i++) {
-		if (x[i])
-			wb_hmov(wb, font_wid(fn, wb->s, x[i]));
-		if (y[i])
-			wb_vmov(wb, font_wid(fn, wb->s, y[i]));
-		if (src_hyph[dmap[i]])
-			wb_putbuf(wb, c_hc);
-		if (gdst[i] == gsrc[dmap[i]])
-			wb_putbuf(wb, wb->sub_c[dmap[i]]);
-		else
-			wb_putbuf(wb, gdst[i]->name);
-		if (x[i] || xadv[i])
-			wb_hmov(wb, font_wid(fn, wb->s, xadv[i] - x[i]));
-		if (y[i] || yadv[i])
-			wb_vmov(wb, font_wid(fn, wb->s, yadv[i] - y[i]));
+	/* call font_layout() for collected glyphs; skip hyphenation marks */
+	while (sidx < wb->sub_n) {
+		int beg = sidx;
+		for (; sidx < wb->sub_n && !c_hymark(wb->sub_c[sidx]); sidx++)
+			gsrc[sidx - beg] = font_find(fn, wb->sub_c[sidx]);
+		dst_n = font_layout(fn, gsrc, sidx - beg, wb->s,
+				gdst, dmap, x, y, xadv, yadv, n_lg, n_kn);
+		for (i = 0; i < dst_n; i++) {
+			if (x[i])
+				wb_hmov(wb, font_wid(fn, wb->s, x[i]));
+			if (y[i])
+				wb_vmov(wb, font_wid(fn, wb->s, y[i]));
+			if (src_hyph[beg + dmap[i]])
+				wb_putbuf(wb, c_hc);
+			if (gdst[i] == gsrc[dmap[i]])
+				wb_putbuf(wb, wb->sub_c[beg + dmap[i]]);
+			else
+				wb_putbuf(wb, gdst[i]->name);
+			if (x[i] || xadv[i])
+				wb_hmov(wb, font_wid(fn, wb->s, xadv[i] - x[i]));
+			if (y[i] || yadv[i])
+				wb_vmov(wb, font_wid(fn, wb->s, yadv[i] - y[i]));
+		}
+		for (; sidx < wb->sub_n && c_hymark(wb->sub_c[sidx]); sidx++)
+			wb_putbuf(wb, wb->sub_c[sidx]);
 	}
 	wb->sub_n = 0;
 	wb->icleft = 0;
@@ -250,7 +258,7 @@ void wb_put(struct wb *wb, char *c)
 	if (wb_pendingfont(wb) || wb->sub_n == LEN(wb->sub_c))
 		wb_flush(wb);
 	if (wb->sub_collect) {
-		if (font_find(dev_font(wb->f), c))
+		if (font_find(dev_font(wb->f), c) || c_hymark(c))
 			strcpy(wb->sub_c[wb->sub_n++], c);
 		else
 			wb_putraw(wb, c);
