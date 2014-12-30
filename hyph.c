@@ -18,6 +18,59 @@ static struct dict *hwdict;	/* map words to their index in hwoff[] */
 static int hwoff[NHYPHS];	/* the offset of words in hwword[] */
 static int hw_n;		/* the number of dictionary words */
 
+/* read a single character from s into d; return the number of characters read */
+static int hy_cget(char *d, char *s)
+{
+	if (s[0] != '\\')
+		return utf8read(&s, d);
+	if (s[1] == '[') {
+		char *o = s;
+		s += 2;
+		while (*s && *s != ']')
+			*d++ = *s++;
+		*d = '\0';
+		return s - o;
+	}
+	if (s[1] == '(') {
+		d[0] = s[2];
+		d[1] = s[3];
+		d[2] = '\0';
+		return 4;
+	}
+	if (s[1] == 'C') {
+		char *o = s;
+		quotedread(&s, d);
+		return s - o;
+	}
+	d[0] = s[0];
+	d[1] = s[1];
+	d[2] = '\0';
+	return 2;
+}
+
+/* append character s to d; return the number of characters written */
+static int hy_cput(char *d, char *s)
+{
+	if (!s[0] || !s[1] || utf8one(s)) {
+		strcpy(d, s);
+	} else if (s[0] == '\\' && !s[2]) {
+		s[0] = d[0];
+		s[1] = d[1];
+		s[2] = '\0';
+		return 2;
+	} else if (!s[2]) {
+		d[0] = '\\';
+		d[1] = '(';
+		d[2] = s[0];
+		d[3] = s[1];
+		d[4] = '\0';
+		return 4;
+	} else {
+		snprintf(d, GNLEN, "\\[%s]", s);
+	}
+	return strlen(d);
+}
+
 /* insert word s into hwword[] and hwhyph[] */
 static void hw_add(char *s)
 {
@@ -60,9 +113,18 @@ static int hw_lookup(char *word, char *hyph)
 
 void tr_hw(char **args)
 {
+	char c[GNLEN];
+	char word[WORDLEN];
 	int i;
-	for (i = 1; i < NARGS && args[i]; i++)
-		hw_add(args[i]);
+	for (i = 1; i < NARGS && args[i]; i++) {
+		char *s = args[i];
+		char *d = word;
+		while (d - word < WORDLEN - GNLEN && s[0]) {
+			s += hy_cget(c, s);
+			d += hy_cput(d, c);
+		}
+		hw_add(word);
+	}
 }
 
 /* the tex hyphenation algorithm */
@@ -98,12 +160,13 @@ static void hy_dohyph(char *hyph, char *word, int flg)
 	char n[WORDLEN] = {0};
 	char w[WORDLEN] = {0};
 	int c[WORDLEN];			/* start of the i-th character in w */
-	int wmap[WORDLEN] = {0};	/* word[wmap[i]] is w[i] */
+	int wmap[WORDLEN] = {0};	/* w[i] corresponds to word[wmap[i]] */
 	int nc = 0;
 	int i, wlen;
 	hcode_strcpy(w, word, wmap, 1);
 	wlen = strlen(w);
-	for (i = 0; i < wlen - 1; i += utf8len((unsigned char) w[i]))
+	char dum[GNLEN];
+	for (i = 0; i < wlen - 1; i += hy_cget(dum, w + i))
 		c[nc++] = i;
 	for (i = 0; i < nc - 1; i++)
 		hy_find(w + c[i], n + c[i]);
@@ -159,15 +222,15 @@ static int hcode_mapchar(char *s)
 /* copy s to d after .hcode mappings; s[map[j]] corresponds to d[j] */
 static void hcode_strcpy(char *d, char *s, int *map, int dots)
 {
-	int di = 0, si = 0, len;
+	char c[GNLEN];
+	int di = 0, si = 0;
 	if (dots)
 		d[di++] = '.';
 	while (di < WORDLEN - GNLEN && s[si]) {
-		len = utf8len((unsigned char) s[si]);
 		map[di] = si;
-		memcpy(d + di, s + si, len);
-		si += len;
-		di += hcode_mapchar(d + di);
+		si += hy_cget(c, s + si);
+		hcode_mapchar(c);
+		di += hy_cput(d + di, c);
 	}
 	if (dots)
 		d[di++] = '.';
@@ -191,7 +254,7 @@ void tr_hcode(char **args)
 {
 	char c1[GNLEN], c2[GNLEN];
 	char *s = args[1];
-	while (s && utf8read(&s, c1) && utf8read(&s, c2))
+	while (s && charread(&s, c1) >= 0 && charread(&s, c2) >= 0)
 		hcode_add(c1, c2);
 }
 

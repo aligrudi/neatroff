@@ -176,10 +176,7 @@ static int wb_hyph(char src[][GNLEN], int src_n, char *src_hyph, int flg)
 			return 1;
 		if (c_hymark(s))
 			continue;
-		if (!utf8one(s))
-			strcpy(d, ".");
-		else
-			strcpy(d, s);
+		charnext_str(d, s);
 		d = strchr(d, '\0');
 	}
 	memset(hyph, 0, (d - word) * sizeof(hyph[0]));

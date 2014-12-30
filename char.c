@@ -185,7 +185,7 @@ int charread_delim(char **s, char *c, char *delim)
 }
 
 /* read quoted arguments; this is called only for internal neatroff strings */
-static void quotedread(char **sp, char *d)
+void quotedread(char **sp, char *d)
 {
 	char *s = *sp;
 	int q = *s++;
