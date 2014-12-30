@@ -114,14 +114,16 @@ int charnext(char *c, int (*next)(void), void (*back)(int))
 	if (!utf8next(c, next))
 		return -1;
 	if (c[0] == c_ni) {
-		utf8next(c + 1, next);
+		c[1] = next();
+		c[2] = '\0';
 		return c_ni;
 	}
 	if (c[0] == c_ec) {
-		utf8next(c + 1, next);
+		c[1] = next();
+		c[2] = '\0';
 		if (c[1] == '(') {
-			l = utf8next(c, next);
-			l += utf8next(c + l, next);
+			c[0] = next();
+			c[1] = next();
 			return '(';
 		} else if (!n_cp && c[1] == '[') {
 			l = 0;
@@ -232,10 +234,11 @@ int escread(char **s, char *d)
 		return -1;
 	utf8read(s, d);
 	if (d[0] == c_ec) {
-		utf8read(s, d + 1);
+		d[1] = *(*s)++;
+		d[2] = '\0';
 		if (d[1] == '(') {
-			utf8read(s, d);
-			utf8read(s, d + strlen(d));
+			d[0] = *(*s)++;
+			d[1] = *(*s)++;
 		} else if (!n_cp && d[1] == '[') {
 			while (**s && **s != ']')
 				*r++ = *(*s)++;
