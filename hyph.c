@@ -21,10 +21,10 @@ static int hw_n;		/* the number of dictionary words */
 /* read a single character from s into d; return the number of characters read */
 static int hy_cget(char *d, char *s)
 {
+	int i = 0;
 	if (s[0] != '\\')
 		return utf8read(&s, d);
 	if (s[1] == '[') {
-		int i = 0;
 		s += 2;
 		while (*s && *s != ']' && i < GNLEN - 1)
 			d[i++] = *s++;
@@ -32,13 +32,12 @@ static int hy_cget(char *d, char *s)
 		return *s ? i + 3 : i + 2;
 	}
 	if (s[1] == '(') {
-		d[0] = s[2];
-		d[1] = s[3];
-		d[2] = '\0';
-		return 4;
+		s += 2;
+		i += utf8read(&s, d + i);
+		i += utf8read(&s, d + i);
+		return 2 + i;
 	}
 	if (s[1] == 'C') {
-		int i = 0;
 		int q = s[2];
 		s += 3;
 		while (*s && *s != q && i < GNLEN - 1)
@@ -46,32 +45,19 @@ static int hy_cget(char *d, char *s)
 		d[i] = '\0';
 		return *s ? i + 4 : i + 3;
 	}
-	d[0] = s[0];
-	d[1] = s[1];
-	d[2] = '\0';
-	return 2;
+	*d++ = *s++;
+	return 1 + utf8read(&s, d);
 }
 
 /* append character s to d; return the number of characters written */
 static int hy_cput(char *d, char *s)
 {
-	if (!s[0] || !s[1] || utf8one(s)) {
+	if (!s[0] || !s[1] || utf8one(s))
 		strcpy(d, s);
-	} else if (s[0] == '\\' && !s[2]) {
-		s[0] = d[0];
-		s[1] = d[1];
-		s[2] = '\0';
-		return 2;
-	} else if (!s[2]) {
-		d[0] = '\\';
-		d[1] = '(';
-		d[2] = s[0];
-		d[3] = s[1];
-		d[4] = '\0';
-		return 4;
-	} else {
+	else if (s[0] == '\\')
+		strcpy(d, s);
+	else if (!s[2])
 		snprintf(d, GNLEN, "\\[%s]", s);
-	}
 	return strlen(d);
 }
 

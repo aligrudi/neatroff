@@ -22,18 +22,19 @@ static void cparg(char *d, int len)
 	int c = cp_noninext();
 	int i = 0;
 	if (c == '(') {
-		d[i++] = cp_noninext();
-		d[i++] = cp_noninext();
+		i += utf8next(d + i, cp_noninext);
+		i += utf8next(d + i, cp_noninext);
 	} else if (!n_cp && c == '[') {
 		c = cp_noninext();
 		while (i < NMLEN - 1 && c >= 0 && c != ']') {
 			d[i++] = c;
 			c = cp_noninext();
 		}
+		d[i] = '\0';
 	} else {
-		d[i++] = c;
+		cp_back(c);
+		utf8next(d, cp_noninext);
 	}
-	d[i] = '\0';
 }
 
 static int regid(void)
