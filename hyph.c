@@ -8,6 +8,7 @@
 #define HYPATLEN	(NHYPHS * 16)	/* hyphenation pattern length */
 
 static void hcode_strcpy(char *d, char *s, int *map, int dots);
+static int hcode_mapchar(char *s);
 
 /* the hyphenation dictionary (.hw) */
 
@@ -50,7 +51,7 @@ static int hy_cget(char *d, char *s)
 }
 
 /* append character s to d; return the number of characters written */
-static int hy_cput(char *d, char *s)
+int hy_cput(char *d, char *s)
 {
 	if (!s[0] || !s[1] || utf8one(s))
 		strcpy(d, s);
@@ -103,14 +104,15 @@ static int hw_lookup(char *word, char *hyph)
 
 void tr_hw(char **args)
 {
-	char c[GNLEN];
+	char c[ILNLEN];
 	char word[WORDLEN];
 	int i;
 	for (i = 1; i < NARGS && args[i]; i++) {
 		char *s = args[i];
 		char *d = word;
-		while (d - word < WORDLEN - GNLEN && s[0]) {
-			s += hy_cget(c, s);
+		while (d - word < WORDLEN - GNLEN && !escread(&s, c)) {
+			if (strcmp("-", c))
+				hcode_mapchar(c);
 			d += hy_cput(d, c);
 		}
 		hw_add(word);

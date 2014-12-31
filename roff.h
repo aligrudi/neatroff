@@ -288,6 +288,7 @@ int cdef_expand(struct wb *wb, char *c, int fn);
 #define HY_FIRST2	0x08	/* do not hyphenate the first two characters */
 
 void hyphenate(char *hyphs, char *word, int flg);
+int hy_cput(char *d, char *s);
 void hyph_init(void);
 void hyph_done(void);
 
