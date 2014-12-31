@@ -24,12 +24,12 @@ static int hy_cget(char *d, char *s)
 	if (s[0] != '\\')
 		return utf8read(&s, d);
 	if (s[1] == '[') {
-		char *o = s;
+		int i = 0;
 		s += 2;
-		while (*s && *s != ']')
-			*d++ = *s++;
-		*d = '\0';
-		return s - o;
+		while (*s && *s != ']' && i < GNLEN - 1)
+			d[i++] = *s++;
+		d[i] = '\0';
+		return *s ? i + 3 : i + 2;
 	}
 	if (s[1] == '(') {
 		d[0] = s[2];
@@ -38,9 +38,13 @@ static int hy_cget(char *d, char *s)
 		return 4;
 	}
 	if (s[1] == 'C') {
-		char *o = s;
-		quotedread(&s, d);
-		return s - o;
+		int i = 0;
+		int q = s[2];
+		s += 3;
+		while (*s && *s != q && i < GNLEN - 1)
+			d[i++] = *s++;
+		d[i] = '\0';
+		return *s ? i + 4 : i + 3;
 	}
 	d[0] = s[0];
 	d[1] = s[1];
@@ -157,16 +161,16 @@ static void hy_find(char *s, char *n)
 /* mark the hyphenation points of word in hyph */
 static void hy_dohyph(char *hyph, char *word, int flg)
 {
-	char n[WORDLEN] = {0};
-	char w[WORDLEN] = {0};
+	char w[WORDLEN] = {0};		/* cleaned-up word[]; "Abc" -> ".abc." */
+	char n[WORDLEN] = {0};		/* the hyphenation value for w[] */
 	int c[WORDLEN];			/* start of the i-th character in w */
 	int wmap[WORDLEN] = {0};	/* w[i] corresponds to word[wmap[i]] */
+	char ch[GNLEN];
 	int nc = 0;
 	int i, wlen;
 	hcode_strcpy(w, word, wmap, 1);
 	wlen = strlen(w);
-	char dum[GNLEN];
-	for (i = 0; i < wlen - 1; i += hy_cget(dum, w + i))
+	for (i = 0; i < wlen - 1; i += hy_cget(ch, w + i))
 		c[nc++] = i;
 	for (i = 0; i < nc - 1; i++)
 		hy_find(w + c[i], n + c[i]);
