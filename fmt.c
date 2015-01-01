@@ -384,17 +384,19 @@ static long FMT_COST(int llen, int lwid, int swid, int nspc)
 	return ratio * ratio / 100l * (nspc ? nspc : 1);
 }
 
-/* the number of hyphenations in consecutive lines ending at pos (2 at most) */
+/* the number of hyphenations in consecutive lines ending at pos */
 static int fmt_hydepth(struct fmt *f, int pos)
 {
 	int n = 0;
-	while (pos > 0 && f->words[pos - 1].hy && ++n < 2)
+	while (pos > 0 && f->words[pos - 1].hy && ++n < 5)
 		pos = f->best_pos[pos];
 	return n;
 }
 
 static long hycost(int depth)
 {
+	if (n_hlm > 0 && depth > n_hlm)
+		return 10000000;
 	if (depth >= 3)
 		return n_hycost + n_hycost2 + n_hycost3;
 	if (depth == 2)
@@ -426,9 +428,8 @@ static long fmt_findcost(struct fmt *f, int pos)
 			swid += f->words[i + 1].gap;
 			nspc++;
 		}
-		if (lwid - (swid * n_ssh / 100) > llen)
-			if (pos - i > 1)
-				break;
+		if (lwid > llen + swid * n_ssh / 100 && i + 1 < pos)
+			break;
 		cur = fmt_findcost(f, i) + FMT_COST(llen, lwid, swid, nspc);
 		if (hyphenated)
 			cur += hycost(1 + fmt_hydepth(f, i));
@@ -581,7 +582,7 @@ static int fmt_fillwords(struct fmt *f, int br)
 		end = end_head;
 	}
 	/* recursively add lines */
-	n = fmt_break(f, end);
+	n = end > 0 ? fmt_break(f, end) : 0;
 	f->nwords -= n;
 	f->fillreq -= n;
 	fmt_movewords(f, 0, n, f->nwords);

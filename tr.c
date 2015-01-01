@@ -459,6 +459,11 @@ static void tr_hy(char **args)
 	n_hy = args[1] ? eval_re(args[1], n_hy, '\0') : 1;
 }
 
+static void tr_hlm(char **args)
+{
+	n_hlm = args[1] ? eval_re(args[1], n_hlm, '\0') : 0;
+}
+
 static void tr_hycost(char **args)
 {
 	n_hycost = args[1] ? eval_re(args[1], n_hycost, '\0') : 0;
@@ -1003,6 +1008,7 @@ static struct cmd {
 	{"fzoom", tr_fzoom},
 	{"hc", tr_hc},
 	{"hcode", tr_hcode},
+	{"hlm", tr_hlm},
 	{"hpf", tr_hpf},
 	{"hpfa", tr_hpfa},
 	{"hy", tr_hy},
