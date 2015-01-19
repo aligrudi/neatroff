@@ -60,6 +60,21 @@ static void cmddef(char *arg, int *reg, char **def)
 	*def = eq ? eq + 1 : arg + 1;
 }
 
+/* find the macro specified with -m option */
+static int cmdmac(char *dir, char *arg)
+{
+	char path[PATHLEN];
+	snprintf(path, sizeof(path), "%s/%s.tmac", dir, arg);
+	if (!xopens(path))
+		snprintf(path, sizeof(path), "%s/tmac.%s", dir, arg);
+	if (!xopens(path))
+		snprintf(path, sizeof(path), "%s/%s", dir, arg);
+	if (!xopens(path))
+		return 1;
+	in_queue(path);
+	return 0;
+}
+
 static char *usage =
 	"Usage: neatroff [options] input\n\n"
 	"Options:\n"
@@ -73,11 +88,9 @@ static char *usage =
 
 int main(int argc, char **argv)
 {
-	char path[PATHLEN];
 	char *fontdir = TROFFFDIR;
 	char *macrodir = TROFFMDIR;
-	char *dev = "utf";
-	char *def;
+	char *mac, *def, *dev = "utf";
 	int reg, ret;
 	int i;
 	for (i = 1; i < argc; i++) {
@@ -88,15 +101,9 @@ int main(int argc, char **argv)
 			n_cp = 1;
 			break;
 		case 'm':
-			snprintf(path, sizeof(path), "%s/%s.tmac",
-				macrodir, argv[i] + 2);
-			if (!xopens(path))
-				snprintf(path, sizeof(path), "%s/tmac.%s",
-					macrodir, argv[i] + 2);
-			if (!xopens(path))
-				snprintf(path, sizeof(path), "%s/%s",
-					macrodir, argv[i] + 2);
-			in_queue(path);
+			mac = argv[i] + 2;
+			if (strchr(mac, '/') || (cmdmac(macrodir, mac) && cmdmac(".", mac)))
+				in_queue(mac);
 			break;
 		case 'r':
 			cmddef(argv[i][2] ? argv[i] + 2 : argv[++i], &reg, &def);
