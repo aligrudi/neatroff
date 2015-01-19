@@ -255,7 +255,7 @@ static void init_globals(void)
 	n_o = SC_IN;
 	n_p = SC_IN * 11;
 	n_lg = 1;
-	n_kn = 0;
+	n_kn = 1;
 	num_set(map(".H"), 1);
 	num_set(map(".V"), 1);
 }
