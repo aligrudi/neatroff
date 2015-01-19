@@ -70,7 +70,7 @@ void in_lf(char *path, int lnum)
 void in_queue(char *path)
 {
 	if (nfiles < NFILES)
-		snprintf(files[nfiles++], PATHLEN - 1, "%s", path ? path : "");
+		snprintf(files[nfiles++], PATHLEN, "%s", path ? path : "");
 }
 
 static void in_pop(void)
