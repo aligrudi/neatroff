@@ -1,7 +1,7 @@
 /*
  * neatroff troff clone
  *
- * Copyright (C) 2012-2014 Ali Gholami Rudi <ali at rudi dot ir>
+ * Copyright (C) 2012-2015 Ali Gholami Rudi <ali at rudi dot ir>
  *
  * This program is released under the Modified BSD license.
  */
@@ -50,10 +50,22 @@ static int xopens(char *path)
 	return filp != NULL;
 }
 
+/* parse the argument of -r and -d options */
+static void cmddef(char *arg, int *reg, char **def)
+{
+	char regname[RNLEN] = "";
+	char *eq = strchr(arg, '=');
+	memcpy(regname, arg, eq ? MIN(RNLEN - 1, eq - arg) : 1);
+	*reg = map(regname);
+	*def = eq ? eq + 1 : arg + 1;
+}
+
 static char *usage =
 	"Usage: neatroff [options] input\n\n"
 	"Options:\n"
 	"  -mx   \tinclude macro x\n"
+	"  -rx=y \tset number register x to y\n"
+	"  -dx=y \tdefine string register x as y\n"
 	"  -C    \tenable compatibility mode\n"
 	"  -Tdev \tset output device\n"
 	"  -Fdir \tset font directory (" TROFFFDIR ")\n"
@@ -65,8 +77,9 @@ int main(int argc, char **argv)
 	char *fontdir = TROFFFDIR;
 	char *macrodir = TROFFMDIR;
 	char *dev = "utf";
+	char *def;
+	int reg, ret;
 	int i;
-	int ret;
 	for (i = 1; i < argc; i++) {
 		if (argv[i][0] != '-' || !argv[i][1])
 			break;
@@ -84,6 +97,14 @@ int main(int argc, char **argv)
 				snprintf(path, sizeof(path), "%s/%s",
 					macrodir, argv[i] + 2);
 			in_queue(path);
+			break;
+		case 'r':
+			cmddef(argv[i][2] ? argv[i] + 2 : argv[++i], &reg, &def);
+			num_set(reg, eval_re(def, num_get(reg), 'u'));
+			break;
+		case 'd':
+			cmddef(argv[i][2] ? argv[i] + 2 : argv[++i], &reg, &def);
+			str_set(reg, def);
 			break;
 		case 'F':
 			fontdir = argv[i][2] ? argv[i] + 2 : argv[++i];
