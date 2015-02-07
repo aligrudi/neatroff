@@ -376,8 +376,8 @@ void tr_transparent(char **args);
 
 void tr_init(void);
 void tr_done(void);
-int tr_readargs(char **args, struct sbuf *sbuf,
-		int (*next)(void), void (*back)(int));
+void tr_argsread(struct sbuf *sbuf, int (*next)(void), void (*back)(int));
+int tr_argschop(struct sbuf *sbuf, char **args);
 
 /* helpers */
 void errmsg(char *msg, ...);

@@ -801,11 +801,28 @@ static void arg_regname(struct sbuf *sbuf)
 static void arg_string(struct sbuf *sbuf)
 {
 	int c;
+	cp_copymode(1);
 	while ((c = cp_next()) == ' ')
 		;
 	if (c == '"')
 		c = cp_next();
 	while (c > 0 && c != '\n') {
+		if (c != c_ni)
+			sbuf_add(sbuf, c);
+		c = cp_next();
+	}
+	sbuf_add(sbuf, 0);
+	if (c >= 0)
+		cp_back(c);
+	cp_copymode(0);
+}
+
+static void arg_name(struct sbuf *sbuf)
+{
+	int c;
+	while ((c = cp_next()) == ' ')
+		;
+	while (c > 0 && c != ' ' && c != '\t' && c != '\n') {
 		if (c != c_ni)
 			sbuf_add(sbuf, c);
 		c = cp_next();
@@ -852,97 +869,103 @@ static int mkargs_arg(struct sbuf *sbuf, int (*next)(void), void (*back)(int))
 }
 
 /* read macro arguments */
-int tr_readargs(char **args, struct sbuf *sbuf, int (*next)(void), void (*back)(int))
+void tr_argsread(struct sbuf *sbuf, int (*next)(void), void (*back)(int))
 {
-	int idx[NARGS];
-	int i, n = 0;
+	int n = 0;
 	while (n < NARGS) {
-		idx[n] = sbuf_len(sbuf);
 		if (mkargs_arg(sbuf, next, back))
 			break;
 		n++;
 	}
-	for (i = 0; i < n; i++)
-		args[i] = sbuf_buf(sbuf) + idx[i];
+}
+
+/* split the arguments in sbuf */
+int tr_argschop(struct sbuf *sbuf, char **args)
+{
+	char *s = sbuf_buf(sbuf);
+	char *e = s + sbuf_len(sbuf);
+	int n = 0;
+	while (n < NARGS && s && s < e) {
+		args[n++] = s;
+		if ((s = memchr(s, '\0', e - s)))
+			s++;
+	}
 	return n;
 }
 
 /* read macro arguments; trims tabs if rmtabs is nonzero */
-static int mkargs(char **args, struct sbuf *sbuf)
+static void mkargs(struct sbuf *sbuf)
 {
-	int n = tr_readargs(args, sbuf, cp_next, cp_back);
+	tr_argsread(sbuf, cp_next, cp_back);
 	jmp_eol();
-	return n;
 }
 
 /* read request arguments; trims tabs too */
-static int mkargs_req(char **args, struct sbuf *sbuf)
+static void mkargs_req(struct sbuf *sbuf)
 {
-	int idx[NARGS];
-	int i, n = 0;
+	int n = 0;
 	int c;
 	c = cp_next();
 	while (n < NARGS) {
-		idx[n] = sbuf_len(sbuf);
+		int ok = 0;
 		while (c == ' ' || c == '\t')
 			c = cp_next();
 		while (c >= 0 && c != '\n' && c != ' ' && c != '\t') {
 			if (c != c_ni)
 				sbuf_add(sbuf, c);
 			c = cp_next();
+			ok = 1;
 		}
-		if (sbuf_len(sbuf) > idx[n])
+		if (ok) {
 			n++;
-		sbuf_add(sbuf, 0);
+			sbuf_add(sbuf, 0);
+		}
 		if (c == '\n')
 			cp_back(c);
 		if (c < 0 || c == '\n')
 			break;
 	}
-	for (i = 0; i < n; i++)
-		args[i] = sbuf_buf(sbuf) + idx[i];
 	jmp_eol();
-	return n;
 }
 
 /* read arguments for .ds */
-static int mkargs_ds(char **args, struct sbuf *sbuf)
+static void mkargs_ds(struct sbuf *sbuf)
 {
-	int idx[NARGS];
-	int i, n = 0;
-	idx[n++] = sbuf_len(sbuf);
 	arg_regname(sbuf);
-	idx[n++] = sbuf_len(sbuf);
-	cp_copymode(1);
 	arg_string(sbuf);
-	cp_copymode(0);
 	jmp_eol();
-	for (i = 0; i < n; i++)
-		args[i] = sbuf_buf(sbuf) + idx[i];
-	return n;
 }
 
-/* read arguments for commands .nr that expect a register name */
-static int mkargs_reg1(char **args, struct sbuf *sbuf)
+/* read arguments for .char */
+static void mkargs_def(struct sbuf *sbuf)
 {
-	int n;
-	int idx0 = sbuf_len(sbuf);
+	arg_name(sbuf);
+	arg_string(sbuf);
+	jmp_eol();
+}
+
+/* read arguments for .ochar */
+static void mkargs_def3(struct sbuf *sbuf)
+{
+	arg_name(sbuf);
+	mkargs_def(sbuf);
+}
+
+/* read arguments for .nr */
+static void mkargs_reg1(struct sbuf *sbuf)
+{
 	arg_regname(sbuf);
-	n = mkargs_req(args + 1, sbuf) + 1;
-	args[0] = sbuf_buf(sbuf) + idx0;
-	return n;
+	mkargs_req(sbuf);
 }
 
-/* do not read arguments; for .if, .ie and .el */
-static int mkargs_null(char **args, struct sbuf *sbuf)
+/* do not read any arguments; for .if, .ie and .el */
+static void mkargs_null(struct sbuf *sbuf)
 {
-	return 0;
 }
 
 /* read the whole line for .tm */
-static int mkargs_eol(char **args, struct sbuf *sbuf)
+static void mkargs_eol(struct sbuf *sbuf)
 {
-	int idx0 = sbuf_len(sbuf);
 	int c;
 	cp_copymode(1);
 	c = cp_next();
@@ -954,14 +977,12 @@ static int mkargs_eol(char **args, struct sbuf *sbuf)
 		c = cp_next();
 	}
 	cp_copymode(0);
-	args[0] = sbuf_buf(sbuf) + idx0;
-	return 1;
 }
 
 static struct cmd {
 	char *id;
 	void (*f)(char **args);
-	int (*args)(char **args, struct sbuf *sbuf);
+	void (*args)(struct sbuf *sbuf);
 } cmds[] = {
 	{TR_DIVBEG, tr_divbeg},
 	{TR_DIVEND, tr_divend},
@@ -977,10 +998,10 @@ static struct cmd {
 	{"br", tr_br},
 	{"c2", tr_c2},
 	{"cc", tr_cc},
-	{"ochar", tr_ochar},
+	{"ochar", tr_ochar, mkargs_def3},
 	{"ce", tr_ce},
 	{"ch", tr_ch},
-	{"char", tr_char, mkargs_ds},
+	{"char", tr_char, mkargs_def},
 	{"chop", tr_chop, mkargs_reg1},
 	{"cl", tr_cl},
 	{"cp", tr_cp},
@@ -1046,7 +1067,7 @@ static struct cmd {
 	{"pn", tr_pn},
 	{"po", tr_po},
 	{"ps", tr_ps},
-	{"rchar", tr_rchar, mkargs_ds},
+	{"rchar", tr_rchar},
 	{"rm", tr_rm},
 	{"rn", tr_rn},
 	{"rr", tr_rr},
@@ -1085,8 +1106,9 @@ int tr_nextreq(void)
 			args[0] = "\\!";
 			sbuf_init(&sbuf);
 			cp_copymode(1);
-			mkargs_eol(args + 1, &sbuf);
+			mkargs_eol(&sbuf);
 			cp_copymode(0);
+			tr_argschop(&sbuf, args + 1);
 			tr_transparent(args);
 			sbuf_done(&sbuf);
 			return 0;
@@ -1097,7 +1119,6 @@ int tr_nextreq(void)
 		cp_back(c);
 		return 1;
 	}
-	memset(args, 0, sizeof(args));
 	args[0] = cmd;
 	cmd[0] = c;
 	req = NULL;
@@ -1107,14 +1128,16 @@ int tr_nextreq(void)
 	req = str_dget(map(cmd + 1));
 	if (req) {
 		if (req->args)
-			req->args(args + 1, &sbuf);
+			req->args(&sbuf);
 		else
-			mkargs_req(args + 1, &sbuf);
+			mkargs_req(&sbuf);
+		tr_argschop(&sbuf, args + 1);
 		req->f(args);
 	} else {
 		cp_copymode(1);
-		mkargs(args + 1, &sbuf);
+		mkargs(&sbuf);
 		cp_copymode(0);
+		tr_argschop(&sbuf, args + 1);
 		if (str_get(map(cmd + 1)))
 			in_push(str_get(map(cmd + 1)), args + 1);
 	}

@@ -63,12 +63,13 @@ static void cp_str(void)
 {
 	char arg[ILNLEN];
 	struct sbuf sbuf;
-	char *args[NARGS] = {NULL};
+	char *args[NARGS + 1] = {NULL};
 	cparg(arg, sizeof(arg));
 	if (strchr(arg, ' ')) {
 		sbuf_init(&sbuf);
 		sstr_push(strchr(arg, ' ') + 1);
-		tr_readargs(args, &sbuf, sstr_next, sstr_back);
+		tr_argsread(&sbuf, sstr_next, sstr_back);
+		tr_argschop(&sbuf, args);
 		sstr_pop();
 		*strchr(arg, ' ') = '\0';
 		if (str_get(map(arg)))
