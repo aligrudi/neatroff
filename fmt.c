@@ -29,6 +29,7 @@ struct word {
 	int gap;	/* the space before this word */
 	int hy;		/* hyphen width if inserted after this word */
 	int str;	/* does the space before it stretch */
+	int cost;	/* the extra cost of line break after this word */
 };
 
 struct line {
@@ -259,7 +260,7 @@ int fmt_fillreq(struct fmt *f)
 }
 
 static void fmt_wb2word(struct fmt *f, struct word *word, struct wb *wb,
-			int hy, int str, int gap)
+			int hy, int str, int gap, int cost)
 {
 	int len = strlen(wb_buf(wb));
 	word->s = xmalloc(len + 1);
@@ -267,6 +268,7 @@ static void fmt_wb2word(struct fmt *f, struct word *word, struct wb *wb,
 	word->wid = wb_wid(wb);
 	word->elsn = wb->els_neg;
 	word->elsp = wb->els_pos;
+	word->cost = cost ? wb_cost(wb) : 0;
 	word->hy = hy ? wb_hywid(wb) : 0;
 	word->str = str;
 	word->gap = gap;
@@ -307,7 +309,7 @@ static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 	int cf, cs, cm;
 	n = fmt_hyphmarks(src, hyidx, hyins);
 	if (n <= 0) {
-		fmt_wb2word(f, &f->words[f->nwords++], wb, 0, 1, gap);
+		fmt_wb2word(f, &f->words[f->nwords++], wb, 0, 1, gap, 1);
 		return;
 	}
 	/* update f->fillreq considering the new sub-words */
@@ -319,7 +321,7 @@ static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 		end = src + (i < n ? hyidx[i] : strlen(src));
 		wb_catstr(&wbc, beg, end);
 		fmt_wb2word(f, &f->words[f->nwords++], &wbc,
-			i < n && hyins[i], i == 0, i == 0 ? gap : 0);
+			i < n && hyins[i], i == 0, i == 0 ? gap : 0, i == n);
 		/* restoring wbc */
 		wb_fnszget(&wbc, &cs, &cf, &cm);
 		wb_reset(&wbc);
@@ -416,7 +418,7 @@ static long fmt_findcost(struct fmt *f, int pos)
 	if (pos <= 0)
 		return 0;
 	if (f->best_pos[pos] >= 0)
-		return f->best[pos];
+		return f->best[pos] + f->words[pos - 1].cost;
 	lwid = f->words[pos - 1].hy;	/* non-zero if the last word is hyphenated */
 	hyphenated = f->words[pos - 1].hy != 0;
 	i = pos - 1;
@@ -440,7 +442,7 @@ static long fmt_findcost(struct fmt *f, int pos)
 		}
 		i--;
 	}
-	return f->best[pos];
+	return f->best[pos] + f->words[pos - 1].cost;
 }
 
 static int fmt_bestpos(struct fmt *f, int pos)

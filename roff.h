@@ -57,7 +57,7 @@
 #define SC_EM		(n_s * SC_IN / 72)
 
 /* escape sequences */
-#define ESC_Q	"bCDhHlLNoRSvwxXZ?"	/* \X'ccc' quoted escape sequences */
+#define ESC_Q	"bCDhHjlLNoRSvwxXZ?"	/* \X'ccc' quoted escape sequences */
 #define ESC_P	"*fgkmns"		/* \Xc \X(cc \X[ccc] escape sequences */
 
 #define MIN(a, b)	((a) < (b) ? (a) : (b))
@@ -224,6 +224,7 @@ struct wb {
 	int f, s, m;		/* the last output font and size */
 	int r_f, r_s, r_m;	/* current font and size; use n_f and n_s if -1 */
 	int part;		/* partial input (\c) */
+	int cost;		/* the extra cost of line break after this word */
 	int els_neg, els_pos;	/* extra line spacing */
 	int h, v;		/* buffer vertical and horizontal positions */
 	int ct, sb, st;		/* \w registers */
@@ -246,6 +247,8 @@ void wb_putraw(struct wb *wb, char *c);
 void wb_putexpand(struct wb *wb, char *c);
 int wb_part(struct wb *wb);
 void wb_setpart(struct wb *wb);
+int wb_cost(struct wb *wb);
+void wb_setcost(struct wb *wb, int cost);
 void wb_drawl(struct wb *wb, int c, int h, int v);
 void wb_drawc(struct wb *wb, int c, int r);
 void wb_drawe(struct wb *wb, int c, int h, int v);

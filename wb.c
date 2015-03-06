@@ -290,6 +290,16 @@ void wb_setpart(struct wb *wb)
 	wb->part = 1;
 }
 
+int wb_cost(struct wb *wb)
+{
+	return wb->cost;
+}
+
+void wb_setcost(struct wb *wb, int cost)
+{
+	wb->cost = cost;
+}
+
 void wb_drawl(struct wb *wb, int c, int h, int v)
 {
 	wb_flush(wb);

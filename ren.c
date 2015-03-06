@@ -646,6 +646,9 @@ static void ren_cmd(struct wb *wb, int c, char *arg)
 	case 'h':
 		wb_hmov(wb, eval(arg, 'm'));
 		break;
+	case 'j':
+		wb_setcost(wb, eval(arg, 0));
+		break;
 	case 'k':
 		num_set(map(arg), wb == cwb ? f_hpos() - n_lb : wb_wid(wb));
 		break;
@@ -735,7 +738,7 @@ static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int)
 			wb_hmov(wb, w - wb_wid(wb));
 			return;
 		}
-		if (strchr(" bCcDdefHhkLlmNoprSsuvXxZz0^|!{}&/,", c[1])) {
+		if (strchr(" bCcDdefHhjkLlmNoprSsuvXxZz0^|!{}&/,", c[1])) {
 			arg[0] = '\0';
 			if (strchr(ESC_P, c[1]))
 				unquotednext(arg, c[1], next, back);
