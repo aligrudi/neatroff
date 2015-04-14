@@ -30,6 +30,7 @@
 #define NMLEN		32	/* macro/register/environment/glyph name length */
 #define GNLEN		NMLEN	/* glyph name length */
 #define RNLEN		NMLEN	/* register/macro name */
+#define NREGS		8192	/* number of mapped names */
 #define ILNLEN		1000	/* line limit of input files */
 #define LNLEN		4000	/* line buffer length (ren.c/out.c) */
 #define NWORDS		1024	/* number of queued words in formatting buffer */
@@ -414,7 +415,6 @@ void sstr_back(int c);
 #define TR_POPREN	"\07P"	/* exit render_rec() */
 
 /* mapping register, macro and environment names to indices */
-#define NREGS		4096	/* maximum number of mapped names */
 #define DOTMAP(c2)	(c2)	/* optimized mapping for ".x" names */
 
 int map(char *s);		/* map name s to an index */

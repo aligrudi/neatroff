@@ -20,6 +20,8 @@ int map(char *s)
 	if (i < 0) {
 		dict_put(mapdict, s, 0);
 		i = dict_idx(mapdict, s);
+		if (MAPBEG + i >= NREGS)
+			errdie("neatroff: increase NREGS\n");
 	}
 	return MAPBEG + i;
 }
