@@ -26,7 +26,7 @@ static void cparg(char *d, int len)
 		i += utf8next(d + i, cp_noninext);
 	} else if (!n_cp && c == '[') {
 		c = cp_noninext();
-		while (i < NMLEN - 1 && c >= 0 && c != ']') {
+		while (i < len - 1 && c >= 0 && c != ']') {
 			d[i++] = c;
 			c = cp_noninext();
 		}
