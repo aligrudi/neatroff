@@ -32,9 +32,6 @@
 #define RNLEN		NMLEN	/* register/macro name */
 #define NREGS		8192	/* number of mapped names */
 #define ILNLEN		1000	/* line limit of input files */
-#define LNLEN		4000	/* line buffer length (ren.c/out.c) */
-#define NWORDS		1024	/* number of queued words in formatting buffer */
-#define NLINES		32	/* number of queued lines in formatting buffer */
 #define NARGS		16	/* number of macro arguments */
 #define NPREV		16	/* environment stack depth */
 #define NTRAPS		1024	/* number of traps per page */
@@ -211,6 +208,7 @@ struct sbuf {
 
 void sbuf_init(struct sbuf *sbuf);
 void sbuf_done(struct sbuf *sbuf);
+char *sbuf_out(struct sbuf *sbuf);
 char *sbuf_buf(struct sbuf *sbuf);
 void sbuf_add(struct sbuf *sbuf, int c);
 void sbuf_append(struct sbuf *sbuf, char *s);
@@ -315,7 +313,7 @@ int fmt_fillreq(struct fmt *f);
 int fmt_fill(struct fmt *fmt, int br);
 int fmt_morelines(struct fmt *fmt);
 int fmt_morewords(struct fmt *fmt);
-int fmt_nextline(struct fmt *fmt, struct sbuf *sbuf, int *w,
+char *fmt_nextline(struct fmt *fmt, int *w,
 		int *li, int *ll, int *els_neg, int *els_pos);
 
 /* rendering */

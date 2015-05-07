@@ -40,15 +40,15 @@ struct line {
 
 struct fmt {
 	/* queued words */
-	struct word words[NWORDS];
-	int nwords;
+	struct word *words;
+	int words_n, words_sz;
 	/* queued lines */
-	struct line lines[NLINES];
-	int l_head, l_tail;
+	struct line *lines;
+	int lines_head, lines_tail, lines_sz;
 	/* for paragraph adjustment */
-	long best[NWORDS];
-	int best_pos[NWORDS];
-	int best_dep[NWORDS];
+	long *best;
+	int *best_pos;
+	int *best_dep;
 	/* current line */
 	int gap;		/* space before the next word */
 	int nls;		/* newlines before the next word */
@@ -109,9 +109,7 @@ static int fmt_wordscopy(struct fmt *f, int beg, int end,
 
 static int fmt_nlines(struct fmt *f)
 {
-	if (f->l_tail <= f->l_head)
-		return f->l_head - f->l_tail;
-	return NLINES - f->l_tail + f->l_head;
+	return f->lines_head - f->lines_tail;
 }
 
 /* the total width of the specified words in f->words[] */
@@ -144,30 +142,34 @@ static int fmt_spacessum(struct fmt *f, int beg, int end)
 }
 
 /* return the next line in the buffer */
-int fmt_nextline(struct fmt *f, struct sbuf *sbuf, int *w,
+char *fmt_nextline(struct fmt *f, int *w,
 		int *li, int *ll, int *els_neg, int *els_pos)
 {
 	struct line *l;
-	l = &f->lines[f->l_tail];
-	if (f->l_head == f->l_tail)
-		return 1;
+	if (f->lines_head == f->lines_tail)
+		return NULL;
+	l = &f->lines[f->lines_tail++];
 	*li = l->li;
 	*ll = l->ll;
 	*w = l->wid;
 	*els_neg = l->elsn;
 	*els_pos = l->elsp;
-	sbuf_append(sbuf, sbuf_buf(&l->sbuf));
-	sbuf_done(&l->sbuf);
-	f->l_tail = (f->l_tail + 1) % NLINES;
-	return 0;
+	return sbuf_out(&l->sbuf);
 }
 
 static struct line *fmt_mkline(struct fmt *f)
 {
-	struct line *l = &f->lines[f->l_head];
-	if ((f->l_head + 1) % NLINES == f->l_tail)
-		return NULL;
-	f->l_head = (f->l_head + 1) % NLINES;
+	struct line *l;
+	if (f->lines_head == f->lines_tail) {
+		f->lines_head = 0;
+		f->lines_tail = 0;
+	}
+	if (f->lines_head == f->lines_sz) {
+		f->lines_sz += 256;
+		f->lines = mextend(f->lines, f->lines_head,
+			f->lines_sz, sizeof(f->lines[0]));
+	}
+	l = &f->lines[f->lines_head++];
 	l->li = f->li;
 	l->ll = f->ll;
 	sbuf_init(&l->sbuf);
@@ -203,12 +205,12 @@ static int fmt_sp(struct fmt *f)
 {
 	if (fmt_fillwords(f, 1))
 		return 1;
-	if (fmt_extractline(f, 0, f->nwords, 0))
+	if (fmt_extractline(f, 0, f->words_n, 0))
 		return 1;
 	f->filled = 0;
 	f->nls--;
 	f->nls_sup = 0;
-	f->nwords = 0;
+	f->words_n = 0;
 	f->fillreq = 0;
 	return 0;
 }
@@ -220,7 +222,7 @@ int fmt_fill(struct fmt *f, int br)
 		return 1;
 	if (br) {
 		f->filled = 0;
-		if (f->nwords)
+		if (f->words_n)
 			if (fmt_sp(f))
 				return 1;
 	}
@@ -243,7 +245,7 @@ int fmt_newline(struct fmt *f)
 	if (f->nls >= 1)
 		if (fmt_sp(f))
 			return 1;
-	if (f->nls == 0 && !f->filled && !f->nwords)
+	if (f->nls == 0 && !f->filled && !f->words_n)
 		fmt_sp(f);
 	f->nls++;
 	return 0;
@@ -255,7 +257,7 @@ int fmt_fillreq(struct fmt *f)
 	if (f->fillreq > 0)
 		if (fmt_fillwords(f, 0))
 			return 1;
-	f->fillreq = f->nwords + 1;
+	f->fillreq = f->words_n + 1;
 	return 0;
 }
 
@@ -297,6 +299,16 @@ static int fmt_hyphmarks(char *word, int *hyidx, int *hyins)
 	return n;
 }
 
+static struct word *fmt_mkword(struct fmt *f)
+{
+	if (f->words_n == f->words_sz) {
+		f->words_sz += 256;
+		f->words = mextend(f->words, f->words_n,
+			f->words_sz, sizeof(f->words[0]));
+	}
+	return &f->words[f->words_n++];
+}
+
 static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 {
 	int hyidx[NHYPHSWORD];
@@ -309,18 +321,18 @@ static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 	int cf, cs, cm;
 	n = fmt_hyphmarks(src, hyidx, hyins);
 	if (n <= 0) {
-		fmt_wb2word(f, &f->words[f->nwords++], wb, 0, 1, gap, 1);
+		fmt_wb2word(f, fmt_mkword(f), wb, 0, 1, gap, 1);
 		return;
 	}
 	/* update f->fillreq considering the new sub-words */
-	if (f->fillreq == f->nwords + 1)
+	if (f->fillreq == f->words_n + 1)
 		f->fillreq += n;
 	wb_init(&wbc);
 	for (i = 0; i <= n; i++) {
 		beg = src + (i > 0 ? hyidx[i - 1] : 0);
 		end = src + (i < n ? hyidx[i] : strlen(src));
 		wb_catstr(&wbc, beg, end);
-		fmt_wb2word(f, &f->words[f->nwords++], &wbc,
+		fmt_wb2word(f, fmt_mkword(f), &wbc,
 			i < n && hyins[i], i == 0, i == 0 ? gap : 0, i == n);
 		/* restoring wbc */
 		wb_fnszget(&wbc, &cs, &cf, &cm);
@@ -335,10 +347,10 @@ static int fmt_wordgap(struct fmt *f)
 {
 	int nls = f->nls || f->nls_sup;
 	int swid = font_swid(dev_font(n_f), n_s, n_ss);
-	if (f->eos && f->nwords)
+	if (f->eos && f->words_n)
 		if ((nls && !f->gap) || (!nls && f->gap == 2 * swid))
 			return swid + font_swid(dev_font(n_f), n_s, n_sss);
-	return (nls && !f->gap && f->nwords) ? swid : f->gap;
+	return (nls && !f->gap && f->words_n) ? swid : f->gap;
 }
 
 /* insert wb into fmt */
@@ -346,13 +358,13 @@ int fmt_word(struct fmt *f, struct wb *wb)
 {
 	if (wb_empty(wb))
 		return 0;
-	if (f->nwords + NHYPHSWORD >= NWORDS || fmt_confchanged(f))
+	if (fmt_confchanged(f))
 		if (fmt_fillwords(f, 0))
 			return 1;
 	if (FMT_FILL(f) && f->nls && f->gap)
 		if (fmt_sp(f))
 			return 1;
-	if (!f->nwords)		/* apply the new .l and .i */
+	if (!f->words_n)		/* apply the new .l and .i */
 		fmt_confupdate(f);
 	f->gap = fmt_wordgap(f);
 	f->eos = wb_eos(wb);
@@ -467,7 +479,7 @@ static int fmt_breakparagraph(struct fmt *f, int pos, int br)
 	int lwid = 0;		/* current line length */
 	int swid = 0;		/* amount of stretchable spaces */
 	int nspc = 0;		/* number of stretchable spaces */
-	if (f->fillreq > 0 && f->fillreq <= f->nwords) {
+	if (f->fillreq > 0 && f->fillreq <= f->words_n) {
 		fmt_findcost(f, f->fillreq);
 		return f->fillreq;
 	}
@@ -566,18 +578,23 @@ static int fmt_fillwords(struct fmt *f, int br)
 	int n, i;
 	if (!FMT_FILL(f))
 		return 0;
-	llen = fmt_wordslen(f, 0, f->nwords) -
-		fmt_spacessum(f, 0, f->nwords) * n_ssh / 100;
+	llen = fmt_wordslen(f, 0, f->words_n) -
+		fmt_spacessum(f, 0, f->words_n) * n_ssh / 100;
 	/* not enough words to fill */
-	if ((f->fillreq <= 0 || f->nwords < f->fillreq) && llen <= FMT_LLEN(f))
+	if ((f->fillreq <= 0 || f->words_n < f->fillreq) && llen <= FMT_LLEN(f))
 		return 0;
 	nreq = (n_hy & HY_LAST) ? fmt_safelines() : 0;
 	if (nreq > 0 && nreq <= fmt_nlines(f))
 		return 1;
 	/* resetting positions */
-	for (i = 0; i < f->nwords + 1; i++)
+	f->best = malloc((f->words_n + 1) * sizeof(f->best[0]));
+	f->best_pos = malloc((f->words_n + 1) * sizeof(f->best_pos[0]));
+	f->best_dep = malloc((f->words_n + 1) * sizeof(f->best_dep[0]));
+	memset(f->best, 0, (f->words_n + 1) * sizeof(f->best[0]));
+	memset(f->best_dep, 0, (f->words_n + 1) * sizeof(f->best_dep[0]));
+	for (i = 0; i < f->words_n + 1; i++)
 		f->best_pos[i] = -1;
-	end = fmt_breakparagraph(f, f->nwords, br);
+	end = fmt_breakparagraph(f, f->words_n, br);
 	if (nreq > 0) {
 		end_head = fmt_head(f, nreq - fmt_nlines(f), end);
 		head = end_head < end;
@@ -585,14 +602,20 @@ static int fmt_fillwords(struct fmt *f, int br)
 	}
 	/* recursively add lines */
 	n = end > 0 ? fmt_break(f, end) : 0;
-	f->nwords -= n;
+	f->words_n -= n;
 	f->fillreq -= n;
-	fmt_movewords(f, 0, n, f->nwords);
-	f->filled = n && !f->nwords;
-	if (f->nwords)
+	fmt_movewords(f, 0, n, f->words_n);
+	f->filled = n && !f->words_n;
+	if (f->words_n)
 		f->words[0].gap = 0;
-	if (f->nwords)		/* apply the new .l and .i */
+	if (f->words_n)		/* apply the new .l and .i */
 		fmt_confupdate(f);
+	free(f->best);
+	free(f->best_pos);
+	free(f->best_dep);
+	f->best = NULL;
+	f->best_pos = NULL;
+	f->best_dep = NULL;
 	return head || n != end;
 }
 
@@ -605,22 +628,24 @@ struct fmt *fmt_alloc(void)
 
 void fmt_free(struct fmt *fmt)
 {
+	free(fmt->lines);
+	free(fmt->words);
 	free(fmt);
 }
 
 int fmt_wid(struct fmt *fmt)
 {
-	return fmt_wordslen(fmt, 0, fmt->nwords) + fmt_wordgap(fmt);
+	return fmt_wordslen(fmt, 0, fmt->words_n) + fmt_wordgap(fmt);
 }
 
 int fmt_morewords(struct fmt *fmt)
 {
-	return fmt_morelines(fmt) || fmt->nwords;
+	return fmt_morelines(fmt) || fmt->words_n;
 }
 
 int fmt_morelines(struct fmt *fmt)
 {
-	return fmt->l_head != fmt->l_tail;
+	return fmt->lines_head != fmt->lines_tail;
 }
 
 /* suppress the last newline */

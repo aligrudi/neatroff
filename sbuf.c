@@ -73,3 +73,10 @@ void sbuf_done(struct sbuf *sbuf)
 {
 	free(sbuf->s);
 }
+
+char *sbuf_out(struct sbuf *sbuf)
+{
+	char *s = sbuf->s;
+	memset(sbuf, 0, sizeof(*sbuf));
+	return s;
+}

@@ -356,20 +356,19 @@ static int ren_line(char *line, int w, int ad, int body,
 /* read a line from fmt and send it to ren_line() */
 static int ren_passline(struct fmt *fmt)
 {
-	struct sbuf sbuf;
+	char *buf;
 	int ll, li, els_neg, els_pos, w, ret;
 	int ad = n_j;
 	ren_first();
 	if (!fmt_morewords(fmt))
 		return 0;
-	sbuf_init(&sbuf);
-	fmt_nextline(fmt, &sbuf, &w, &li, &ll, &els_neg, &els_pos);
+	buf = fmt_nextline(fmt, &w, &li, &ll, &els_neg, &els_pos);
 	if ((n_cp && !n_u) || n_na)
 		ad = AD_L;
 	if (n_ce)
 		ad = AD_C;
-	ret = ren_line(sbuf_buf(&sbuf), w, ad, 1, li, ll, els_neg, els_pos);
-	sbuf_done(&sbuf);
+	ret = ren_line(buf, w, ad, 1, li, ll, els_neg, els_pos);
+	free(buf);
 	return ret;
 }
 
