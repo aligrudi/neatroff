@@ -104,13 +104,13 @@ static int hw_lookup(char *word, char *hyph)
 
 void tr_hw(char **args)
 {
-	char c[ILNLEN];
 	char word[WORDLEN];
+	char *c;
 	int i;
 	for (i = 1; i < NARGS && args[i]; i++) {
 		char *s = args[i];
 		char *d = word;
-		while (d - word < WORDLEN - GNLEN && !escread(&s, c)) {
+		while (d - word < WORDLEN - GNLEN && !escread(&s, &c)) {
 			if (strcmp("-", c))
 				hcode_mapchar(c);
 			d += hy_cput(d, c);

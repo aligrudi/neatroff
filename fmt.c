@@ -279,14 +279,14 @@ static void fmt_wb2word(struct fmt *f, struct word *word, struct wb *wb,
 /* find explicit hyphenation positions: dashes, \: and \% */
 static int fmt_hyphmarks(char *word, int *hyidx, int *hyins)
 {
-	char d[ILNLEN];
 	char *s = word;
+	char *d = NULL;
 	int c, n = 0;
-	while ((c = escread(&s, d)) > 0)
+	while ((c = escread(&s, &d)) > 0)
 		;
 	if (c < 0 || !strcmp(c_hc, d))
 		return -1;
-	while ((c = escread(&s, d)) >= 0 && n < NHYPHSWORD) {
+	while ((c = escread(&s, &d)) >= 0 && n < NHYPHSWORD) {
 		if (!c && !strcmp(c_hc, d)) {
 			hyins[n] = 1;
 			hyidx[n++] = s - word;

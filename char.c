@@ -224,35 +224,40 @@ static void unquotedread(char **sp, char *d)
  * s.  The return value is the name of the troff request (the
  * argument is copied into d) or zero for glyph names (it is
  * copied into d).  Returns -1 when the end of s is reached.
+ * Note that to d, a pointer to a static array is assigned.
  */
-int escread(char **s, char *d)
+int escread(char **s, char **d)
 {
-	char *r = d;
+	static char buf[1 << 12];
+	char *r;
 	if (!**s)
 		return -1;
-	utf8read(s, d);
-	if (d[0] == c_ec) {
-		utf8read(s, d + 1);
-		if (d[1] == '(') {
-			utf8read(s, d);
-			utf8read(s, d + strlen(d));
-		} else if (!n_cp && d[1] == '[') {
+	r = buf;
+	*d = buf;
+	utf8read(s, r);
+	if (r[0] == c_ec) {
+		utf8read(s, r + 1);
+		if (r[1] == '(') {
+			utf8read(s, r);
+			utf8read(s, r + strlen(r));
+		} else if (!n_cp && r[1] == '[') {
 			while (**s && **s != ']')
 				*r++ = *(*s)++;
+			*r = '\0';
 			if (**s == ']')
 				(*s)++;
-		} else if (strchr("CDfhmsvXx", d[1])) {
-			int c = d[1];
-			d[0] = '\0';
+		} else if (strchr("CDfhmsvXx", r[1])) {
+			int c = r[1];
+			r[0] = '\0';
 			if (strchr(ESC_P, c))
-				unquotedread(s, d);
+				unquotedread(s, r);
 			if (strchr(ESC_Q, c))
-				quotedread(s, d);
+				quotedread(s, r);
 			return c == 'C' ? 0 : c;
 		}
+	} else if (r[0] == c_ni) {
+		utf8read(s, r + 1);
 	}
-	if (d[0] == c_ni)
-		utf8read(s, d + 1);
 	return 0;
 }
 

@@ -402,15 +402,14 @@ static void wb_putc(struct wb *wb, int t, char *s)
 
 void wb_cat(struct wb *wb, struct wb *src)
 {
-	char *s;
-	char d[ILNLEN];
+	char *s, *d;
 	int c, part;
 	int collect;
 	wb_flushsub(src);
 	wb_flushsub(wb);
 	collect = wb_collect(wb, 0);
 	s = sbuf_buf(&src->sbuf);
-	while ((c = escread(&s, d)) >= 0)
+	while ((c = escread(&s, &d)) >= 0)
 		wb_putc(wb, c, d);
 	part = src->part;
 	wb->r_s = -1;
@@ -501,11 +500,11 @@ void wb_fnszset(struct wb *wb, int fn, int sz, int m)
 
 void wb_catstr(struct wb *wb, char *s, char *end)
 {
-	char d[ILNLEN];
 	int collect, c;
+	char *d;
 	wb_flushsub(wb);
 	collect = wb_collect(wb, 0);
-	while (s < end && (c = escread(&s, d)) >= 0)
+	while (s < end && (c = escread(&s, &d)) >= 0)
 		wb_putc(wb, c, d);
 	wb_collect(wb, collect);
 }

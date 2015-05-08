@@ -151,9 +151,9 @@ static void outc(char *c)
 
 void out_line(char *s)
 {
-	char c[ILNLEN + GNLEN * 4];
+	char *c;
 	int t;
-	while ((t = escread(&s, c)) >= 0) {
+	while ((t = escread(&s, &c)) >= 0) {
 		if (!t) {
 			if (c[0] == c_ni || (c[0] == '\\' && c[1] == '\\')) {
 				c[0] = c[1];
