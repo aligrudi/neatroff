@@ -17,7 +17,8 @@ static int cp_noninext(void)
 	return c;
 }
 
-static void cparg(char *d, int len)
+/* return 1 if \*[] includes a space */
+static int cparg(char *d, int len)
 {
 	int c = cp_noninext();
 	int i = 0;
@@ -26,15 +27,18 @@ static void cparg(char *d, int len)
 		i += utf8next(d + i, cp_noninext);
 	} else if (!n_cp && c == '[') {
 		c = cp_noninext();
-		while (i < len - 1 && c >= 0 && c != ']') {
-			d[i++] = c;
+		while (c >= 0 && c != ']' && c != ' ') {
+			if (i + 1 < len)
+				d[i++] = c;
 			c = cp_noninext();
 		}
 		d[i] = '\0';
+		return c == ' ';
 	} else {
 		cp_back(c);
 		utf8next(d, cp_noninext);
 	}
+	return 0;
 }
 
 static int regid(void)
@@ -61,23 +65,17 @@ static void cp_num(void)
 /* interpolate \*(xy */
 static void cp_str(void)
 {
-	char arg[ILNLEN];
-	struct sbuf sbuf;
+	char reg[NMLEN];
 	char *args[NARGS + 1] = {NULL};
-	cparg(arg, sizeof(arg));
-	if (strchr(arg, ' ')) {
-		sbuf_init(&sbuf);
-		sstr_push(strchr(arg, ' ') + 1);
-		tr_argsread(&sbuf, sstr_next, sstr_back);
-		tr_argschop(&sbuf, args);
-		sstr_pop();
-		*strchr(arg, ' ') = '\0';
-		if (str_get(map(arg)))
-			in_push(str_get(map(arg)), args);
-		sbuf_done(&sbuf);
+	if (cparg(reg, sizeof(reg))) {
+		char *buf = tr_args(args, ']', cp_noninext, cp_back);
+		cp_noninext();
+		if (str_get(map(reg)))
+			in_push(str_get(map(reg)), args);
+		free(buf);
 	} else {
-		if (str_get(map(arg)))
-			in_push(str_get(map(arg)), NULL);
+		if (str_get(map(reg)))
+			in_push(str_get(map(reg)), NULL);
 	}
 }
 

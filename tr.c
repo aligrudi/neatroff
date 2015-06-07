@@ -832,22 +832,23 @@ static void arg_name(struct sbuf *sbuf)
 		cp_back(c);
 }
 
-static int mkargs_arg(struct sbuf *sbuf, int (*next)(void), void (*back)(int))
+/* read a macro argument */
+static int tr_arg(struct sbuf *sbuf, int brk, int (*next)(void), void (*back)(int))
 {
 	int quoted = 0;
 	int c;
 	c = next();
 	while (c == ' ')
 		c = next();
-	if (c == '\n')
+	if (c == '\n' || c == brk)
 		back(c);
-	if (c < 0 || c == '\n')
+	if (c < 0 || c == '\n' || c == brk)
 		return 1;
 	if (c == '"') {
 		quoted = 1;
 		c = next();
 	}
-	while (c >= 0 && c != '\n') {
+	while (c >= 0 && c != '\n' && c != brk) {
 		if (!quoted && c == ' ')
 			break;
 		if (quoted && c == '"') {
@@ -868,19 +869,27 @@ static int mkargs_arg(struct sbuf *sbuf, int (*next)(void), void (*back)(int))
 	return 0;
 }
 
-/* read macro arguments */
-void tr_argsread(struct sbuf *sbuf, int (*next)(void), void (*back)(int))
+/* read macro arguments; free the returned pointer when done */
+char *tr_args(char **args, int brk, int (*next)(void), void (*back)(int))
 {
+	struct sbuf sbuf;
+	char *s, *e;
 	int n = 0;
-	while (n < NARGS) {
-		if (mkargs_arg(sbuf, next, back))
-			break;
-		n++;
+	sbuf_init(&sbuf);
+	while (!tr_arg(&sbuf, brk, next, back))
+		;
+	s = sbuf_buf(&sbuf);
+	e = s + sbuf_len(&sbuf);
+	while (n < NARGS && s && s < e) {
+		args[n++] = s;
+		if ((s = memchr(s, '\0', e - s)))
+			s++;
 	}
+	return sbuf_out(&sbuf);
 }
 
 /* split the arguments in sbuf */
-int tr_argschop(struct sbuf *sbuf, char **args)
+static int tr_argschop(struct sbuf *sbuf, char **args)
 {
 	char *s = sbuf_buf(sbuf);
 	char *e = s + sbuf_len(sbuf);
@@ -891,13 +900,6 @@ int tr_argschop(struct sbuf *sbuf, char **args)
 			s++;
 	}
 	return n;
-}
-
-/* read macro arguments; trims tabs if rmtabs is nonzero */
-static void mkargs(struct sbuf *sbuf)
-{
-	tr_argsread(sbuf, cp_next, cp_back);
-	jmp_eol();
 }
 
 /* read request arguments; trims tabs too */
@@ -1124,24 +1126,26 @@ int tr_nextreq(void)
 	req = NULL;
 	cp_reqbeg();
 	read_regname(cmd + 1);
-	sbuf_init(&sbuf);
 	req = str_dget(map(cmd + 1));
 	if (req) {
+		sbuf_init(&sbuf);
 		if (req->args)
 			req->args(&sbuf);
 		else
 			mkargs_req(&sbuf);
 		tr_argschop(&sbuf, args + 1);
 		req->f(args);
+		sbuf_done(&sbuf);
 	} else {
+		char *buf;
 		cp_copymode(1);
-		mkargs(&sbuf);
+		buf = tr_args(args + 1, -1, cp_next, cp_back);
+		jmp_eol();
 		cp_copymode(0);
-		tr_argschop(&sbuf, args + 1);
 		if (str_get(map(cmd + 1)))
 			in_push(str_get(map(cmd + 1)), args + 1);
+		free(buf);
 	}
-	sbuf_done(&sbuf);
 	return 0;
 }
 

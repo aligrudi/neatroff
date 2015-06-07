@@ -378,8 +378,8 @@ void tr_transparent(char **args);
 
 void tr_init(void);
 void tr_done(void);
-void tr_argsread(struct sbuf *sbuf, int (*next)(void), void (*back)(int));
-int tr_argschop(struct sbuf *sbuf, char **args);
+
+char *tr_args(char **args, int brk, int (*next)(void), void (*back)(int));
 
 /* helpers */
 void errmsg(char *msg, ...);
