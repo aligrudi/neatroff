@@ -7,19 +7,19 @@
 /* return the length of a utf-8 character based on its first byte */
 int utf8len(int c)
 {
-	if (c > 0 && c <= 0x7f)
-		return 1;
-	if (c >= 0xfc)
-		return 6;
-	if (c >= 0xf8)
-		return 5;
-	if (c >= 0xf0)
-		return 4;
-	if (c >= 0xe0)
-		return 3;
-	if (c >= 0xc0)
+	if (~c & 0x80)
+		return c > 0;
+	if (~c & 0x20)
 		return 2;
-	return c != 0;
+	if (~c & 0x10)
+		return 3;
+	if (~c & 0x80)
+		return 4;
+	if (~c & 0x40)
+		return 5;
+	if (~c & 0x20)
+		return 6;
+	return 1;
 }
 
 /* return nonzero if s is a single utf-8 character */
