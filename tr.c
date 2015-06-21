@@ -848,7 +848,7 @@ static int tr_arg(struct sbuf *sbuf, int brk, int (*next)(void), void (*back)(in
 		quoted = 1;
 		c = next();
 	}
-	while (c >= 0 && c != '\n' && c != brk) {
+	while (c >= 0 && c != '\n' && (quoted || c != brk)) {
 		if (!quoted && c == ' ')
 			break;
 		if (quoted && c == '"') {
