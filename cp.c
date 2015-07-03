@@ -242,10 +242,10 @@ void cp_blk(int skip)
 			c = cp_raw();
 	} else {
 		int c = cp_next();
-		while ((c == ' ' || c == '\t'))
+		while (c == ' ')
 			c = cp_next();
 		/* push back if the space is not inserted due to \{ and \} */
-		if (c != ' ' && c != '\t')
+		if (c != ' ')
 			cp_back(c);
 	}
 }
