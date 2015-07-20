@@ -27,8 +27,8 @@
 #define NFILES		16	/* number of input files */
 #define NFONTS		32	/* number of fonts */
 #define FNLEN		32	/* font name length */
-#define NMLEN		32	/* macro/register/environment/glyph name length */
-#define GNLEN		NMLEN	/* glyph name length */
+#define GNLEN		32	/* glyph name length */
+#define NMLEN		128	/* macro/register/environment name length */
 #define RNLEN		NMLEN	/* register/macro name */
 #define NREGS		8192	/* number of mapped names */
 #define ILNLEN		1000	/* line limit of input files */

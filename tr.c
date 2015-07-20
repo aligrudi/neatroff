@@ -108,28 +108,55 @@ static void tr_po(char **args)
 	n_o = MAX(0, po);
 }
 
-static void read_regname(char *s)
+/* read a string argument of a macro */
+static char *read_string(void)
 {
-	int c = cp_next();
-	int n = n_cp ? 2 : NMLEN - 1;
-	while (c == ' ' || c == '\t' || c == c_ni)
+	struct sbuf sbuf;
+	int c;
+	sbuf_init(&sbuf);
+	cp_copymode(1);
+	while ((c = cp_next()) == ' ')
+		;
+	if (c == '"')
 		c = cp_next();
-	while (c >= 0 && c != ' ' && c != '\t' && c != '\n' && --n >= 0) {
-		*s++ = c;
-		do {
-			c = cp_next();
-		} while (n && c == c_ni);
+	while (c > 0 && c != '\n') {
+		if (c != c_ni)
+			sbuf_add(&sbuf, c);
+		c = cp_next();
 	}
 	if (c >= 0)
 		cp_back(c);
-	*s = '\0';
+	cp_copymode(0);
+	return sbuf_out(&sbuf);
 }
+
+/* read a register name argument; if two, read at most two characters */
+static char *read_name(int two)
+{
+	struct sbuf sbuf;
+	int c = cp_next();
+	int i = 0;
+	sbuf_init(&sbuf);
+	while (c == ' ' || c == '\t' || c == c_ni)
+		c = cp_next();
+	while (c > 0 && c != ' ' && c != '\t' && c != '\n' && (!two || i < 2)) {
+		if (c != c_ni) {
+			sbuf_add(&sbuf, c);
+			i++;
+		}
+		c = cp_next();
+	}
+	if (c >= 0)
+		cp_back(c);
+	return sbuf_out(&sbuf);
+}
+
 
 static void macrobody(struct sbuf *sbuf, char *end)
 {
-	char buf[NMLEN];
-	int i, c;
 	int first = 1;
+	int c;
+	char *req = NULL;
 	cp_back('\n');
 	cp_copymode(1);
 	while ((c = cp_next()) >= 0) {
@@ -137,25 +164,25 @@ static void macrobody(struct sbuf *sbuf, char *end)
 			sbuf_add(sbuf, c);
 		first = 0;
 		if (c == '\n') {
-			if ((c = cp_next()) != '.') {
+			if ((c = cp_next()) != c_cc) {
 				cp_back(c);
 				continue;
 			}
-			read_regname(buf);
-			if ((n_cp && end[0] == buf[0] && end[1] == buf[1]) ||
-						!strcmp(end, buf)) {
-				for (i = strlen(buf) - 1; i >= 0; i--)
-					cp_back((unsigned char) buf[i]);
-				cp_back('.');
+			req = read_name(n_cp);
+			if (!strcmp(end, req)) {
+				in_push(end, NULL);
+				cp_back(c_cc);
 				break;
 			}
 			if (sbuf) {
-				sbuf_add(sbuf, '.');
-				for (i = 0; buf[i]; i++)
-					sbuf_add(sbuf, (unsigned char) buf[i]);
+				sbuf_add(sbuf, c_cc);
+				sbuf_append(sbuf, req);
 			}
+			free(req);
+			req = NULL;
 		}
 	}
+	free(req);
 	cp_copymode(0);
 }
 
@@ -790,48 +817,6 @@ static void tr_fmap(char **args)
 		font_map(fn, args[2], args[3]);
 }
 
-static void arg_regname(struct sbuf *sbuf)
-{
-	char reg[NMLEN];
-	read_regname(reg);
-	sbuf_append(sbuf, reg);
-	sbuf_add(sbuf, 0);
-}
-
-static void arg_string(struct sbuf *sbuf)
-{
-	int c;
-	cp_copymode(1);
-	while ((c = cp_next()) == ' ')
-		;
-	if (c == '"')
-		c = cp_next();
-	while (c > 0 && c != '\n') {
-		if (c != c_ni)
-			sbuf_add(sbuf, c);
-		c = cp_next();
-	}
-	sbuf_add(sbuf, 0);
-	if (c >= 0)
-		cp_back(c);
-	cp_copymode(0);
-}
-
-static void arg_name(struct sbuf *sbuf)
-{
-	int c;
-	while ((c = cp_next()) == ' ')
-		;
-	while (c > 0 && c != ' ' && c != '\t' && c != '\n') {
-		if (c != c_ni)
-			sbuf_add(sbuf, c);
-		c = cp_next();
-	}
-	sbuf_add(sbuf, 0);
-	if (c >= 0)
-		cp_back(c);
-}
-
 /* read a macro argument */
 static int tr_arg(struct sbuf *sbuf, int brk, int (*next)(void), void (*back)(int))
 {
@@ -933,30 +918,48 @@ static void mkargs_req(struct sbuf *sbuf)
 /* read arguments for .ds */
 static void mkargs_ds(struct sbuf *sbuf)
 {
-	arg_regname(sbuf);
-	arg_string(sbuf);
+	char *s = read_name(n_cp);
+	sbuf_append(sbuf, s);
+	sbuf_add(sbuf, 0);
+	free(s);
+	s = read_string();
+	sbuf_append(sbuf, s);
+	sbuf_add(sbuf, 0);
+	free(s);
 	jmp_eol();
 }
 
 /* read arguments for .char */
 static void mkargs_def(struct sbuf *sbuf)
 {
-	arg_name(sbuf);
-	arg_string(sbuf);
+	char *s = read_name(0);
+	sbuf_append(sbuf, s);
+	sbuf_add(sbuf, 0);
+	free(s);
+	s = read_string();
+	sbuf_append(sbuf, s);
+	sbuf_add(sbuf, 0);
+	free(s);
 	jmp_eol();
 }
 
 /* read arguments for .ochar */
 static void mkargs_def3(struct sbuf *sbuf)
 {
-	arg_name(sbuf);
+	char *s = read_name(0);
+	sbuf_append(sbuf, s);
+	sbuf_add(sbuf, 0);
+	free(s);
 	mkargs_def(sbuf);
 }
 
 /* read arguments for .nr */
 static void mkargs_reg1(struct sbuf *sbuf)
 {
-	arg_regname(sbuf);
+	char *s = read_name(n_cp);
+	sbuf_append(sbuf, s);
+	sbuf_add(sbuf, 0);
+	free(s);
 	mkargs_req(sbuf);
 }
 
@@ -1091,11 +1094,19 @@ static struct cmd {
 	{"wh", tr_wh},
 };
 
+static char *dotted(char *name, int dot)
+{
+	char *out = xmalloc(strlen(name) + 2);
+	out[0] = dot;
+	strcpy(out + 1, name);
+	return out;
+}
+
 /* read the next troff request; return zero if a request was executed. */
 int tr_nextreq(void)
 {
 	char *args[NARGS + 3] = {NULL};
-	char cmd[RNLEN + 1];
+	char *cmd;
 	struct cmd *req;
 	struct sbuf sbuf;
 	int c;
@@ -1121,12 +1132,10 @@ int tr_nextreq(void)
 		cp_back(c);
 		return 1;
 	}
-	args[0] = cmd;
-	cmd[0] = c;
-	req = NULL;
 	cp_reqbeg();
-	read_regname(cmd + 1);
-	req = str_dget(map(cmd + 1));
+	cmd = read_name(n_cp);
+	args[0] = dotted(cmd, c);
+	req = str_dget(map(cmd));
 	if (req) {
 		sbuf_init(&sbuf);
 		if (req->args)
@@ -1142,10 +1151,12 @@ int tr_nextreq(void)
 		buf = tr_args(args + 1, -1, cp_next, cp_back);
 		jmp_eol();
 		cp_copymode(0);
-		if (str_get(map(cmd + 1)))
-			in_push(str_get(map(cmd + 1)), args + 1);
+		if (str_get(map(cmd)))
+			in_push(str_get(map(cmd)), args + 1);
 		free(buf);
 	}
+	free(args[0]);
+	free(cmd);
 	return 0;
 }
 
