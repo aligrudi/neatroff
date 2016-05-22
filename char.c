@@ -13,11 +13,11 @@ int utf8len(int c)
 		return 2;
 	if (~c & 0x10)
 		return 3;
-	if (~c & 0x80)
+	if (~c & 0x08)
 		return 4;
-	if (~c & 0x40)
+	if (~c & 0x04)
 		return 5;
-	if (~c & 0x20)
+	if (~c & 0x02)
 		return 6;
 	return 1;
 }
