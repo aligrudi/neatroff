@@ -347,6 +347,11 @@ void wb_drawxdot(struct wb *wb, int h, int v)
 	wb_stsb(wb);
 }
 
+void wb_drawxcmd(struct wb *wb, char *cmd)
+{
+	sbuf_printf(&wb->sbuf, " %s", cmd);
+}
+
 void wb_drawxend(struct wb *wb)
 {
 	sbuf_printf(&wb->sbuf, "'");

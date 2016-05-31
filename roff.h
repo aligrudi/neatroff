@@ -254,6 +254,7 @@ void wb_drawe(struct wb *wb, int c, int h, int v);
 void wb_drawa(struct wb *wb, int c, int h1, int v1, int h2, int v2);
 void wb_drawxbeg(struct wb *wb, int c);
 void wb_drawxdot(struct wb *wb, int h, int v);
+void wb_drawxcmd(struct wb *wb, char *cmd);
 void wb_drawxend(struct wb *wb);
 void wb_italiccorrection(struct wb *wb);
 void wb_italiccorrectionleft(struct wb *wb);

@@ -65,14 +65,19 @@ static void out_clr(int n)
 
 static int tok_num(char **s, int scale)
 {
-	char tok[ILNLEN];
-	char *d = tok;
-	while (isspace(**s))
+	while (**s == ' ' || **s == '\t')
 		(*s)++;
-	while (**s && !isspace(**s))
-		*d++ = *(*s)++;
-	*d = '\0';
-	return eval(tok, scale);
+	return eval_up(s, scale);
+}
+
+static int tok_numpt(char **s, int scale, int *i)
+{
+	char *o;
+	while (**s == ' ' || **s == '\t')
+		(*s)++;
+	o = *s;
+	*i = eval_up(s, scale);
+	return o == *s ? 1 : 0;
 }
 
 static void out_draw(char *s)
@@ -100,11 +105,16 @@ static void out_draw(char *s)
 		break;
 	case '~':
 	case 'p':
-		outnn(" %d", tok_num(&s, 'm'));
-		outnn(" %d", tok_num(&s, 'v'));
 		while (*s) {
-			outnn(" %d", tok_num(&s, 'm'));
-			outnn(" %d", tok_num(&s, 'v'));
+			int h, v;
+			if (tok_numpt(&s, 'm', &h) || tok_numpt(&s, 'v', &v)) {
+				outnn(" ");
+				while (*s && *s != ' ')
+					outnn("%c", *s++);
+			} else {
+				outnn(" %d", h);
+				outnn(" %d", v);
+			}
 		}
 		break;
 	}

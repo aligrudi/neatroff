@@ -134,14 +134,19 @@ void ren_vlcmd(struct wb *wb, char *arg)
 
 static int tok_num(char **s, int scale)
 {
-	char tok[ILNLEN];
-	char *d = tok;
-	while (isspace(**s))
+	while (**s == ' ' || **s == '\t')
 		(*s)++;
-	while (**s && !isspace(**s))
-		*d++ = *(*s)++;
-	*d = '\0';
-	return eval(tok, scale);
+	return eval_up(s, scale);
+}
+
+static int tok_numpt(char **s, int scale, int *i)
+{
+	char *o;
+	while (**s == ' ' || **s == '\t')
+		(*s)++;
+	o = *s;
+	*i = eval_up(s, scale);
+	return o == *s ? 1 : 0;
 }
 
 void ren_dcmd(struct wb *wb, char *s)
@@ -174,9 +179,16 @@ void ren_dcmd(struct wb *wb, char *s)
 	case 'p':
 		wb_drawxbeg(wb, c);
 		while (*s) {
-			h1 = tok_num(&s, 'm');
-			v1 = tok_num(&s, 'v');
-			wb_drawxdot(wb, h1, v1);
+			if (tok_numpt(&s, 'm', &h1) || tok_numpt(&s, 'v', &v1)) {
+				char tok[64];
+				int i = 0;
+				while (i < sizeof(tok) - 1 && *s && *s != ' ')
+					tok[i++] = *s++;
+				tok[i] = '\0';
+				wb_drawxcmd(wb, tok);
+			} else {
+				wb_drawxdot(wb, h1, v1);
+			}
 		}
 		wb_drawxend(wb);
 		break;
