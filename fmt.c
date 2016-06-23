@@ -176,17 +176,18 @@ static struct line *fmt_mkline(struct fmt *f)
 	return l;
 }
 
-static int fmt_extractline(struct fmt *f, int beg, int end, int llen)
+/* extract words from beg to end; shrink or stretch spaces if needed */
+static int fmt_extractline(struct fmt *f, int beg, int end, int str)
 {
 	int fmt_div, fmt_rem;
-	int w, i, nspc;
+	int w, i, nspc, llen;
 	struct line *l;
 	if (!(l = fmt_mkline(f)))
 		return 1;
+	llen = FMT_LLEN(f);
 	w = fmt_wordslen(f, beg, end);
 	nspc = fmt_spaces(f, beg, end);
-	/* stretch if (spread & 1) and shrink if (spread & 2) */
-	if (nspc && llen) {
+	if (nspc && FMT_ADJ(f) && (llen < w || str)) {
 		fmt_div = (llen - w) / nspc;
 		fmt_rem = (llen - w) % nspc;
 		if (fmt_rem < 0) {
@@ -553,7 +554,7 @@ static int fmt_break(struct fmt *f, int end)
 	if (beg > 0)
 		ret += fmt_break(f, beg);
 	f->words[beg].gap = 0;
-	if (fmt_extractline(f, beg, end, FMT_ADJ(f) ? FMT_LLEN(f) : 0))
+	if (fmt_extractline(f, beg, end, 1))
 		return ret;
 	if (beg > 0)
 		fmt_confupdate(f);
