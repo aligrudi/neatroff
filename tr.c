@@ -595,6 +595,14 @@ static void tr_fzoom(char **args)
 		font_setzoom(fn, args[2] ? eval(args[2], 0) : 0);
 }
 
+static void tr_tkf(char **args)
+{
+	struct font *fn = args[1] ? dev_font(dev_pos(args[1])) : NULL;
+	if (fn && args[5])
+		font_track(fn, eval(args[2], 0), eval(args[3], 0),
+				eval(args[4], 0), eval(args[5], 0));
+}
+
 static void tr_ff(char **args)
 {
 	struct font *fn = args[1] ? dev_font(dev_pos(args[1])) : NULL;
@@ -1087,6 +1095,7 @@ static struct cmd {
 	{"ta", tr_ta},
 	{"tc", tr_tc},
 	{"ti", tr_ti},
+	{"tkf", tr_tkf},
 	{"tl", tr_tl, mkargs_null},
 	{"tm", tr_tm, mkargs_eol},
 	{"tr", tr_tr, mkargs_eol},

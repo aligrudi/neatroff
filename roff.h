@@ -168,6 +168,7 @@ void font_setcs(struct font *fn, int cs, int ps);
 int font_getcs(struct font *fn);
 void font_setbd(struct font *fn, int bd);
 int font_getbd(struct font *fn);
+void font_track(struct font *fn, int s1, int n1, int s2, int n2);
 void font_setzoom(struct font *fn, int zoom);
 int font_zoom(struct font *fn, int sz);
 int font_feat(struct font *fn, char *name, int val);

@@ -30,6 +30,7 @@ struct font {
 	int spacewid;
 	int special;
 	int cs, cs_ps, bd, zoom;	/* for .cs, .bd, .fzoom requests */
+	int s1, n1, s2, n2;		/* for .tkf request */
 	struct glyph *gl;		/* glyphs present in the font */
 	int gl_n, gl_sz;		/* number of glyphs in the font */
 	struct dict *gl_dict;		/* mapping from gl[i].id to i */
@@ -604,19 +605,34 @@ int font_wid(struct font *fn, int sz, int w)
 	return w >= 0 ? DEVWID(sz, w) : -DEVWID(sz, -w);
 }
 
+/* return track kerning width for the given size */
+static int font_twid(struct font *fn, int sz)
+{
+	if (fn->s1 >= 0 && sz <= fn->s1)
+		return fn->n1 * SC_PT;
+	if (fn->s2 >= 0 && sz >= fn->s2)
+		return fn->n2 * SC_PT;
+	if (sz > fn->s1 && sz < fn->s2)
+		return ((sz - fn->s1) * fn->n1 + (fn->s2 - sz) * fn->n2) *
+				(long) SC_PT / (fn->s2 - fn->s1);
+	return 0;
+}
+
 /* glyph width, where cfn is the current font and fn is glyph's font */
 int font_gwid(struct font *fn, struct font *cfn, int sz, int w)
 {
-	if (cfn->cs)
-		return cfn->cs * (font_zoom(fn, cfn->cs_ps ? cfn->cs_ps : sz)
+	struct font *xfn = cfn ? cfn : fn;
+	if (xfn->cs)
+		return xfn->cs * (font_zoom(fn, xfn->cs_ps ? xfn->cs_ps : sz)
 					* SC_IN / 72) / 36;
-	return font_wid(fn, sz, w) + (font_getbd(cfn) ? font_getbd(cfn) - 1 : 0);
+	return font_wid(fn, sz, w) + (cfn ? font_twid(fn, sz) : 0) +
+		(font_getbd(xfn) ? font_getbd(xfn) - 1 : 0);
 }
 
 /* space width for the give word space or sentence space */
 int font_swid(struct font *fn, int sz, int ss)
 {
-	return font_gwid(fn, fn, sz, (fn->spacewid * ss + 6) / 12);
+	return font_gwid(fn, NULL, sz, (fn->spacewid * ss + 6) / 12);
 }
 
 int font_getcs(struct font *fn)
@@ -638,6 +654,14 @@ int font_getbd(struct font *fn)
 void font_setbd(struct font *fn, int bd)
 {
 	fn->bd = bd;
+}
+
+void font_track(struct font *fn, int s1, int n1, int s2, int n2)
+{
+	fn->s1 = s1;
+	fn->n1 = n1;
+	fn->s2 = s2;
+	fn->n2 = n2;
 }
 
 int font_zoom(struct font *fn, int sz)
