@@ -251,6 +251,12 @@ void wb_put(struct wb *wb, char *c)
 		wb_hmov(wb, font_swid(dev_font(R_F(wb)), R_S(wb), n_ss));
 		return;
 	}
+	if (!strcmp(c_nb, c)) {
+		wb_flushsub(wb);
+		sbuf_append(&wb->sbuf, c);
+		wb->h += font_swid(dev_font(R_F(wb)), R_S(wb), n_ss);
+		return;
+	}
 	if (wb_pendingfont(wb) || wb->sub_n == LEN(wb->sub_c))
 		wb_flush(wb);
 	if (wb->sub_collect) {

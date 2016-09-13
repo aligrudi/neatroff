@@ -271,14 +271,14 @@ static void fmt_wb2word(struct fmt *f, struct word *word, struct wb *wb,
 	word->wid = wb_wid(wb);
 	word->elsn = wb->els_neg;
 	word->elsp = wb->els_pos;
-	word->cost = cost ? wb_cost(wb) : 0;
 	word->hy = hy ? wb_hywid(wb) : 0;
 	word->str = str;
 	word->gap = gap;
+	word->cost = cost;
 }
 
-/* find explicit hyphenation positions: dashes, \: and \% */
-static int fmt_hyphmarks(char *word, int *hyidx, int *hyins)
+/* find explicit break positions: dashes, \:, \%, and \~ */
+static int fmt_hyphmarks(char *word, int *hyidx, int *hyins, int *hygap)
 {
 	char *s = word;
 	char *d = NULL;
@@ -294,6 +294,10 @@ static int fmt_hyphmarks(char *word, int *hyidx, int *hyins)
 		}
 		if (!c && c_hydash(d)) {
 			hyins[n] = 0;
+			hyidx[n++] = s - word;
+		}
+		if (!c && !strcmp(c_nb, d)) {
+			hygap[n] = 1;
 			hyidx[n++] = s - word;
 		}
 	}
@@ -312,33 +316,41 @@ static struct word *fmt_mkword(struct fmt *f)
 
 static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 {
-	int hyidx[NHYPHSWORD];
-	int hyins[NHYPHSWORD] = {0};
+	int hyidx[NHYPHSWORD];		/* sub-word boundaries */
+	int hyins[NHYPHSWORD] = {0};	/* insert dash */
+	int hygap[NHYPHSWORD] = {0};	/* stretchable no-break space */
 	char *src = wb_buf(wb);
 	struct wb wbc;
 	char *beg;
 	char *end;
 	int n, i;
 	int cf, cs, cm;
-	n = fmt_hyphmarks(src, hyidx, hyins);
+	n = fmt_hyphmarks(src, hyidx, hyins, hygap);
 	if (n <= 0) {
-		fmt_wb2word(f, fmt_mkword(f), wb, 0, 1, gap, 1);
+		fmt_wb2word(f, fmt_mkword(f), wb, 0, 1, gap, wb_cost(wb));
 		return;
 	}
 	/* update f->fillreq considering the new sub-words */
 	if (f->fillreq == f->words_n + 1)
 		f->fillreq += n;
 	wb_init(&wbc);
+	/* add sub-words */
 	for (i = 0; i <= n; i++) {
+		int ihy = i < n && hyins[i];		/* dash width */
+		int istr = i == 0 || hygap[i - 1];	/* stretchable */
+		int igap;				/* gap width */
+		int icost;				/* hyphenation cost */
 		beg = src + (i > 0 ? hyidx[i - 1] : 0);
 		end = src + (i < n ? hyidx[i] : strlen(src));
+		if (i < n && hygap[i])			/* remove \~ */
+			end -= strlen(c_nb);
 		wb_catstr(&wbc, beg, end);
-		fmt_wb2word(f, fmt_mkword(f), &wbc,
-			i < n && hyins[i], i == 0, i == 0 ? gap : 0, i == n);
-		/* restoring wbc */
-		wb_fnszget(&wbc, &cs, &cf, &cm);
+		wb_fnszget(&wbc, &cf, &cs, &cm);
+		icost = i == n ? wb_cost(&wbc) : hygap[i] * 10000000;
+		igap = i == 0 ? gap : hygap[i - 1] * font_swid(dev_font(cf), cs, n_ss);
+		fmt_wb2word(f, fmt_mkword(f), &wbc, ihy, istr, igap, icost);
 		wb_reset(&wbc);
-		wb_fnszset(&wbc, cs, cf, cm);
+		wb_fnszset(&wbc, cf, cs, cm);		/* restoring wbc */
 	}
 	wb_done(&wbc);
 }

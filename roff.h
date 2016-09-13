@@ -73,6 +73,7 @@ extern char c_pc[];	/* page number character (%) */
 #define c_tc	env_tc()
 #define c_lc	env_lc()
 #define c_bp	"\\:"	/* zero-width word break point */
+#define c_nb	"\\~"	/* stretchable no-break space */
 
 /* number registers */
 #define num_get(id)	(*nreg(id))
