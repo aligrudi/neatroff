@@ -90,15 +90,18 @@ static int hw_lookup(char *word, char *hyph)
 	char word2[WORDLEN] = {0};
 	char *hyph2;
 	int map[WORDLEN] = {0};
+	int off = 0;
 	int i, j, idx = -1;
 	hcode_strcpy(word2, word, map, 0);
-	i = dict_prefix(hwdict, word2, &idx);
+	while (word2[off] == '.')	/* skip unknown characters at the front */
+		off++;
+	i = dict_prefix(hwdict, word2 + off, &idx);
 	if (i < 0)
 		return 1;
 	hyph2 = hwhyph + hwoff[i];
-	for (j = 0; word2[j]; j++)
+	for (j = 0; word2[j + off]; j++)
 		if (hyph2[j])
-			hyph[map[j]] = hyph2[j];
+			hyph[map[j + off]] = hyph2[j];
 	return 0;
 }
 
