@@ -400,14 +400,15 @@ char *num_getfmt(int id)
 {
 	static char fmtbuf[128];
 	char *s = fmtbuf;
+	int fmt = nregs_fmt[id] & NF_FMT;
 	int i;
-	if ((nregs_fmt[id] & NF_FMT) == '0') {
-		*s++ = '0';
+	if (fmt == '0' || fmt == 'x' || fmt == 'X') {
 		i = nregs_fmt[id] >> NF_LSH;
 		while (i-- > 1)
 			*s++ = '0';
+		*s++ = fmt;
 	} else if (nregs_fmt[id]) {
-		*s++ = nregs_fmt[id] & NF_FMT;
+		*s++ = fmt;
 	}
 	*s = '\0';
 	return fmtbuf;
@@ -419,9 +420,12 @@ void num_setfmt(int id, char *s)
 	if (strchr("iIaA", s[0])) {
 		nregs_fmt[id] = s[0];
 	} else {
-		while (isdigit(s[i]))
+		while (isdigit((unsigned char) s[i]))
 			i++;
-		nregs_fmt[id] = '0' | (i << NF_LSH);
+		if (s[i] == 'x' || s[i] == 'X')
+			nregs_fmt[id] = s[i] | ((i + 1) << NF_LSH);
+		else
+			nregs_fmt[id] = '0' | (i << NF_LSH);
 	}
 }
 
@@ -466,7 +470,6 @@ static void nf_alpha(char *s, int n, int a)
 static int num_fmt(char *s, int n, int fmt)
 {
 	int type = fmt & NF_FMT;
-	int len;
 	if (n < 0) {
 		n = -n;
 		*s++ = '-';
@@ -484,12 +487,10 @@ static int num_fmt(char *s, int n, int fmt)
 		nf_reverse(s);
 		return 0;
 	}
-	if (type == '0') {
-		sprintf(s, "%d", n);
-		len = strlen(s);
-		while (len++ < fmt >> NF_LSH)
-			*s++ = '0';
-		sprintf(s, "%d", n);
+	if (type == '0' || type == 'x' || type == 'X') {
+		char pat[16];
+		sprintf(pat, "%%0%d%c", fmt >> NF_LSH, type == '0' ? 'd' : type);
+		sprintf(s, pat, n);
 		return 0;
 	}
 	return 1;
