@@ -774,7 +774,7 @@ static void cdef_add(char *fn, char *cs, char *def)
 	int i;
 	if (!def || charread(&cs, c) < 0)
 		return;
-	i = cdef_find(c, -1);
+	i = cdef_find(c, fn ? dev_pos(fn) : -1);
 	if (i < 0 && cdef_n < NCDEFS)
 		i = cdef_n++;
 	if (i >= 0) {
