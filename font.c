@@ -160,16 +160,16 @@ static int font_rulematch(struct font *fn, struct grule *rule,
 	return 1;
 }
 
+/* find a matching gsub/gpos rule; *idx should be -1 initially */
 static int font_findrule(struct font *fn, int gsub, int pos,
-		int *fwd, int fwdlen, int *ctx, int ctxlen)
+		int *fwd, int fwdlen, int *ctx, int ctxlen, int *idx)
 {
 	struct grule *rules = gsub ? fn->gsub : fn->gpos;
 	int *r1 = iset_get(gsub ? fn->gsub0 : fn->gpos0, fwd[0]);
-	int i = -1;
-	while (r1 && r1[++i] >= 0) {
-		if (r1[i] >= pos && font_rulematch(fn, &rules[r1[i]], fwd,
-							fwdlen, ctx, ctxlen))
-			return r1[i];
+	while (r1 && r1[++*idx] >= 0) {
+		if (r1[*idx] >= pos && font_rulematch(fn, &rules[r1[*idx]],
+						fwd, fwdlen, ctx, ctxlen))
+			return r1[*idx];
 	}
 	return -1;
 }
@@ -179,17 +179,22 @@ static void font_performgpos(struct font *fn, int *src, int slen,
 		int *x, int *y, int *xadv, int *yadv)
 {
 	struct grule *gpos = fn->gpos;
+	struct gpat *pats;
 	int i, k;
 	for (i = 0; i < slen; i++) {
-		int r = font_findrule(fn, 0, 0, src + i, slen - i, src + i, i);
-		if (r >= 0) {
-			struct gpat *pats = gpos[r].pats;
+		int idx = -1;
+		while (1) {
+			int r = font_findrule(fn, 0, 0, src + i, slen - i,
+						src + i, i, &idx);
+			if (r < 0)
+				break;
+			pats = gpos[r].pats;
 			/* we should accumulate the values... */
 			for (k = 0; k < gpos[r].len; k++) {
-				x[i + k] = pats[k].x;
-				y[i + k] = pats[k].y;
-				xadv[i + k] = pats[k].xadv;
-				yadv[i + k] = pats[k].yadv;
+				x[i + k] += pats[k].x;
+				y[i + k] += pats[k].y;
+				xadv[i + k] += pats[k].xadv;
+				yadv[i + k] += pats[k].yadv;
 			}
 		}
 	}
@@ -201,7 +206,9 @@ static int font_firstgsub(struct font *fn, int pos, int *src, int slen)
 	int best = -1;
 	int i;
 	for (i = 0; i < slen; i++) {
-		int r = font_findrule(fn, 1, pos, src + i, slen - i, src + i, i);
+		int idx = -1;
+		int r = font_findrule(fn, 1, pos, src + i, slen - i,
+					src + i, i, &idx);
 		if (r >= 0 && (best < 0 || r < best))
 			best = r;
 	}
