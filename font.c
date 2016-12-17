@@ -390,6 +390,8 @@ static int font_readgsub(struct font *fn, FILE *fin)
 	int i, n;
 	if (fscanf(fin, "%s %d", tok, &n) != 2)
 		return 1;
+	if (strchr(tok, ':'))		/* "feature:script" */
+		strchr(tok, ':')[0] = '\0';
 	rule = font_gsub(fn, tok, n);
 	for (i = 0; i < n; i++) {
 		if (fscanf(fin, "%s", tok) != 1)
@@ -414,6 +416,8 @@ static int font_readgpos(struct font *fn, FILE *fin)
 	int i, n;
 	if (fscanf(fin, "%s %d", tok, &n) != 2)
 		return 1;
+	if (strchr(tok, ':'))		/* "feature:script" */
+		strchr(tok, ':')[0] = '\0';
 	rule = font_gpos(fn, tok, n);
 	for (i = 0; i < n; i++) {
 		if (fscanf(fin, "%s", tok) != 1)
