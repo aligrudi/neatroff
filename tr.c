@@ -636,9 +636,11 @@ static void tr_nn(char **args)
 
 static void tr_bd(char **args)
 {
+	struct font *fn = args[1] ? dev_font(dev_pos(args[1])) : NULL;
 	if (!args[1] || !strcmp("S", args[1]))
 		return;
-	font_setbd(dev_font(dev_pos(args[1])), args[2] ? eval(args[2], 'u') : 0);
+	if (fn)
+		font_setbd(fn, args[2] ? eval(args[2], 'u') : 0);
 }
 
 static void tr_it(char **args)
