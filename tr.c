@@ -612,6 +612,13 @@ static void tr_ff(char **args)
 			font_feat(fn, args[i] + 1, args[i][0] == '+');
 }
 
+static void tr_ffsc(char **args)
+{
+	struct font *fn = args[1] ? dev_font(dev_pos(args[1])) : NULL;
+	if (fn && args[2])
+		font_scrp(fn, args[2] ? args[2] : NULL);
+}
+
 static void tr_nm(char **args)
 {
 	if (!args[1]) {
@@ -1039,6 +1046,7 @@ static struct cmd {
 	{"fl", tr_br},
 	{"fmap", tr_fmap},
 	{"fp", tr_fp},
+	{"ffsc", tr_ffsc},
 	{"fspecial", tr_fspecial},
 	{"ft", tr_ft},
 	{"fzoom", tr_fzoom},
