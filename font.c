@@ -404,7 +404,7 @@ static int font_readgpat(struct font *fn, struct gpat *p, char *s)
 static void font_readfeat(struct font *fn, char *tok, int *feat, int *scrp)
 {
 	*scrp = -1;
-	if (strchr(tok, ':')) {
+	if (strchr(tok, ':')) {		/* "feature:script" */
 		*scrp = font_findscrp(fn, strchr(tok, ':') + 1);
 		strchr(tok, ':')[0] = '\0';
 	}
@@ -419,10 +419,8 @@ static int font_readgsub(struct font *fn, FILE *fin)
 	int i, n;
 	if (fscanf(fin, "%s %d", tok, &n) != 2)
 		return 1;
-	if (strchr(tok, ':'))		/* "feature:script" */
-		strchr(tok, ':')[0] = '\0';
 	font_readfeat(fn, tok, &feat, &scrp);
-	rule = font_gpos(fn, n, feat, scrp);
+	rule = font_gsub(fn, n, feat, scrp);
 	for (i = 0; i < n; i++) {
 		if (fscanf(fin, "%s", tok) != 1)
 			return 1;
