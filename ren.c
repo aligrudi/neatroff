@@ -717,7 +717,6 @@ static void ren_tab(struct wb *wb, char *tc, int (*next)(void), void (*back)(int
 /* insert a character, escape sequence, field or etc into wb */
 static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int))
 {
-	char arg[ILNLEN];
 	int w;
 	if (c[0] == ' ' || c[0] == '\n') {
 		wb_put(wb, c);
@@ -739,19 +738,21 @@ static void ren_put(struct wb *wb, char *c, int (*next)(void), void (*back)(int)
 			return;
 		}
 		if (strchr(" bCcDdefHhjkLlmNoprSsuvXxZz0^|!{}&/,", c[1])) {
-			arg[0] = '\0';
+			char *arg = NULL;
 			if (strchr(ESC_P, c[1]))
-				unquotednext(arg, c[1], next, back);
+				arg = unquotednext(c[1], next, back);
 			if (strchr(ESC_Q, c[1]))
-				quotednext(arg, next, back);
+				arg = quotednext(next, back);
 			if (c[1] == 'e') {
 				snprintf(c, GNLEN, "%c%c", c_ec, c_ec);
 			} else if (c[1] == 'N') {
 				snprintf(c, GNLEN, "GID=%s", arg);
 			} else {
 				ren_cmd(wb, c[1], arg);
+				free(arg);
 				return;
 			}
+			free(arg);
 		}
 	}
 	if (ren_div) {

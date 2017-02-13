@@ -1,6 +1,7 @@
 /* reading characters and escapes */
 #include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "roff.h"
 
@@ -54,45 +55,51 @@ int utf8next(char *s, int (*next)(void))
 }
 
 /* read quoted arguments of escape sequences (ESC_Q) */
-void quotednext(char *d, int (*next)(void), void (*back)(int))
+char *quotednext(int (*next)(void), void (*back)(int))
 {
 	char delim[GNLEN], cs[GNLEN];
+	struct sbuf sb;
+	char d[GNLEN];
 	charnext(delim, next, back);
+	sbuf_init(&sb);
 	while (charnext_delim(cs, next, back, delim) >= 0) {
 		charnext_str(d, cs);
-		d = strchr(d, '\0');
+		sbuf_append(&sb, d);
 	}
+	return sbuf_out(&sb);
 }
 
 /* read unquoted arguments of escape sequences (ESC_P) */
-void unquotednext(char *d, int cmd, int (*next)(void), void (*back)(int))
+char *unquotednext(int cmd, int (*next)(void), void (*back)(int))
 {
 	int c = next();
+	struct sbuf sb;
+	sbuf_init(&sb);
 	if (cmd == 's' && (c == '-' || c == '+')) {
 		cmd = c;
-		*d++ = c;
+		sbuf_add(&sb, c);
 		c = next();
 	}
 	if (c == '(') {
-		*d++ = next();
-		*d++ = next();
+		sbuf_add(&sb, next());
+		sbuf_add(&sb, next());
 	} else if (!n_cp && c == '[') {
 		c = next();
 		while (c > 0 && c != '\n' && c != ']') {
-			*d++ = c;
+			sbuf_add(&sb, c);
 			c = next();
 		}
 	} else {
-		*d++ = c;
+		sbuf_add(&sb, c);
 		if (cmd == 's' && c >= '1' && c <= '3') {
 			c = next();
 			if (isdigit(c))
-				*d++ = c;
+				sbuf_add(&sb, c);
 			else
 				back(c);
 		}
 	}
-	*d = '\0';
+	return sbuf_out(&sb);
 }
 
 /*
@@ -131,7 +138,9 @@ int charnext(char *c, int (*next)(void), void (*back)(int))
 			c[l] = '\0';
 			return '[';
 		} else if (c[1] == 'C') {
-			quotednext(c, next, back);
+			char *chr = quotednext(next, back);
+			snprintf(c, GNLEN, "%s", chr);
+			free(chr);
 			return 'C';
 		}
 		return '\\';

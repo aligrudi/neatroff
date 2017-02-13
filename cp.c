@@ -110,32 +110,37 @@ static void cp_width(void)
 /* define a register as \R'xyz expr' */
 static void cp_numdef(void)
 {
-	char arg[ILNLEN];
-	char *s;
-	quotednext(arg, cp_noninext, cp_back);
-	s = arg;
+	char *arg = quotednext(cp_noninext, cp_back);
+	char *s = arg;
 	while (*s && *s != ' ')
 		s++;
-	if (!*s)
+	if (!*s) {
+		free(arg);
 		return;
+	}
 	*s++ = '\0';
 	num_set(map(arg), eval_re(s, num_get(map(arg)), 'u'));
+	free(arg);
 }
 
 /* conditional interpolation as \?'cond@expr1@expr2@' */
 static void cp_cond(void)
 {
-	char arg[ILNLEN];
 	char delim[GNLEN], cs[GNLEN];
-	char *r, *s = arg;
+	char *r, *s;
 	char *s1, *s2;
 	int n;
-	quotednext(arg, cp_noninext, cp_back);
+	char *arg = quotednext(cp_noninext, cp_back);
+	s = arg;
 	n = eval_up(&s, '\0');
-	if (charread(&s, delim) < 0)
+	if (charread(&s, delim) < 0) {
+		free(arg);
 		return;
-	if (!strcmp(delim, "\\&") && charread(&s, delim) < 0)
+	}
+	if (!strcmp(delim, "\\&") && charread(&s, delim) < 0) {
+		free(arg);
 		return;
+	}
 	s1 = s;
 	r = s;
 	while (charread_delim(&s, cs, delim) >= 0)
@@ -147,6 +152,7 @@ static void cp_cond(void)
 		r = s;
 	*r = '\0';
 	in_push(n > 0 ? s1 : s2, NULL);
+	free(arg);
 }
 
 static int cp_raw(void)
