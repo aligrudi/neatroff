@@ -71,7 +71,10 @@ static void wb_flushfont(struct wb *wb)
 		wb->f = R_F(wb);
 	}
 	if (wb->s != R_S(wb)) {
-		sbuf_printf(&wb->sbuf, "%cs(%02d", c_ec, R_S(wb));
+		if (R_S(wb) < 100)
+			sbuf_printf(&wb->sbuf, "%cs(%02d", c_ec, R_S(wb));
+		else
+			sbuf_printf(&wb->sbuf, "%cs[%d]", c_ec, R_S(wb));
 		wb->s = R_S(wb);
 	}
 	if (!n_cp && wb->m != R_M(wb)) {
