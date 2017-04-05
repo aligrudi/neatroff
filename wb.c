@@ -527,5 +527,11 @@ void wb_catstr(struct wb *wb, char *s, char *end)
 int wb_hywid(struct wb *wb)
 {
 	struct glyph *g = dev_glyph("hy", wb->f);
-	return g ? font_gwid(g->font, dev_font(wb->f), wb->s, g->wid) : 0;
+	return g ? font_gwid(g->font, dev_font(R_F(wb)), R_S(wb), g->wid) : 0;
+}
+
+/* return the size of space if appended to wb */
+int wb_swid(struct wb *wb)
+{
+	return font_swid(dev_font(R_F(wb)), R_S(wb), n_ss);
 }

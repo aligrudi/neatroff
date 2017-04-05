@@ -276,6 +276,7 @@ char *wb_buf(struct wb *wb);
 void wb_fnszget(struct wb *wb, int *fn, int *sz, int *m);
 void wb_fnszset(struct wb *wb, int fn, int sz, int m);
 int wb_hywid(struct wb *wb);
+int wb_swid(struct wb *wb);
 int c_eossent(char *s);
 int c_eostran(char *s);
 int c_hydash(char *s);

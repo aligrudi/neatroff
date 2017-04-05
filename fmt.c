@@ -30,6 +30,7 @@ struct word {
 	int hy;		/* hyphen width if inserted after this word */
 	int str;	/* does the space before it stretch */
 	int cost;	/* the extra cost of line break after this word */
+	int swid;	/* space width after this word (i.e., \w' ') */
 };
 
 struct line {
@@ -275,6 +276,7 @@ static void fmt_wb2word(struct fmt *f, struct word *word, struct wb *wb,
 	word->str = str;
 	word->gap = gap;
 	word->cost = cost;
+	word->swid = wb_swid(wb);
 }
 
 /* find explicit break positions: dashes, \:, \%, and \~ */
@@ -347,7 +349,7 @@ static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 		wb_catstr(&wbc, beg, end);
 		wb_fnszget(&wbc, &cf, &cs, &cm);
 		icost = i == n ? wb_cost(&wbc) : hygap[i] * 10000000;
-		igap = i == 0 ? gap : hygap[i - 1] * font_swid(dev_font(cf), cs, n_ss);
+		igap = i == 0 ? gap : hygap[i - 1] * wb_swid(&wbc);
 		fmt_wb2word(f, fmt_mkword(f), &wbc, ihy, istr, igap, icost);
 		wb_reset(&wbc);
 		wb_fnszset(&wbc, cf, cs, cm);		/* restoring wbc */
@@ -440,6 +442,7 @@ static long fmt_findcost(struct fmt *f, int pos)
 	int lwid = 0;		/* current line length */
 	int swid = 0;		/* amount of stretchable spaces */
 	int nspc = 0;		/* number of stretchable spaces */
+	int dwid = 0;		/* equal to swid, unless swid is zero */
 	if (pos <= 0)
 		return 0;
 	if (f->best_pos[pos] >= 0)
@@ -457,7 +460,10 @@ static long fmt_findcost(struct fmt *f, int pos)
 		}
 		if (lwid > llen + swid * n_ssh / 100 && i + 1 < pos)
 			break;
-		cur = fmt_findcost(f, i) + FMT_COST(llen, lwid, swid, nspc);
+		dwid = swid;
+		if (!dwid && i > 0)	/* no stretchable spaces */
+			dwid = f->words[i - 1].swid;
+		cur = fmt_findcost(f, i) + FMT_COST(llen, lwid, dwid, nspc);
 		if (hyphenated)
 			cur += hycost(1 + fmt_hydepth(f, i));
 		if (f->best_pos[pos] < 0 || cur < f->best[pos]) {
