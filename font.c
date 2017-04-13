@@ -55,7 +55,7 @@ struct font {
 struct glyph *font_find(struct font *fn, char *name)
 {
 	int i = dict_get(fn->ch_map, name);
-	if (i == -1)
+	if (i < 0)
 		i = dict_get(fn->ch_dict, name);
 	return i >= 0 ? fn->gl + i : NULL;
 }
@@ -314,9 +314,11 @@ static int font_readchar(struct font *fn, FILE *fin, int *n, int *gid)
 			sscanf(tok, "%hd,%hd,%hd,%hd,%hd", &g->wid,
 				&g->llx, &g->lly, &g->urx, &g->ury);
 		}
+		dict_put(fn->ch_dict, name, *gid);
+		(*n)++;
+	} else {
+		dict_put(fn->ch_map, name, *gid);
 	}
-	dict_put(fn->ch_dict, name, *gid);
-	(*n)++;
 	return 0;
 }
 
