@@ -76,12 +76,12 @@ void dict_put(struct dict *d, char *key, int val)
 /* return the index of key in d */
 int dict_idx(struct dict *d, char *key)
 {
-	int *r = iset_get(d->map, DHASH(d, key));
-	while (r && *r >= 0) {
+	int h = DHASH(d, key);
+	int *b = iset_get(d->map, h);
+	int *r = b + iset_len(d->map, h);
+	while (b && --r >= b)
 		if (!strcmp(d->key[*r], key))
 			return *r;
-		r++;
-	}
 	return -1;
 }
 
