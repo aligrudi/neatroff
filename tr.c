@@ -1212,5 +1212,8 @@ void tr_init(void)
 
 void tr_done(void)
 {
+	int i;
+	for (i = 0; i < cdef_n; i++)
+		free(cdef_dst[i]);
 	dict_free(cmap);
 }
