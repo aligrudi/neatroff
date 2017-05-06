@@ -6,6 +6,7 @@
 #include "roff.h"
 
 static int tr_nl = 1;		/* just read a newline */
+static int tr_bm = -1;		/* blank line macro */
 char c_pc[GNLEN] = "%";		/* page number character */
 int c_ec = '\\';		/* escape character */
 int c_cc = '.';			/* control character */
@@ -834,6 +835,11 @@ static void tr_fmap(char **args)
 		font_map(fn, args[2], args[3]);
 }
 
+static void tr_blm(char **args)
+{
+	tr_bm = args[1] ? map(args[1]) : -1;
+}
+
 /* read a macro argument */
 static int tr_arg(struct sbuf *sbuf, int brk, int (*next)(void), void (*back)(int))
 {
@@ -1016,6 +1022,7 @@ static struct cmd {
 	{"am", tr_de, mkargs_reg1},
 	{"as", tr_as, mkargs_ds},
 	{"bd", tr_bd},
+	{"blm", tr_blm},
 	{"bp", tr_bp},
 	{"br", tr_br},
 	{"c2", tr_c2},
@@ -1147,12 +1154,18 @@ int tr_nextreq(void)
 		}
 		cp_back(c2);
 	}
-	if (c < 0 || (c != c_cc && c != c_c2)) {
+	if (c < 0 || (c != c_cc && c != c_c2 && (c != '\n' || tr_bm < 0))) {
 		cp_back(c);
 		return 1;
 	}
 	cp_reqbeg();
-	cmd = read_name(n_cp);
+	if (c != '\n') {
+		cmd = read_name(n_cp);
+	} else {		/* blank line macro */
+		cmd = malloc(strlen(map_name(tr_bm)) + 1);
+		strcpy(cmd, map_name(tr_bm));
+		cp_back(c);
+	}
 	args[0] = dotted(cmd, c);
 	req = str_dget(map(cmd));
 	if (req) {
