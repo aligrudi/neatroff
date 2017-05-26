@@ -374,11 +374,17 @@ void odiv_end(void)
 void tr_ta(char **args)
 {
 	int i;
-	char *s;
-	for (i = 0; i < NARGS && args[i]; i++) {
-		env->tabs[i] = eval_re(args[i], i > 0 ? env->tabs[i - 1] : 0, 'm');
-		s = args[i][0] ? strchr(args[i], '\0') - 1 : "";
-		env->tabs_type[i] = strchr("LRC", *s) ? *s : 'L';
+	int c;
+	for (i = 0; i < NTABS; i++) {
+		if (i + 1 < NARGS && args[i + 1]) {
+			char *a = args[i + 1];
+			env->tabs[i] = eval_re(a, i > 0 ? env->tabs[i - 1] : 0, 'm');
+			c = a[0] ? (unsigned char) strchr(a, '\0')[-1] : 0;
+			env->tabs_type[i] = strchr("LRC", c) ? c : 'L';
+		} else {
+			env->tabs[i] = 0;
+			env->tabs_type[i] = 0;
+		}
 	}
 }
 
