@@ -64,6 +64,16 @@ static char *directory(char *path)
 	return dst;
 }
 
+static char *num_tabs(void)
+{
+	static char tabs[16 * NTABS];
+	int i;
+	char *s = tabs;
+	for (i = 0; i < NTABS && env->tabs_type[i]; i++)
+		s += sprintf(s, "%du%c ", env->tabs[i], env->tabs_type[i]);
+	return tabs;
+}
+
 static int num_fmt(char *s, int n, int fmt);
 
 /* the contents of a number register (returns a static buffer) */
@@ -119,6 +129,8 @@ char *num_str(int id)
 		sprintf(numbuf, "%02d", *nreg(id));
 		return numbuf;
 	}
+	if (s[0] == '.' && !strcmp(".tabs", s))
+		return num_tabs();
 	if (!nregs_fmt[id] || num_fmt(numbuf, *nreg(id), nregs_fmt[id]))
 		sprintf(numbuf, "%d", *nreg(id));
 	return numbuf;
