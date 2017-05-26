@@ -247,8 +247,10 @@ static void env_set(int id)
 		n_nS = 1;
 		strcpy(env->hc, "\\%");
 		strcpy(env->lc, ".");
-		for (i = 0; i < NTABS; i++)
+		for (i = 0; i < NTABS; i++) {
 			env->tabs[i] = i * SC_IN / 2;
+			env->tabs_type[i] = 'L';
+		}
 	}
 }
 
