@@ -778,6 +778,24 @@ int cdef_expand(struct wb *wb, char *s, int fn)
 	return 0;
 }
 
+static void cdef_remove(char *fn, char *cs)
+{
+	char c[GNLEN];
+	int i;
+	int fp = fn ? dev_pos(fn) : -1;
+	if (!cs || charread(&cs, c) < 0)
+		return;
+	for (i = 0; i < cdef_n; i++) {
+		if (!strcmp(cdef_src[i], c)) {
+			if (!fn || (fp > 0 && cdef_fn[i] == fp)) {
+				free(cdef_dst[i]);
+				cdef_dst[i] = NULL;
+				cdef_src[i][0] = '\0';
+			}
+		}
+	}
+}
+
 static void cdef_add(char *fn, char *cs, char *def)
 {
 	char c[GNLEN];
@@ -785,9 +803,14 @@ static void cdef_add(char *fn, char *cs, char *def)
 	if (!def || charread(&cs, c) < 0)
 		return;
 	i = cdef_find(c, fn ? dev_pos(fn) : -1);
-	if (i < 0 && cdef_n < NCDEFS)
-		i = cdef_n++;
-	if (i >= 0) {
+	if (i < 0) {
+		for (i = 0; i < cdef_n; i++)
+			if (!cdef_dst[i])
+				break;
+		if (i == cdef_n && cdef_n < NCDEFS)
+			cdef_n++;
+	}
+	if (i >= 0 && i < cdef_n) {
 		snprintf(cdef_src[i], sizeof(cdef_src[i]), "%s", c);
 		cdef_dst[i] = xmalloc(strlen(def) + 1);
 		strcpy(cdef_dst[i], def);
@@ -795,37 +818,28 @@ static void cdef_add(char *fn, char *cs, char *def)
 	}
 }
 
-static void cdef_remove(char *cs)
-{
-	char c[GNLEN];
-	int i;
-	if (!cs || charread(&cs, c) < 0)
-		return;
-	for (i = 0; i < cdef_n; i++) {
-		if (!strcmp(cdef_src[i], c)) {
-			free(cdef_dst[i]);
-			cdef_dst[i] = NULL;
-			cdef_src[i][0] = '\0';
-		}
-	}
-}
-
-static void tr_char(char **args)
-{
-	cdef_add(NULL, args[1], args[2]);
-}
-
 static void tr_rchar(char **args)
 {
 	int i;
 	for (i = 1; i <= NARGS; i++)
 		if (args[i])
-			cdef_remove(args[i]);
+			cdef_remove(NULL, args[i]);
+}
+
+static void tr_char(char **args)
+{
+	if (args[2])
+		cdef_add(NULL, args[1], args[2]);
+	else
+		cdef_remove(NULL, args[1]);
 }
 
 static void tr_ochar(char **args)
 {
-	cdef_add(args[1], args[2], args[3]);
+	if (args[3])
+		cdef_add(args[1], args[2], args[3]);
+	else
+		cdef_remove(args[1], args[2]);
 }
 
 static void tr_fmap(char **args)
@@ -952,30 +966,6 @@ static void mkargs_ds(struct sbuf *sbuf)
 	jmp_eol();
 }
 
-/* read arguments for .char */
-static void mkargs_def(struct sbuf *sbuf)
-{
-	char *s = read_name(0);
-	sbuf_append(sbuf, s);
-	sbuf_add(sbuf, 0);
-	free(s);
-	s = read_string();
-	sbuf_append(sbuf, s);
-	sbuf_add(sbuf, 0);
-	free(s);
-	jmp_eol();
-}
-
-/* read arguments for .ochar */
-static void mkargs_def3(struct sbuf *sbuf)
-{
-	char *s = read_name(0);
-	sbuf_append(sbuf, s);
-	sbuf_add(sbuf, 0);
-	free(s);
-	mkargs_def(sbuf);
-}
-
 /* read arguments for .nr */
 static void mkargs_reg1(struct sbuf *sbuf)
 {
@@ -1027,10 +1017,10 @@ static struct cmd {
 	{"br", tr_br},
 	{"c2", tr_c2},
 	{"cc", tr_cc},
-	{"ochar", tr_ochar, mkargs_def3},
+	{"ochar", tr_ochar},
 	{"ce", tr_ce},
 	{"ch", tr_ch},
-	{"char", tr_char, mkargs_def},
+	{"char", tr_char},
 	{"chop", tr_chop, mkargs_reg1},
 	{"cl", tr_cl},
 	{"cp", tr_cp},
