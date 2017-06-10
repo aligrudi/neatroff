@@ -67,19 +67,16 @@ static void tr_af(char **args)
 
 static void tr_ds(char **args)
 {
-	if (args[2])
-		str_set(map(args[1]), args[2]);
+	str_set(map(args[1]), args[2] ? args[2] : "");
 }
 
 static void tr_as(char **args)
 {
 	int reg;
 	char *s1, *s2, *s;
-	if (!args[2])
-		return;
 	reg = map(args[1]);
 	s1 = str_get(reg) ? str_get(reg) : "";
-	s2 = args[2];
+	s2 = args[2] ? args[2] : "";
 	s = xmalloc(strlen(s1) + strlen(s2) + 1);
 	strcpy(s, s1);
 	strcat(s, s2);
@@ -114,10 +111,12 @@ static char *read_string(void)
 {
 	struct sbuf sbuf;
 	int c;
+	int empty;
 	sbuf_init(&sbuf);
 	cp_copymode(1);
 	while ((c = cp_next()) == ' ')
 		;
+	empty = c <= 0 || c == '\n';
 	if (c == '"')
 		c = cp_next();
 	while (c > 0 && c != '\n') {
@@ -128,10 +127,14 @@ static char *read_string(void)
 	if (c >= 0)
 		cp_back(c);
 	cp_copymode(0);
+	if (empty) {
+		sbuf_done(&sbuf);
+		return NULL;
+	}
 	return sbuf_out(&sbuf);
 }
 
-/* read a register name argument; if two, read at most two characters */
+/* read a space separated macro argument; if two, read at most two characters */
 static char *read_name(int two)
 {
 	struct sbuf sbuf;
@@ -151,7 +154,6 @@ static char *read_name(int two)
 		cp_back(c);
 	return sbuf_out(&sbuf);
 }
-
 
 static void macrobody(struct sbuf *sbuf, char *end)
 {
@@ -952,7 +954,7 @@ static void mkargs_req(struct sbuf *sbuf)
 	jmp_eol();
 }
 
-/* read arguments for .ds */
+/* read arguments for .ds and .char */
 static void mkargs_ds(struct sbuf *sbuf)
 {
 	char *s = read_name(n_cp);
@@ -960,10 +962,22 @@ static void mkargs_ds(struct sbuf *sbuf)
 	sbuf_add(sbuf, 0);
 	free(s);
 	s = read_string();
+	if (s) {
+		sbuf_append(sbuf, s);
+		sbuf_add(sbuf, 0);
+		free(s);
+	}
+	jmp_eol();
+}
+
+/* read arguments for .ochar */
+static void mkargs_ochar(struct sbuf *sbuf)
+{
+	char *s = read_name(0);
 	sbuf_append(sbuf, s);
 	sbuf_add(sbuf, 0);
 	free(s);
-	jmp_eol();
+	mkargs_ds(sbuf);
 }
 
 /* read arguments for .nr */
@@ -1017,10 +1031,10 @@ static struct cmd {
 	{"br", tr_br},
 	{"c2", tr_c2},
 	{"cc", tr_cc},
-	{"ochar", tr_ochar},
+	{"ochar", tr_ochar, mkargs_ochar},
 	{"ce", tr_ce},
 	{"ch", tr_ch},
-	{"char", tr_char},
+	{"char", tr_char, mkargs_ds},
 	{"chop", tr_chop, mkargs_reg1},
 	{"cl", tr_cl},
 	{"cp", tr_cp},
