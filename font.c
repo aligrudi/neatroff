@@ -55,7 +55,7 @@ struct font {
 struct glyph *font_find(struct font *fn, char *name)
 {
 	int i = dict_get(fn->ch_map, name);
-	if (i < 0)
+	if (i == -1)		/* -2 means the glyph has been unmapped */
 		i = dict_get(fn->ch_dict, name);
 	return i >= 0 ? fn->gl + i : NULL;
 }
