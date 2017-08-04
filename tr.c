@@ -353,7 +353,7 @@ static void tr_ad(char **args)
 
 static void tr_tm(char **args)
 {
-	fprintf(stderr, "%s\n", args[1]);
+	fprintf(stderr, "%s\n", args[1] ? args[1] : "");
 }
 
 static void tr_so(char **args)
