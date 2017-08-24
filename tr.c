@@ -345,7 +345,7 @@ static void tr_ad(char **args)
 	n_na = 0;
 	if (!s)
 		return;
-	if (isdigit(s[0]))
+	if (isdigit((unsigned char) s[0]))
 		n_j = atoi(s) & 15;
 	else
 		n_j = s[0] == 'p' ? AD_P | adjmode(s[1], AD_B) : adjmode(s[0], n_j);
@@ -631,11 +631,11 @@ static void tr_nm(char **args)
 	n_nm = 1;
 	n_ln = eval_re(args[1], n_ln, 0);
 	n_ln = MAX(0, n_ln);
-	if (args[2] && isdigit(args[2][0]))
+	if (args[2] && isdigit((unsigned char) args[2][0]))
 		n_nM = MAX(1, eval(args[2], 0));
-	if (args[3] && isdigit(args[3][0]))
+	if (args[3] && isdigit((unsigned char) args[3][0]))
 		n_nS = MAX(0, eval(args[3], 0));
-	if (args[4] && isdigit(args[4][0]))
+	if (args[4] && isdigit((unsigned char) args[4][0]))
 		n_nI = MAX(0, eval(args[4], 0));
 }
 

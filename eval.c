@@ -37,7 +37,7 @@ static int evalnum(char **_s)
 	char *s = *_s;
 	int n = 0;		/* the result */
 	int mag = 0;		/* n should be divided by mag */
-	while (isdigit(*s) || *s == '.') {
+	while (isdigit((unsigned char) *s) || *s == '.') {
 		if (*s == '.') {
 			mag = 1;
 			s++;
@@ -66,7 +66,7 @@ static int evaljmp(char **s, int c)
 
 static int evalisnum(char **s)
 {
-	return **s == '.' || isdigit(**s);
+	return **s == '.' || isdigit((unsigned char) **s);
 }
 
 static int evalexpr(char **s);
