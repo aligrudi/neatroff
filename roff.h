@@ -32,7 +32,7 @@
 #define RNLEN		NMLEN	/* register/macro name */
 #define NREGS		8192	/* number of mapped names */
 #define ILNLEN		1000	/* line limit of input files */
-#define NARGS		16	/* number of macro arguments */
+#define NARGS		32	/* number of macro arguments */
 #define NPREV		16	/* environment stack depth */
 #define NTRAPS		1024	/* number of traps per page */
 #define NIES		128	/* number of nested .ie commands */
