@@ -564,9 +564,11 @@ void tr_ft(char **args)
 
 void tr_fp(char **args)
 {
+	int pos;
 	if (!args[2])
 		return;
-	if (dev_mnt(atoi(args[1]), args[2], args[3] ? args[3] : args[2]) < 0)
+	pos = isdigit((unsigned char) args[1][0]) ? atoi(args[1]) : -1;
+	if (dev_mnt(pos, args[2], args[3] ? args[3] : args[2]) < 0)
 		errmsg("neatroff: failed to mount <%s>\n", args[2]);
 }
 

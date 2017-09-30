@@ -37,6 +37,19 @@ static void dev_prologue(void)
 	out("x init\n");
 }
 
+/* find a position for the given font */
+static int dev_position(char *id)
+{
+	int i;
+	for (i = 1; i < NFONTS; i++)	/* already mounted */
+		if (!strcmp(fn_name[i], id))
+			return i;
+	for (i = 1; i < NFONTS; i++)	/* the first empty position */
+		if (!fn_font[i])
+			return i;
+	return 0;			/* no room left */
+}
+
 int dev_mnt(int pos, char *id, char *name)
 {
 	char path[PATHLEN];
@@ -50,6 +63,8 @@ int dev_mnt(int pos, char *id, char *name)
 	fn = font_open(path);
 	if (!fn)
 		return -1;
+	if (pos < 0)
+		pos = dev_position(id);
 	if (fn_font[pos])
 		font_close(fn_font[pos]);
 	if (fn_name[pos] != name)	/* ignore if fn_name[pos] is passed */
