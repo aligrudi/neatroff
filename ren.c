@@ -1004,7 +1004,7 @@ static int render_rec(int level)
 			}
 		}
 		/* flush the line if necessary */
-		if ((!FMT_PAR() && (c == ' ' || c == '\n')) || c < 0)
+		if (c == ' ' || c == '\n' || c < 0)
 			ren_fmtpop(cfmt);
 		if (c == '\n' || ren_nl)	/* end or start of input line */
 			n_lb = f_hpos();
