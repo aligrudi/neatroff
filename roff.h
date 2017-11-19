@@ -202,6 +202,7 @@ void cp_reqbeg(void);		/* beginning of a request line */
 void cp_copymode(int mode);	/* do not interpret \w and \E */
 #define cp_back		in_back	/* cp.c is stateless */
 int tr_nextreq(void);		/* read the next troff request */
+void tr_req(int reg, char **args);	/* execute a built-in troff request */
 
 /* variable length string buffer */
 struct sbuf {

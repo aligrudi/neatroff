@@ -1132,6 +1132,14 @@ static char *dotted(char *name, int dot)
 	return out;
 }
 
+/* execute a built-in request */
+void tr_req(int reg, char **args)
+{
+	struct cmd *req = str_dget(reg);
+	if (req)
+		req->f(args);
+}
+
 /* read the next troff request; return zero if a request was executed. */
 int tr_nextreq(void)
 {

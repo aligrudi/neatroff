@@ -66,17 +66,17 @@ static void cp_num(void)
 static void cp_str(void)
 {
 	char reg[NMLEN];
-	char *args[NARGS + 1] = {NULL};
+	char *args[NARGS + 2] = {reg};
+	char *buf = NULL;
 	if (cparg(reg, sizeof(reg))) {
-		char *buf = tr_args(args, ']', cp_noninext, cp_back);
+		buf = tr_args(args + 1, ']', cp_noninext, cp_back);
 		cp_noninext();
-		if (str_get(map(reg)))
-			in_push(str_get(map(reg)), args);
-		free(buf);
-	} else {
-		if (str_get(map(reg)))
-			in_push(str_get(map(reg)), NULL);
 	}
+	if (str_get(map(reg)))
+		in_push(str_get(map(reg)), buf ? args + 1 : NULL);
+	else if (!n_cp)
+		tr_req(map(reg), args);
+	free(buf);
 }
 
 /* interpolate \g(xy */
