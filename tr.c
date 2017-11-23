@@ -858,6 +858,33 @@ static void tr_blm(char **args)
 	tr_bm = args[1] ? map(args[1]) : -1;
 }
 
+static void tr_co(char **args)
+{
+	char *reg = args[1];
+	char *path = args[2];
+	char buf[1024];
+	if (!reg || !reg[0] || !path || !path[0])
+		return;
+	if (path[0] == '>') {
+		FILE *fp = fopen(path + 1, "w");
+		if (fp && reg && str_get(map(reg)))
+			fputs(str_get(map(reg)), fp);
+		if (fp)
+			fclose(fp);
+	}
+	if (path[0] == '<') {
+		FILE *fp = fopen(path + 1, "r");
+		struct sbuf sb;
+		sbuf_init(&sb);
+		while (fp && fgets(buf, sizeof(buf), fp))
+			sbuf_append(&sb, buf);
+		str_set(map(reg), sbuf_buf(&sb));
+		sbuf_done(&sb);
+		if (fp)
+			fclose(fp);
+	}
+}
+
 /* read a macro argument */
 static int tr_arg(struct sbuf *sbuf, int brk, int (*next)(void), void (*back)(int))
 {
@@ -1035,12 +1062,12 @@ static struct cmd {
 	{"br", tr_br},
 	{"c2", tr_c2},
 	{"cc", tr_cc},
-	{"ochar", tr_ochar, mkargs_ochar},
 	{"ce", tr_ce},
 	{"ch", tr_ch},
 	{"char", tr_char, mkargs_ds},
 	{"chop", tr_chop, mkargs_reg1},
 	{"cl", tr_cl},
+	{"co", tr_co, mkargs_ds},
 	{"cp", tr_cp},
 	{"cs", tr_cs},
 	{"da", tr_di},
@@ -1099,6 +1126,7 @@ static struct cmd {
 	{"nr", tr_nr, mkargs_reg1},
 	{"ns", tr_ns},
 	{"nx", tr_nx},
+	{"ochar", tr_ochar, mkargs_ochar},
 	{"os", tr_os},
 	{"pc", tr_pc},
 	{"pl", tr_pl},
