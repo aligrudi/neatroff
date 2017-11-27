@@ -226,11 +226,11 @@ int cp_next(void)
 		} else if (c == '$') {
 			cp_arg();
 			c = cp_next();
+		} else if (c == '?') {
+			cp_cond();
+			c = cp_next();
 		} else if (c == 'R' && !cp_cpmode) {
 			cp_numdef();
-			c = cp_next();
-		} else if (c == '?' && !cp_cpmode) {
-			cp_cond();
 			c = cp_next();
 		} else {
 			cp_back(c);
