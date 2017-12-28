@@ -3,7 +3,6 @@
 #include <string.h>
 #include "roff.h"
 
-#define DHASH(d, s)	((d)->level2 && (s)[0] ? (((unsigned char) (s)[1]) << 8) | (unsigned char) (s)[0] : (unsigned char) s[0])
 #define CNTMIN		(1 << 10)
 
 struct dict {
@@ -13,7 +12,7 @@ struct dict {
 	int size;
 	int n;
 	int notfound;		/* the value returned for missing keys */
-	int level2;		/* use two characters for hashing */
+	int hashlen;		/* the number of characters used for hashing */
 	int dupkeys;		/* duplicate keys if set */
 };
 
@@ -29,14 +28,14 @@ static void dict_extend(struct dict *d, int size)
  *
  * notfound: the value returned for missing keys.
  * dupkeys: if nonzero, store a copy of keys inserted via dict_put().
- * level2: use two characters for hasing
+ * hashlen: the number of characters used for hashing
  */
-struct dict *dict_make(int notfound, int dupkeys, int level2)
+struct dict *dict_make(int notfound, int dupkeys, int hashlen)
 {
 	struct dict *d = xmalloc(sizeof(*d));
 	memset(d, 0, sizeof(*d));
 	d->n = 1;
-	d->level2 = level2;
+	d->hashlen = hashlen ? hashlen : 32;
 	d->dupkeys = dupkeys;
 	d->notfound = notfound;
 	d->map = iset_make();
@@ -56,6 +55,15 @@ void dict_free(struct dict *d)
 	free(d);
 }
 
+static int dict_hash(struct dict *d, char *key)
+{
+	unsigned long hash = (unsigned char) *key++;
+	int i = d->hashlen;
+	while (--i > 0 && *key)
+		hash = (hash << 5) + hash + (unsigned char) *key++;
+	return hash & 0xffff;
+}
+
 void dict_put(struct dict *d, char *key, int val)
 {
 	int idx;
@@ -70,13 +78,13 @@ void dict_put(struct dict *d, char *key, int val)
 	idx = d->n++;
 	d->key[idx] = key;
 	d->val[idx] = val;
-	iset_put(d->map, DHASH(d, key), idx);
+	iset_put(d->map, dict_hash(d, key), idx);
 }
 
 /* return the index of key in d */
 int dict_idx(struct dict *d, char *key)
 {
-	int h = DHASH(d, key);
+	int h = dict_hash(d, key);
 	int *b = iset_get(d->map, h);
 	int *r = b + iset_len(d->map, h);
 	while (b && --r >= b)
@@ -104,7 +112,7 @@ int dict_get(struct dict *d, char *key)
 /* match a prefix of key; in the first call, *idx should be -1 */
 int dict_prefix(struct dict *d, char *key, int *pos)
 {
-	int *r = iset_get(d->map, DHASH(d, key));
+	int *r = iset_get(d->map, dict_hash(d, key));
 	while (r && r[++*pos] >= 0) {
 		int idx = r[*pos];
 		int plen = strlen(d->key[idx]);

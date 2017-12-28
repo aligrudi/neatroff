@@ -331,8 +331,8 @@ void tr_hpfa(char **args)
 
 void hyph_init(void)
 {
-	hwdict = dict_make(-1, 0, 1);
-	hydict = dict_make(-1, 0, 1);
+	hwdict = dict_make(-1, 0, 2);
+	hydict = dict_make(-1, 0, 2);
 	hcodedict = dict_make(-1, 0, 1);
 }
 
