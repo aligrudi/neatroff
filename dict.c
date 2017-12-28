@@ -61,7 +61,7 @@ static int dict_hash(struct dict *d, char *key)
 	int i = d->hashlen;
 	while (--i > 0 && *key)
 		hash = (hash << 5) + hash + (unsigned char) *key++;
-	return hash & 0xffff;
+	return hash & 0x3ff;
 }
 
 void dict_put(struct dict *d, char *key, int val)
