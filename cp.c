@@ -73,7 +73,7 @@ static void cp_str(void)
 		cp_noninext();
 	}
 	if (str_get(map(reg)))
-		in_push(str_get(map(reg)), buf ? args + 1 : NULL);
+		in_push(str_get(map(reg)), buf ? args : NULL);
 	else if (!n_cp)
 		tr_req(map(reg), args);
 	free(buf);
@@ -92,7 +92,7 @@ static void cp_args(int quote, int escape)
 	char *s;
 	int i;
 	sbuf_init(&sb);
-	for (i = 1; i <= in_nargs(); i++) {
+	for (i = 1; i < in_nargs(); i++) {
 		sbuf_append(&sb, i > 1 ? " " : "");
 		sbuf_append(&sb, quote ? "\"" : "");
 		s = in_arg(i);
@@ -126,7 +126,7 @@ static void cp_arg(void)
 		return;
 	}
 	argnum = atoi(argname);
-	if (argnum > 0 && argnum < NARGS + 1)
+	if (argnum >= 0 && argnum < NARGS)
 		arg = in_arg(argnum);
 	if (arg)
 		in_push(arg, NULL);

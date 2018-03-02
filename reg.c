@@ -114,7 +114,7 @@ char *num_str(int id)
 			sprintf(numbuf, "%s", directory(in_filename()));
 			return numbuf;
 		case '$':
-			sprintf(numbuf, "%d", in_nargs());
+			sprintf(numbuf, "%d", in_nargs() - 1);
 			return numbuf;
 		}
 	}

@@ -143,7 +143,8 @@ char *in_arg(int i)
 	struct inbuf *cur = buf;
 	while (cur && !cur->args)
 		cur = cur->prev;
-	return cur && cur->args && cur->args[i - 1] ? cur->args[i - 1] : "";
+	return cur && cur->args && i < NARGS &&
+		cur->args[i] ? cur->args[i] : "";
 }
 
 int in_nargs(void)
