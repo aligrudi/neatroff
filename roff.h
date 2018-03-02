@@ -192,6 +192,7 @@ void in_lf(char *path, int ln);	/* .lf request */
 void in_queue(char *path);	/* queue the given input file */
 char *in_arg(int i);		/* look up argument */
 int in_nargs(void);		/* number of arguments */
+void in_shift(void);		/* shift the arguments */
 void in_back(int c);		/* push back input character */
 int in_top(void);		/* the first pushed-back character */
 char *in_filename(void);	/* current filename */

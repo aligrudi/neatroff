@@ -369,6 +369,13 @@ static void tr_nx(char **args)
 	in_nx(args[1]);
 }
 
+static void tr_shift(char **args)
+{
+	int n = args[1] ? atoi(args[1]) : 1;
+	while (n-- >= 1)
+		in_shift();
+}
+
 static void tr_ex(char **args)
 {
 	in_ex();
@@ -1140,6 +1147,7 @@ static struct cmd {
 	{"rr", tr_rr},
 	{"rs", tr_rs},
 	{"rt", tr_rt},
+	{"shift", tr_shift},
 	{"so", tr_so},
 	{"sp", tr_sp},
 	{"ss", tr_ss},

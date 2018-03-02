@@ -158,6 +158,19 @@ int in_nargs(void)
 	return n;
 }
 
+void in_shift(void)
+{
+	struct inbuf *cur = buf;
+	while (cur && !cur->args)
+		cur = cur->prev;
+	if (cur && cur->args) {
+		free(cur->args[1]);
+		memmove(cur->args + 1, cur->args + 2,
+			(NARGS - 2) * sizeof(cur->args[0]));
+		cur->args[NARGS - 1] = NULL;
+	}
+}
+
 char *in_filename(void)
 {
 	struct inbuf *cur = buf;
