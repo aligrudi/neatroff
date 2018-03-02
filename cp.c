@@ -85,6 +85,27 @@ static void cp_numfmt(void)
 	in_push(num_getfmt(regid()), NULL);
 }
 
+/* interpolate \$*, \$@, and \$^ */
+static void cp_args(int quote, int escape)
+{
+	struct sbuf sb;
+	char *s;
+	int i;
+	sbuf_init(&sb);
+	for (i = 1; i <= in_nargs(); i++) {
+		sbuf_append(&sb, i > 1 ? " " : "");
+		sbuf_append(&sb, quote ? "\"" : "");
+		s = in_arg(i);
+		while (*s) {
+			sbuf_append(&sb, escape && *s == '"' ? "\"" : "");
+			sbuf_add(&sb, (unsigned char) *s++);
+		}
+		sbuf_append(&sb, quote ? "\"" : "");
+	}
+	in_push(sbuf_buf(&sb), NULL);
+	sbuf_done(&sb);
+}
+
 /* interpolate \$1 */
 static void cp_arg(void)
 {
@@ -92,6 +113,18 @@ static void cp_arg(void)
 	char *arg = NULL;
 	int argnum;
 	cparg(argname, sizeof(argname));
+	if (!strcmp("@", argname)) {
+		cp_args(1, 0);
+		return;
+	}
+	if (!strcmp("*", argname)) {
+		cp_args(0, 0);
+		return;
+	}
+	if (!strcmp("^", argname)) {
+		cp_args(1, 1);
+		return;
+	}
 	argnum = atoi(argname);
 	if (argnum > 0 && argnum < NARGS + 1)
 		arg = in_arg(argnum);
