@@ -7,6 +7,7 @@
 
 static int tr_nl = 1;		/* just read a newline */
 static int tr_bm = -1;		/* blank line macro */
+static int tr_sm = -1;		/* leading space macro */
 char c_pc[GNLEN] = "%";		/* page number character */
 int c_ec = '\\';		/* escape character */
 int c_cc = '.';			/* control character */
@@ -865,6 +866,11 @@ static void tr_blm(char **args)
 	tr_bm = args[1] ? map(args[1]) : -1;
 }
 
+static void tr_lsm(char **args)
+{
+	tr_sm = args[1] ? map(args[1]) : -1;
+}
+
 static void tr_co(char **args)
 {
 	char *reg = args[1];
@@ -1121,6 +1127,7 @@ static struct cmd {
 	{"lg", tr_lg},
 	{"ll", tr_ll},
 	{"ls", tr_ls},
+	{"lsm", tr_lsm},
 	{"lt", tr_lt},
 	{"mc", tr_mc},
 	{"mk", tr_mk},
@@ -1182,21 +1189,52 @@ void tr_req(int reg, char **args)
 		req->f(args);
 }
 
+/* interpolate a macro for tr_nextreq() */
+static void tr_nextreq_exec(char *mac, char *arg0, int readargs)
+{
+	char *args[NARGS + 3] = {arg0};
+	struct cmd *req = str_dget(map(mac));
+	struct sbuf sbuf;
+	if (req) {
+		sbuf_init(&sbuf);
+		if (readargs) {
+			if (req->args)
+				req->args(&sbuf);
+			else
+				mkargs_req(&sbuf);
+			tr_argschop(&sbuf, args + 1);
+		}
+		req->f(args);
+		sbuf_done(&sbuf);
+	} else {
+		char *buf = NULL;
+		if (readargs) {
+			cp_copymode(1);
+			buf = tr_args(args + 1, -1, cp_next, cp_back);
+			jmp_eol();
+			cp_copymode(0);
+		}
+		if (str_get(map(mac)))
+			in_push(str_get(map(mac)), args);
+		free(buf);
+	}
+}
+
 /* read the next troff request; return zero if a request was executed. */
 int tr_nextreq(void)
 {
-	char *args[NARGS + 3] = {NULL};
-	char *cmd;
-	struct cmd *req;
-	struct sbuf sbuf;
+	char *mac;
+	char *arg0 = NULL;
 	int c;
 	if (!tr_nl)
 		return 1;
 	c = cp_next();
+	/* transparent line indicator */
 	if (c == c_ec) {
 		int c2 = cp_next();
 		if (c2 == '!') {
-			args[0] = "\\!";
+			char *args[NARGS + 3] = {"\\!"};
+			struct sbuf sbuf;
 			sbuf_init(&sbuf);
 			cp_copymode(1);
 			mkargs_eol(&sbuf);
@@ -1208,41 +1246,36 @@ int tr_nextreq(void)
 		}
 		cp_back(c2);
 	}
-	if (c < 0 || (c != c_cc && c != c_c2 && (c != '\n' || tr_bm < 0))) {
+	/* not a request, a blank line, or a line with leading spaces */
+	if (c < 0 || (c != c_cc && c != c_c2 &&
+			(c != '\n' || tr_bm < 0) &&
+			(c != ' ' || tr_sm < 0))) {
 		cp_back(c);
 		return 1;
 	}
 	cp_reqbeg();
-	if (c != '\n') {
-		cmd = read_name(n_cp);
-	} else {		/* blank line macro */
-		cmd = malloc(strlen(map_name(tr_bm)) + 1);
-		strcpy(cmd, map_name(tr_bm));
+	if (c == '\n') {		/* blank line macro */
+		mac = malloc(strlen(map_name(tr_bm)) + 1);
+		strcpy(mac, map_name(tr_bm));
+		arg0 = dotted(mac, '.');
+		tr_nextreq_exec(mac, arg0, 0);
+	} else if (c == ' ') {		/* leading space macro */
+		int i;
+		mac = malloc(strlen(map_name(tr_sm)) + 1);
+		strcpy(mac, map_name(tr_sm));
+		for (i = 0; c == ' '; i++)
+			c = cp_next();
 		cp_back(c);
-	}
-	args[0] = dotted(cmd, c);
-	req = str_dget(map(cmd));
-	if (req) {
-		sbuf_init(&sbuf);
-		if (req->args)
-			req->args(&sbuf);
-		else
-			mkargs_req(&sbuf);
-		tr_argschop(&sbuf, args + 1);
-		req->f(args);
-		sbuf_done(&sbuf);
+		n_lsn = i;
+		arg0 = dotted(mac, '.');
+		tr_nextreq_exec(mac, arg0, 0);
 	} else {
-		char *buf;
-		cp_copymode(1);
-		buf = tr_args(args + 1, -1, cp_next, cp_back);
-		jmp_eol();
-		cp_copymode(0);
-		if (str_get(map(cmd)))
-			in_push(str_get(map(cmd)), args);
-		free(buf);
+		mac = read_name(n_cp);
+		arg0 = dotted(mac, c);
+		tr_nextreq_exec(mac, arg0, 1);
 	}
-	free(args[0]);
-	free(cmd);
+	free(arg0);
+	free(mac);
 	return 0;
 }
 

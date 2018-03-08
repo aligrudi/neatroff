@@ -464,6 +464,7 @@ int clr_get(char *s);
 #define n_j		(*nreg(DOTMAP('j')))
 #define n_l		(*nreg(DOTMAP('l')))
 #define n_L		(*nreg(DOTMAP('L')))
+#define n_lsn		(*nreg(map("lsn")))	/* for .lsm */
 #define n_n		(*nreg(DOTMAP('n')))
 #define n_nI		(*nreg(map(".nI")))	/* i for .nm */
 #define n_nm		(*nreg(map(".nm")))	/* .nm enabled */
