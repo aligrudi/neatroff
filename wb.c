@@ -595,7 +595,7 @@ int wb_keshideh(char *word, struct wb *dst, int wid)
 	s = word;
 	while ((c = escread(&s, &d)) >= 0) {
 		wb_putc(dst, c, d);
-		if (!c && strcmp("ـ", d) && keshideh(p)) {
+		if (!c && keshideh(p)) {
 			struct glyph *g = dev_glyph("ـ", R_F(dst));
 			int kw = g ? font_gwid(g->font,
 					dev_font(R_F(dst)), R_S(dst), g->wid) : 0;
@@ -613,7 +613,7 @@ int wb_keshideh(char *word, struct wb *dst, int wid)
 	while ((c = escread(&s, &d)) >= 0) {
 		wb_putc(dst, c, d);
 		if (s == s_kesh)
-				wb_putc(dst, 0, "ـ");
+			wb_putc(dst, 0, "ـ");
 	}
 	return ins;
 }
