@@ -48,7 +48,8 @@
 #define NHCODES		512	/* number of .hcode characters */
 #define WORDLEN		256	/* word length (for hyph.c) */
 #define NFEATS		128	/* number of features per font */
-#define NSCRPS		128	/* number of scripts per font */
+#define NSCRPS		64	/* number of scripts per font */
+#define NLANGS		64	/* number of languages per font */
 
 /* converting scales */
 #define SC_IN		(dev_res)	/* inch in units */
@@ -175,6 +176,7 @@ void font_setzoom(struct font *fn, int zoom);
 int font_zoom(struct font *fn, int sz);
 int font_feat(struct font *fn, char *name, int val);
 void font_scrp(struct font *fn, char *name);
+void font_lang(struct font *fn, char *name);
 int font_layout(struct font *fn, struct glyph **src, int nsrc, int sz,
 		struct glyph **dst, int *dmap,
 		int *x, int *y, int *xadv, int *yadv, int lg, int kn);
