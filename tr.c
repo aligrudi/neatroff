@@ -628,10 +628,10 @@ static void tr_ff(char **args)
 static void tr_ffsc(char **args)
 {
 	struct font *fn = args[1] ? dev_font(dev_pos(args[1])) : NULL;
-	if (fn && args[2])
-		font_scrp(fn, args[2] ? args[2] : NULL);
-	if (fn && args[3])
-		font_lang(fn, args[3] ? args[3] : NULL);
+	if (fn)
+		font_scrp(fn, args[2]);
+	if (fn)
+		font_lang(fn, args[3]);
 }
 
 static void tr_nm(char **args)
