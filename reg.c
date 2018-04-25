@@ -264,6 +264,7 @@ static void init_time(void)
 	num_set(map("dy"), tm->tm_mday);
 	num_set(map("mo"), tm->tm_mon + 1);
 	num_set(map("yr"), tm->tm_year % 100);
+	num_set(map(".yr"), 1900 + tm->tm_year);
 }
 
 static void init_globals(void)
