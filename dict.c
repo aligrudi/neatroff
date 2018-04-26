@@ -109,7 +109,7 @@ int dict_get(struct dict *d, char *key)
 	return idx >= 0 ? d->val[idx] : d->notfound;
 }
 
-/* match a prefix of key; in the first call, *idx should be -1 */
+/* match a prefix of key; in the first call, *pos should be -1 */
 int dict_prefix(struct dict *d, char *key, int *pos)
 {
 	int *r = iset_get(d->map, dict_hash(d, key));
