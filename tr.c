@@ -875,28 +875,57 @@ static void tr_lsm(char **args)
 
 static void tr_co(char **args)
 {
+	char *src = args[1];
+	char *dst = args[2];
+	if (src && dst && str_get(map(src)))
+		str_set(map(dst), str_get(map(src)));
+}
+
+static void tr_coa(char **args)
+{
+	char *src = args[1];
+	char *dst = args[2];
+	if (src && dst && str_get(map(src))) {
+		struct sbuf sb;
+		sbuf_init(&sb);
+		if (str_get(map(dst)))
+			sbuf_append(&sb, str_get(map(dst)));
+		sbuf_append(&sb, str_get(map(src)));
+		str_set(map(dst), sbuf_buf(&sb));
+		sbuf_done(&sb);
+	}
+}
+
+static void tr_coo(char **args)
+{
+	char *reg = args[1];
+	char *path = args[2];
+	FILE *fp;
+	if (!reg || !reg[0] || !path || !path[0])
+		return;
+	if ((fp = fopen(path, "w"))) {
+		if (str_get(map(reg)))
+			fputs(str_get(map(reg)), fp);
+		fclose(fp);
+	}
+}
+
+static void tr_coi(char **args)
+{
 	char *reg = args[1];
 	char *path = args[2];
 	char buf[1024];
+	FILE *fp;
 	if (!reg || !reg[0] || !path || !path[0])
 		return;
-	if (path[0] == '>') {
-		FILE *fp = fopen(path + 1, "w");
-		if (fp && reg && str_get(map(reg)))
-			fputs(str_get(map(reg)), fp);
-		if (fp)
-			fclose(fp);
-	}
-	if (path[0] == '<') {
-		FILE *fp = fopen(path + 1, "r");
+	if ((fp = fopen(path + 1, "r"))) {
 		struct sbuf sb;
 		sbuf_init(&sb);
-		while (fp && fgets(buf, sizeof(buf), fp))
+		while (fgets(buf, sizeof(buf), fp))
 			sbuf_append(&sb, buf);
 		str_set(map(reg), sbuf_buf(&sb));
 		sbuf_done(&sb);
-		if (fp)
-			fclose(fp);
+		fclose(fp);
 	}
 }
 
@@ -1082,7 +1111,10 @@ static struct cmd {
 	{"char", tr_char, mkargs_ds},
 	{"chop", tr_chop, mkargs_reg1},
 	{"cl", tr_cl},
-	{"co", tr_co, mkargs_ds},
+	{"co", tr_co},
+	{"co+", tr_coa},
+	{"co<", tr_coi, mkargs_ds},
+	{"co>", tr_coo, mkargs_ds},
 	{"cp", tr_cp},
 	{"cs", tr_cs},
 	{"da", tr_di},
