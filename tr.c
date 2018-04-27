@@ -929,8 +929,8 @@ static void tr_coi(char **args)
 	}
 }
 
-/* read a macro argument */
-static int tr_arg(struct sbuf *sbuf, int brk, int (*next)(void), void (*back)(int))
+/* read a single macro argument */
+static int macroarg(struct sbuf *sbuf, int brk, int (*next)(void), void (*back)(int))
 {
 	int quoted = 0;
 	int c;
@@ -966,27 +966,8 @@ static int tr_arg(struct sbuf *sbuf, int brk, int (*next)(void), void (*back)(in
 	return 0;
 }
 
-/* read macro arguments; free the returned pointer when done */
-char *tr_args(char **args, int brk, int (*next)(void), void (*back)(int))
-{
-	struct sbuf sbuf;
-	char *s, *e;
-	int n = 0;
-	sbuf_init(&sbuf);
-	while (!tr_arg(&sbuf, brk, next, back))
-		;
-	s = sbuf_buf(&sbuf);
-	e = s + sbuf_len(&sbuf);
-	while (n < NARGS && s && s < e) {
-		args[n++] = s;
-		if ((s = memchr(s, '\0', e - s)))
-			s++;
-	}
-	return sbuf_out(&sbuf);
-}
-
-/* split the arguments in sbuf */
-static int tr_argschop(struct sbuf *sbuf, char **args)
+/* split the arguments in sbuf, after calling one of mkargs_*() */
+static void chopargs(struct sbuf *sbuf, char **args)
 {
 	char *s = sbuf_buf(sbuf);
 	char *e = s + sbuf_len(sbuf);
@@ -996,7 +977,27 @@ static int tr_argschop(struct sbuf *sbuf, char **args)
 		if ((s = memchr(s, '\0', e - s)))
 			s++;
 	}
-	return n;
+}
+
+/* read macro arguments; free the returned pointer when done */
+char *tr_args(char **args, int brk, int (*next)(void), void (*back)(int))
+{
+	struct sbuf sbuf;
+	sbuf_init(&sbuf);
+	while (!macroarg(&sbuf, brk, next, back))
+		;
+	chopargs(&sbuf, args);
+	return sbuf_out(&sbuf);
+}
+
+/* read regular macro arguments */
+static void mkargs_macro(struct sbuf *sbuf)
+{
+	cp_copymode(1);
+	while (!macroarg(sbuf, -1, cp_next, cp_back))
+		;
+	jmp_eol();
+	cp_copymode(0);
 }
 
 /* read request arguments; trims tabs too */
@@ -1228,30 +1229,23 @@ static void tr_nextreq_exec(char *mac, char *arg0, int readargs)
 {
 	char *args[NARGS + 3] = {arg0};
 	struct cmd *req = str_dget(map(mac));
+	char *str = str_get(map(mac));
 	struct sbuf sbuf;
-	if (req) {
-		sbuf_init(&sbuf);
-		if (readargs) {
-			if (req->args)
-				req->args(&sbuf);
-			else
-				mkargs_req(&sbuf);
-			tr_argschop(&sbuf, args + 1);
-		}
-		req->f(args);
-		sbuf_done(&sbuf);
-	} else {
-		char *buf = NULL;
-		if (readargs) {
-			cp_copymode(1);
-			buf = tr_args(args + 1, -1, cp_next, cp_back);
-			jmp_eol();
-			cp_copymode(0);
-		}
-		if (str_get(map(mac)))
-			in_push(str_get(map(mac)), args);
-		free(buf);
+	sbuf_init(&sbuf);
+	if (readargs) {
+		if (req && req->args)
+			req->args(&sbuf);
+		if (req && !req->args)
+			mkargs_req(&sbuf);
+		if (!req)
+			mkargs_macro(&sbuf);
+		chopargs(&sbuf, args + 1);
 	}
+	if (str)
+		in_push(str, args);
+	if (!str && req)
+		req->f(args);
+	sbuf_done(&sbuf);
 }
 
 /* read the next troff request; return zero if a request was executed. */
@@ -1273,7 +1267,7 @@ int tr_nextreq(void)
 			cp_copymode(1);
 			mkargs_eol(&sbuf);
 			cp_copymode(0);
-			tr_argschop(&sbuf, args + 1);
+			chopargs(&sbuf, args + 1);
 			tr_transparent(args);
 			sbuf_done(&sbuf);
 			return 0;
