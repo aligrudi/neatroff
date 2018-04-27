@@ -203,6 +203,8 @@ static void tr_de(char **args)
 	macrobody(&sbuf, args[2] ? args[2] : ".");
 	str_set(id, sbuf_buf(&sbuf));
 	sbuf_done(&sbuf);
+	if (!n_cp && args[3])	/* parse the arguments as request argv[3] */
+		str_dset(id, str_dget(map(args[3])));
 }
 
 static void tr_ig(char **args)
