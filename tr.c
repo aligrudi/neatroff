@@ -931,6 +931,12 @@ static void tr_coi(char **args)
 	}
 }
 
+static void tr_dv(char **args)
+{
+	if (args[1])
+		out_x(args[1]);
+}
+
 /* read a single macro argument */
 static int macroarg(struct sbuf *sbuf, int brk, int (*next)(void), void (*back)(int))
 {
@@ -1125,6 +1131,7 @@ static struct cmd {
 	{"di", tr_di},
 	{"ds", tr_ds, mkargs_ds},
 	{"dt", tr_dt},
+	{"dv", tr_dv, mkargs_eol},
 	{"ec", tr_ec},
 	{"el", tr_el, mkargs_null},
 	{"em", tr_em},

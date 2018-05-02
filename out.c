@@ -159,6 +159,11 @@ static void outc(char *c)
 	outnn("h%d", cwid);
 }
 
+void out_x(char *s)
+{
+	out("x X %s\n", s);
+}
+
 void out_line(char *s)
 {
 	char *c;
@@ -195,7 +200,7 @@ void out_line(char *s)
 			outnn("v%d", eval(c, 'v'));
 			break;
 		case 'X':
-			out("x X %s\n", c);
+			out_x(c);
 			break;
 		}
 	}

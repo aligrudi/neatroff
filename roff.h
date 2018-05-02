@@ -346,6 +346,7 @@ void ren_zcmd(struct wb *wb, char *arg);	/* \Z */
 
 /* out.c */
 void out_line(char *s);				/* output rendered line */
+void out_x(char *s);				/* output \X requests */
 void out(char *s, ...);				/* output troff cmd */
 
 /* troff commands */
