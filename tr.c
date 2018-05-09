@@ -296,6 +296,8 @@ static int eval_if(int (*next)(void), void (*back)(int))
 	back(c);
 	if (strchr("oetn", c)) {
 		ret = if_cond(next, back);
+	} else if (c == ' ') {
+		ret = 0;
 	} else if (!isdigit(c) && !strchr("-+*/%<=>&:.|()", c)) {
 		ret = if_strcmp(next, back);
 	} else {
