@@ -16,7 +16,7 @@
 /* glyph substitution and positioning rules */
 struct grule {
 	struct gpat {			/* rule description */
-		short g;		/* glyph index */
+		int g;			/* glyph index */
 		short flg;		/* pattern flags; GF_* */
 		short x, y, xadv, yadv;	/* gpos data */
 	} *pats;			/* rule pattern */
