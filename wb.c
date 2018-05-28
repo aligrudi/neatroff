@@ -172,11 +172,21 @@ static void wb_putbuf(struct wb *wb, char *c)
 			sbuf_printf(&wb->sbuf, "%cC'%s'", c_ec, c);
 	}
 	if (!zerowidth) {
-		if (!n_cp && g)
-			wb_bbox(wb, font_wid(g->font, wb->s, g->llx),
-				font_wid(g->font, wb->s, g->lly),
-				font_wid(g->font, wb->s, g->urx),
-				font_wid(g->font, wb->s, g->ury));
+		if (!n_cp && g) {
+			if (g->llx || g->lly || g->urx || g->ury) {
+				int llx = font_wid(g->font, wb->s, g->llx);
+				int lly = font_wid(g->font, wb->s, g->lly);
+				int urx = font_wid(g->font, wb->s, g->urx);
+				int ury = font_wid(g->font, wb->s, g->ury);
+				wb_bbox(wb, llx, lly, urx, ury);
+			} else {	/* no bounding box information */
+				int ht = wb->s * SC_PT;
+				int urx = font_wid(g->font, wb->s, g->wid);
+				int lly = (g->type & 1) ? -ht / 2 : 0;
+				int ury = (g->type & 2) ? ht : ht / 2;
+				wb_bbox(wb, 0, lly, urx, ury);
+			}
+		}
 		wb->h += g ? font_gwid(g->font, dev_font(wb->f), wb->s, g->wid) : 0;
 		wb->ct |= g ? g->type : 0;
 		wb_stsb(wb);
