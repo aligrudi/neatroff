@@ -296,24 +296,31 @@ static int fmt_hyphmarks(char *word, int *hyidx, int *hyins, int *hygap)
 	char *s = word;
 	char *d = NULL;
 	int c, n = 0;
+	int lastchar = 0;
 	while ((c = escread(&s, &d)) > 0)
 		;
 	if (c < 0 || !strcmp(c_hc, d))
 		return -1;
 	while ((c = escread(&s, &d)) >= 0 && n < NHYPHSWORD) {
-		if (!c && !strcmp(c_hc, d)) {
-			hyins[n] = 1;
-			hyidx[n++] = s - word;
-		}
-		if (!c && c_hydash(d)) {
-			hyins[n] = 0;
-			hyidx[n++] = s - word;
-		}
-		if (!c && !strcmp(c_nb, d)) {
-			hygap[n] = 1;
-			hyidx[n++] = s - word;
+		if (!c) {
+			if (!strcmp(c_hc, d)) {
+				hyins[n] = 1;
+				hyidx[n++] = s - word;
+			}
+			if (c_hydash(d)) {
+				hyins[n] = 0;
+				hyidx[n++] = s - word;
+			}
+			if (!strcmp(c_nb, d)) {
+				hygap[n] = 1;
+				hyidx[n++] = s - word;
+			}
+			lastchar = s - word;
 		}
 	}
+	/* cannot break the end of a word */
+	while (n > 0 && hyidx[n - 1] == lastchar)
+		n--;
 	return n;
 }
 
