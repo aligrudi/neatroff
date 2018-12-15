@@ -582,7 +582,7 @@ static int fmt_breakparagraph(struct fmt *f, int pos, int br)
 }
 
 /* extract the first nreq formatted lines before the word at pos */
-static int fmt_head(struct fmt *f, int nreq, int pos)
+static int fmt_head(struct fmt *f, int nreq, int pos, int nohy)
 {
 	int best = pos;		/* best line break for nreq-th line */
 	int prev, next;		/* best line breaks without hyphenation */
@@ -593,6 +593,8 @@ static int fmt_head(struct fmt *f, int nreq, int pos)
 		best = fmt_bestpos(f, best);
 	prev = best;
 	next = best;
+	if (!nohy)
+		return best;
 	/* finding closest line breaks without hyphenation */
 	while (prev > 1 && f->words[prev - 1].hy &&
 			fmt_bestdep(f, prev - 1) == nreq)
@@ -648,7 +650,12 @@ static int fmt_fillwords(struct fmt *f, int br)
 	/* not enough words to fill */
 	if ((f->fillreq <= 0 || f->words_n < f->fillreq) && llen <= FMT_LLEN(f))
 		return 0;
-	nreq = (n_hy & HY_LAST) ? fmt_safelines() : 0;
+	/* lines until a trap or page end */
+	nreq = fmt_safelines();
+	/* if line settings are changed, output a single line */
+	if (fmt_confchanged(f))
+		nreq = 1;
+	/* enough lines are collected already */
 	if (nreq > 0 && nreq <= fmt_nlines(f))
 		return 1;
 	/* resetting positions */
@@ -661,7 +668,10 @@ static int fmt_fillwords(struct fmt *f, int br)
 		f->best_pos[i] = -1;
 	end = fmt_breakparagraph(f, f->words_n, br);
 	if (nreq > 0) {
-		end_head = fmt_head(f, nreq - fmt_nlines(f), end);
+		int nohy = 0;	/* do not hyphenate the last line */
+		if (n_hy & HY_LAST && nreq == fmt_nlines(f))
+			nohy = 1;
+		end_head = fmt_head(f, nreq - fmt_nlines(f), end, nohy);
 		head = end_head < end;
 		end = end_head;
 	}
