@@ -44,7 +44,7 @@
 #define MAXFRAC		100000	/* maximum value of the fractional part */
 #define NCDEFS		128	/* number of character definitions (.char) */
 #define NHYPHS		16384	/* hyphenation dictionary/patterns (.hw) */
-#define NHYPHSWORD	16	/* number of hyphenations per word */
+#define NHYPHSWORD	32	/* number of hyphenations per word */
 #define NHCODES		512	/* number of .hcode characters */
 #define WORDLEN		256	/* word length (for hyph.c) */
 #define NFEATS		128	/* number of features per font */
