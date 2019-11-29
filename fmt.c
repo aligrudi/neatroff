@@ -631,7 +631,7 @@ static int fmt_break(struct fmt *f, int end)
 static int fmt_safelines(void)
 {
 	int lnht = MAX(1, n_L) * n_v;
-	return (f_nexttrap() + lnht - 1) / lnht;
+	return n_v > 0 ? (f_nexttrap() + lnht - 1) / lnht : 1000;
 }
 
 /* fill the words collected in the buffer */
