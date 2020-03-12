@@ -8,10 +8,8 @@
 /* return the length of a utf-8 character based on its first byte */
 int utf8len(int c)
 {
-	if (~c & 0x80)
+	if (~c & 0xc0)		/* ASCII or invalid */
 		return c > 0;
-	if (~c & 0x40)
-		return 1;
 	if (~c & 0x20)
 		return 2;
 	if (~c & 0x10)
