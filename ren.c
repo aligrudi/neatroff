@@ -35,7 +35,6 @@ static int ren_aborted;		/* .ab executed */
 
 static int bp_first = 1;	/* prior to the first page */
 static int bp_next = NOPAGE;	/* next page number */
-static int bp_count;		/* number of pages so far */
 static int bp_ejected;		/* current ejected page */
 static int bp_final;		/* 1: executing em, 2: the final page, 3: the 2nd final page */
 static int ren_level;		/* the depth of render_rec() calls */
@@ -136,8 +135,8 @@ static void ren_page(int force)
 	n_h = 0;
 	n_pg = bp_next != NOPAGE ? bp_next : n_pg + 1;
 	bp_next = NOPAGE;
-	bp_count++;
-	out("p%d\n", n_pg);
+	n_PG += 1;
+	out("p%d\n", n_PG);
 	out("V%d\n", 0);
 	if (trap_pos(-1) == 0)
 		trap_exec(trap_reg(-1));
@@ -498,10 +497,10 @@ void tr_ne(char **args)
 static void ren_ejectpage(int br)
 {
 	ren_first();
-	bp_ejected = bp_count;
+	bp_ejected = n_PG;
 	if (br)
 		ren_br();
-	while (bp_count == bp_ejected && !cdiv) {
+	while (n_PG == bp_ejected && !cdiv) {
 		if (detect_traps(n_d, n_p)) {
 			ren_traps(n_d, n_p, 1);
 		} else {

@@ -492,6 +492,7 @@ int clr_get(char *s);
 #define n_sb		(*nreg(map("sb")))
 #define n_st		(*nreg(map("st")))
 #define n_pg		(*nreg(map("%")))	/* % */
+#define n_PG		(*nreg(DOTMAP('%')))	/* number of ejected pages */
 #define n_lb		(*nreg(map(".b0")))	/* input line beg */
 #define n_ce		(*nreg(map(".ce")))	/* .ce remaining */
 #define n_f0		(*nreg(map(".f0")))	/* last .f */
