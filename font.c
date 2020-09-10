@@ -20,6 +20,7 @@ struct grule {
 		short flg;		/* pattern flags; GF_* */
 		short x, y, xadv, yadv;	/* gpos data */
 	} *pats;			/* rule pattern */
+	int sec;			/* rule section (OFF lookup) */
 	short len;			/* pats[] length */
 	short feat, scrp, lang;		/* rule's feature and script */
 };
@@ -43,6 +44,7 @@ struct font {
 	int scrp;			/* current script */
 	char lang_name[NLANGS][8];	/* language names */
 	int lang;			/* current language */
+	int secs;			/* number of font sections (OFF lookups) */
 	/* glyph substitution and positioning */
 	struct grule *gsub;		/* glyph substitution rules */
 	int gsub_n, gsub_sz;
@@ -198,11 +200,15 @@ static void font_performgpos(struct font *fn, int *src, int slen,
 	for (i = 0; i < slen; i++) {
 		int idx = -1;
 		int curs_cur = 0;
+		int lastsec = -1;
 		while (1) {
 			int r = font_findrule(fn, 0, 0, src + i, slen - i,
 						src + i, i, &idx);
-			if (r < 0)
+			if (r < 0)			/* no rule found */
 				break;
+			if (gpos[r].sec == lastsec)	/* perform at most one rule from each lookup */
+				continue;
+			lastsec = gpos[r].sec;
 			pats = gpos[r].pats;
 			for (k = 0; k < gpos[r].len; k++) {
 				x[i + k] += pats[k].x;
@@ -470,6 +476,7 @@ static int font_readgsub(struct font *fn, FILE *fin)
 		return 1;
 	font_readfeat(fn, tok, &feat, &scrp, &lang);
 	rule = font_gsub(fn, n, feat, scrp, lang);
+	rule->sec = fn->secs;
 	for (i = 0; i < n; i++) {
 		if (fscanf(fin, "%s", tok) != 1)
 			return 1;
@@ -496,6 +503,7 @@ static int font_readgpos(struct font *fn, FILE *fin)
 		return 1;
 	font_readfeat(fn, tok, &feat, &scrp, &lang);
 	rule = font_gpos(fn, n, feat, scrp, lang);
+	rule->sec = fn->secs;
 	for (i = 0; i < n; i++) {
 		if (fscanf(fin, "%s", tok) != 1)
 			return 1;
@@ -627,6 +635,8 @@ struct font *font_open(char *path)
 				if (ligs_n < LEN(ligs))
 					ligs_n++;
 			}
+		} else if (!strcmp("gsec", tok)) {
+			fn->secs++;
 		} else if (!strcmp("gsub", tok)) {
 			font_readgsub(fn, fin);
 		} else if (!strcmp("gpos", tok)) {
