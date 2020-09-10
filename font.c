@@ -204,10 +204,10 @@ static void font_performgpos(struct font *fn, int *src, int slen,
 		while (1) {
 			int r = font_findrule(fn, 0, 0, src + i, slen - i,
 						src + i, i, &idx);
-			if (r < 0)			/* no rule found */
+			if (r < 0)		/* no rule found */
 				break;
-			if (gpos[r].sec == lastsec)	/* perform at most one rule from each lookup */
-				continue;
+			if (gpos[r].sec > 0 && gpos[r].sec == lastsec)
+				continue;	/* perform at most one rule from each lookup */
 			lastsec = gpos[r].sec;
 			pats = gpos[r].pats;
 			for (k = 0; k < gpos[r].len; k++) {
