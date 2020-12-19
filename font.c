@@ -327,16 +327,16 @@ int font_layout(struct font *fn, struct glyph **gsrc, int nsrc, int sz,
 static int font_readchar(struct font *fn, FILE *fin, int *n, int *gid)
 {
 	struct glyph *g;
-	char tok[ILNLEN];
-	char name[ILNLEN];
-	char id[ILNLEN];
+	char tok[128];
+	char name[GNLEN];
+	char id[GNLEN];
 	int type;
-	if (fscanf(fin, "%s %s", name, tok) != 2)
+	if (fscanf(fin, GNFMT " %128s", name, tok) != 2)
 		return 1;
 	if (!strcmp("---", name))
 		sprintf(name, "c%04d", *n);
 	if (strcmp("\"", tok)) {
-		if (fscanf(fin, "%d %s", &type, id) != 2)
+		if (fscanf(fin, "%d " GNFMT, &type, id) != 2)
 			return 1;
 		*gid = font_glyphput(fn, id, name, type);
 		g = &fn->gl[*gid];
@@ -472,13 +472,13 @@ static int font_readgsub(struct font *fn, FILE *fin)
 	struct grule *rule;
 	int feat, scrp, lang;
 	int i, n;
-	if (fscanf(fin, "%s %d", tok, &n) != 2)
+	if (fscanf(fin, "%128s %d", tok, &n) != 2)
 		return 1;
 	font_readfeat(fn, tok, &feat, &scrp, &lang);
 	rule = font_gsub(fn, n, feat, scrp, lang);
 	rule->sec = fn->secs;
 	for (i = 0; i < n; i++) {
-		if (fscanf(fin, "%s", tok) != 1)
+		if (fscanf(fin, "%128s", tok) != 1)
 			return 1;
 		if (tok[0] == '-')
 			rule->pats[i].flg = GF_PAT;
@@ -499,13 +499,13 @@ static int font_readgpos(struct font *fn, FILE *fin)
 	struct grule *rule;
 	int feat, scrp, lang;
 	int i, n;
-	if (fscanf(fin, "%s %d", tok, &n) != 2)
+	if (fscanf(fin, "%128s %d", tok, &n) != 2)
 		return 1;
 	font_readfeat(fn, tok, &feat, &scrp, &lang);
 	rule = font_gpos(fn, n, feat, scrp, lang);
 	rule->sec = fn->secs;
 	for (i = 0; i < n; i++) {
-		if (fscanf(fin, "%s", tok) != 1)
+		if (fscanf(fin, "%128s", tok) != 1)
 			return 1;
 		col = strchr(tok, ':');
 		if (col)
@@ -523,12 +523,12 @@ static int font_readgpos(struct font *fn, FILE *fin)
 
 static int font_readggrp(struct font *fn, FILE *fin)
 {
-	char tok[ILNLEN];
+	char tok[GNLEN];
 	int id, n, i, g;
 	if (fscanf(fin, "%d %d", &id, &n) != 2)
 		return 1;
 	for (i = 0; i < n; i++) {
-		if (fscanf(fin, "%s", tok) != 1)
+		if (fscanf(fin, GNFMT, tok) != 1)
 			return 1;
 		g = font_idx(fn, font_glyph(fn, tok));
 		if (g >= 0)
@@ -539,10 +539,10 @@ static int font_readggrp(struct font *fn, FILE *fin)
 
 static int font_readkern(struct font *fn, FILE *fin)
 {
-	char c1[ILNLEN], c2[ILNLEN];
+	char c1[GNLEN], c2[GNLEN];
 	struct grule *rule;
 	int val;
-	if (fscanf(fin, "%s %s %d", c1, c2, &val) != 3)
+	if (fscanf(fin, GNFMT " " GNFMT " %d", c1, c2, &val) != 3)
 		return 1;
 	rule = font_gpos(fn, 2, font_findfeat(fn, "kern"), -1, -1);
 	rule->pats[0].g = font_idx(fn, font_glyph(fn, c1));
@@ -605,7 +605,7 @@ struct font *font_open(char *path)
 	struct font *fn;
 	int ch_g = -1;		/* last glyph in the charset */
 	int ch_n = 0;			/* number of glyphs in the charset */
-	char tok[ILNLEN];
+	char tok[128];
 	FILE *fin;
 	char ligs[512][GNLEN];
 	int ligs_n = 0;
@@ -623,7 +623,7 @@ struct font *font_open(char *path)
 	fn->ch_dict = dict_make(-1, 1, 0);
 	fn->ch_map = dict_make(-1, 1, 0);
 	fn->ggrp = iset_make();
-	while (fscanf(fin, "%s", tok) == 1) {
+	while (fscanf(fin, "%128s", tok) == 1) {
 		if (!strcmp("char", tok)) {
 			font_readchar(fn, fin, &ch_n, &ch_g);
 		} else if (!strcmp("kern", tok)) {

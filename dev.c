@@ -77,7 +77,7 @@ int dev_mnt(int pos, char *id, char *name)
 int dev_open(char *dir, char *dev)
 {
 	char path[PATHLEN];
-	char tok[ILNLEN];
+	char tok[128];
 	int i;
 	FILE *desc;
 	snprintf(dev_dir, sizeof(dev_dir), "%s", dir);
@@ -86,7 +86,7 @@ int dev_open(char *dir, char *dev)
 	desc = fopen(path, "r");
 	if (!desc)
 		return 1;
-	while (fscanf(desc, "%s", tok) == 1) {
+	while (fscanf(desc, "%128s", tok) == 1) {
 		if (tok[0] == '#') {
 			skipline(desc);
 			continue;
@@ -99,7 +99,7 @@ int dev_open(char *dir, char *dev)
 			continue;
 		}
 		if (!strcmp("sizes", tok)) {
-			while (fscanf(desc, "%s", tok) == 1)
+			while (fscanf(desc, "%128s", tok) == 1)
 				if (!strcmp("0", tok))
 					break;
 			continue;

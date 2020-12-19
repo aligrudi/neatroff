@@ -28,10 +28,10 @@
 #define NFONTS		32	/* number of fonts */
 #define FNLEN		32	/* font name length */
 #define GNLEN		32	/* glyph name length */
+#define GNFMT		"%32s"	/* glyph name scanf format */
 #define NMLEN		128	/* macro/register/environment name length */
 #define RNLEN		NMLEN	/* register/macro name */
 #define NREGS		8192	/* number of mapped names */
-#define ILNLEN		1000	/* line limit of input files */
 #define NARGS		32	/* number of macro arguments */
 #define NPREV		16	/* environment stack depth */
 #define NTRAPS		1024	/* number of traps per page */

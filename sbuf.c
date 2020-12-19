@@ -38,7 +38,7 @@ void sbuf_append(struct sbuf *sbuf, char *s)
 
 void sbuf_printf(struct sbuf *sbuf, char *s, ...)
 {
-	char buf[ILNLEN];
+	char buf[1024];
 	va_list ap;
 	va_start(ap, s);
 	vsnprintf(buf, sizeof(buf), s, ap);

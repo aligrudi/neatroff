@@ -77,7 +77,7 @@ static void setcolor(int m)
 
 void dir_fix(struct sbuf *sbuf, char *src)
 {
-	char cmd[ILNLEN];
+	char cmd[1024];
 	char *prev_s = src;
 	char *r, *c;
 	int f = -1, s = -1, m = -1;
