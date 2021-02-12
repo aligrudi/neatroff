@@ -5,7 +5,7 @@
 #include "roff.h"
 
 struct inbuf {
-	char path[64];		/* for file buffers */
+	char path[256];		/* for file buffers */
 	FILE *fin;
 	char *buf;		/* for string buffers */
 	char **args;
