@@ -1,3 +1,18 @@
+
+This is an experimental fork of Ali Gholami Rudis neatroff-suite.
+
+Currently its only purpose is to be used as a field for
+experiments to find the a certain error when two lists
+are contained in document, which uses the mm-macros.
+
+To use neatroff always use the source provided by Ali via
+https://github.com/aligrudi/neatroff_make
+
+mcctuxic
+
+
+- original text of the README follows --------------------------------
+
 NEATROFF
 ========
 
