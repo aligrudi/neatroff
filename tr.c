@@ -1129,6 +1129,7 @@ static struct cmd {
 	{"cp", tr_cp},
 	{"cs", tr_cs},
 	{"da", tr_di},
+	{"dbg", tr_dbg},
 	{"de", tr_de, mkargs_reg1},
 	{"di", tr_di},
 	{"ds", tr_ds, mkargs_ds},

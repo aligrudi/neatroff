@@ -356,6 +356,7 @@ void tr_br(char **args);
 void tr_ce(char **args);
 void tr_ch(char **args);
 void tr_cl(char **args);
+void tr_dbg(char **args);
 void tr_di(char **args);
 void tr_divbeg(char **args);
 void tr_divend(char **args);

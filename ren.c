@@ -3,6 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif
 #include "roff.h"
 
 #define NOPAGE		0x40000000	/* undefined bp_next */
@@ -50,6 +55,15 @@ static int ren_next(void)
 static void ren_back(int c)
 {
 	ren_unbuf[ren_un++] = c;
+}
+
+void tr_dbg( char **args ) {
+    int seconds;
+	if (args[1]) {
+	    seconds = eval(args[1], '\0');
+        errmsg( "Execution will start again in %d seconds...\n", seconds );
+        sleep( seconds );
+    }
 }
 
 void tr_di(char **args)
