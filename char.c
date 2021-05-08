@@ -89,7 +89,7 @@ char *unquotednext(int cmd, int (*next)(void), void (*back)(int))
 		}
 	} else {
 		sbuf_add(&sb, c);
-		if (cmd == 's' && c >= '1' && c <= '3') {
+		if (n_cp && cmd == 's' && c >= '1' && c <= '3') {
 			c = next();
 			if (isdigit(c))
 				sbuf_add(&sb, c);
