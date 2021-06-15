@@ -206,7 +206,7 @@ static void font_performgpos(struct font *fn, int *src, int slen,
 						src + i, i, &idx);
 			if (r < 0)		/* no rule found */
 				break;
-			if (gpos[r].sec > 0 && gpos[r].sec == lastsec)
+			if (gpos[r].sec > 0 && gpos[r].sec <= lastsec)
 				continue;	/* perform at most one rule from each lookup */
 			lastsec = gpos[r].sec;
 			pats = gpos[r].pats;
@@ -609,6 +609,7 @@ struct font *font_open(char *path)
 	FILE *fin;
 	char ligs[512][GNLEN];
 	int ligs_n = 0;
+	int sec;
 	int i;
 	fin = fopen(path, "r");
 	if (!fin)
@@ -636,7 +637,8 @@ struct font *font_open(char *path)
 					ligs_n++;
 			}
 		} else if (!strcmp("gsec", tok)) {
-			fn->secs++;
+			if (fscanf(fin, "%d", &sec) != 1)
+				fn->secs++;
 		} else if (!strcmp("gsub", tok)) {
 			font_readgsub(fn, fin);
 		} else if (!strcmp("gpos", tok)) {
