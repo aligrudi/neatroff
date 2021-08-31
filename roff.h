@@ -36,7 +36,7 @@
 #define NPREV		16	/* environment stack depth */
 #define NTRAPS		1024	/* number of traps per page */
 #define NIES		128	/* number of nested .ie commands */
-#define NTABS		16	/* number of tab stops */
+#define NTABS		32	/* number of tab stops */
 #define NCMAPS		512	/* number of character translations (.tr) */
 #define NSSTR		32	/* number of nested sstr_push() calls */
 #define NFIELDS		32	/* number of fields */
