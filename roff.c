@@ -31,7 +31,7 @@ void errmsg(char *fmt, ...)
 
 void errdie(char *msg)
 {
-	fprintf(stderr, msg);
+	fprintf(stderr, "%s", msg);
 	exit(1);
 }
 
