@@ -69,7 +69,7 @@ static void hw_add(char *s)
 	char *n = hwhyph + hwword_len;
 	int len = strlen(s) + 1;
 	int i = 0, c;
-	if (hw_n == NHYPHS || hwword_len + len > sizeof(hwword))
+	if (hw_n == NHYPHS || (size_t)(hwword_len + len) > sizeof(hwword))
 		return;
 	memset(n, 0, len);
 	while ((c = (unsigned char) *s++)) {
@@ -181,7 +181,7 @@ static void hy_add(char *s)
 	char *n = hynums + hypats_len;
 	int len = strlen(s) + 1;
 	int i = 0, c;
-	if (hy_n >= NHYPHS || hypats_len + len >= sizeof(hypats))
+	if (hy_n >= NHYPHS || (size_t)(hypats_len + len) >= sizeof(hypats))
 		return;
 	memset(n, 0, len);
 	while ((c = (unsigned char) *s++)) {
@@ -385,7 +385,7 @@ void tr_hpfa(char **args)
 	}
 	/* lowercase-uppercase character hcode mappings */
 	if (args[3] && !strcmp("-", args[3])) {
-		int i;
+		size_t i;
 		for (i = 0; i < LEN(hycase); i++)
 			hcode_add(hycase[i][1], hycase[i][0]);
 	}

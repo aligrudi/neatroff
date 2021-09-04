@@ -129,7 +129,7 @@ void in_back(int c)
 {
 	if (c < 0)
 		return;
-	if (buf && buf->un < sizeof(buf->unbuf))
+	if (buf && (size_t) buf->un < LEN(buf->unbuf))
 		buf->unbuf[buf->un++] = c;
 }
 

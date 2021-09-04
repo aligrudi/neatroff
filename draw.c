@@ -181,7 +181,7 @@ void ren_dcmd(struct wb *wb, char *s)
 		while (*s) {
 			if (tok_numpt(&s, 'm', &h1) || tok_numpt(&s, 'v', &v1)) {
 				char tok[64];
-				int i = 0;
+				size_t i = 0;
 				while (i < sizeof(tok) - 1 && *s && *s != ' ')
 					tok[i++] = *s++;
 				tok[i] = '\0';

@@ -298,6 +298,8 @@ int font_layout(struct font *fn, struct glyph **gsrc, int nsrc, int sz,
 	int ndst = nsrc;
 	int i;
 	int featlg, featkn;
+	/* not used */
+	(void) sz;
 	/* initialising dst */
 	for (i = 0; i < nsrc; i++)
 		dst[i] = font_idx(fn, gsrc[i]);
@@ -353,10 +355,10 @@ static int font_readchar(struct font *fn, FILE *fin, int *n, int *gid)
 static int font_findfeat(struct font *fn, char *feat)
 {
 	int i;
-	for (i = 0; i < LEN(fn->feat_name) && fn->feat_name[i][0]; i++)
+	for (i = 0; (size_t) i < LEN(fn->feat_name) && fn->feat_name[i][0]; i++)
 		if (!strcmp(feat, fn->feat_name[i]))
 			return i;
-	if (i < LEN(fn->feat_name)) {
+	if ((size_t) i < LEN(fn->feat_name)) {
 		snprintf(fn->feat_name[i], sizeof(fn->feat_name[i]), "%s", feat);
 		return i;
 	}
@@ -366,10 +368,10 @@ static int font_findfeat(struct font *fn, char *feat)
 static int font_findscrp(struct font *fn, char *scrp)
 {
 	int i;
-	for (i = 0; i < LEN(fn->scrp_name) && fn->scrp_name[i][0]; i++)
+	for (i = 0; (size_t) i < LEN(fn->scrp_name) && fn->scrp_name[i][0]; i++)
 		if (!strcmp(scrp, fn->scrp_name[i]))
 			return i;
-	if (i == LEN(fn->scrp_name))
+	if ((size_t) i == LEN(fn->scrp_name))
 		return -1;
 	snprintf(fn->scrp_name[i], sizeof(fn->scrp_name[i]), "%s", scrp);
 	return i;
@@ -378,10 +380,10 @@ static int font_findscrp(struct font *fn, char *scrp)
 static int font_findlang(struct font *fn, char *lang)
 {
 	int i;
-	for (i = 0; i < LEN(fn->lang_name) && fn->lang_name[i][0]; i++)
+	for (i = 0; (size_t) i < LEN(fn->lang_name) && fn->lang_name[i][0]; i++)
 		if (!strcmp(lang, fn->lang_name[i]))
 			return i;
-	if (i == LEN(fn->lang_name))
+	if ((size_t) i == LEN(fn->lang_name))
 		return -1;
 	snprintf(fn->lang_name[i], sizeof(fn->lang_name[i]), "%s", lang);
 	return i;
@@ -390,6 +392,8 @@ static int font_findlang(struct font *fn, char *lang)
 static struct gpat *font_gpat(struct font *fn, int len)
 {
 	struct gpat *pats = xmalloc(len * sizeof(pats[0]));
+	/* not used */
+	(void) fn;
 	memset(pats, 0, len * sizeof(pats[0]));
 	return pats;
 }
@@ -582,6 +586,8 @@ static void skipline(FILE* filp)
 static struct gpat *font_rulefirstpat(struct font *fn, struct grule *rule)
 {
 	int i;
+	/* not used */
+	(void) fn;
 	for (i = 0; i < rule->len; i++)
 		if (!(rule->pats[i].flg & (GF_REP | GF_CON)))
 			return &rule->pats[i];
@@ -633,7 +639,7 @@ struct font *font_open(char *path)
 			while (fscanf(fin, "%s", ligs[ligs_n]) == 1) {
 				if (!strcmp("0", ligs[ligs_n]))
 					break;
-				if (ligs_n < LEN(ligs))
+				if ((size_t) ligs_n < LEN(ligs))
 					ligs_n++;
 			}
 		} else if (!strcmp("gsec", tok)) {

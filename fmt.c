@@ -278,6 +278,8 @@ static void fmt_wb2word(struct fmt *f, struct word *word, struct wb *wb,
 			int hy, int str, int gap, int cost)
 {
 	int len = strlen(wb_buf(wb));
+	/* not used */
+	(void) f;
 	word->s = xmalloc(len + 1);
 	memcpy(word->s, wb_buf(wb), len + 1);
 	word->wid = wb_wid(wb);
@@ -451,7 +453,7 @@ static long scaledown(long cost)
 static long FMT_COST(int llen, int lwid, int swid, int nspc)
 {
 	/* the ratio that the stretchable spaces of the line should be spread */
-	long ratio = abs((llen - lwid) * 100l / (swid ? swid : 1));
+	long ratio = labs((llen - lwid) * 100l / (swid ? swid : 1));
 	/* ratio too large; scaling it down */
 	if (ratio > 4000)
 		ratio = 4000 + scaledown(ratio - 4000);
@@ -544,6 +546,8 @@ static int fmt_breakparagraph(struct fmt *f, int pos, int br)
 	int lwid = 0;		/* current line length */
 	int swid = 0;		/* amount of stretchable spaces */
 	int nspc = 0;		/* number of stretchable spaces */
+	/* not used */
+	(void) swid;
 	if (f->fillreq > 0 && f->fillreq <= f->words_n) {
 		fmt_findcost(f, f->fillreq);
 		return f->fillreq;

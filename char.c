@@ -303,5 +303,7 @@ int sstr_next(void)
 
 void sstr_back(int c)
 {
+	/* not used */
+	(void) c;
 	sstr_s--;
 }

@@ -97,12 +97,16 @@ int f_hpos(void)
 
 void tr_divbeg(char **args)
 {
+	/* not used */
+	(void) args;
 	odiv_beg();
 	ren_div++;
 }
 
 void tr_divend(char **args)
 {
+	/* not used */
+	(void) args;
 	if (ren_div <= 0)
 		errdie("neatroff: diversion stack empty\n");
 	odiv_end();
@@ -455,16 +459,22 @@ void tr_sv(char **args)
 
 void tr_ns(char **args)
 {
+	/* not used */
+	(void) args;
 	n_ns = 1;
 }
 
 void tr_rs(char **args)
 {
+	/* not used */
+	(void) args;
 	n_ns = 0;
 }
 
 void tr_os(char **args)
 {
+	/* not used */
+	(void) args;
 	if (n_sv)
 		down(n_sv);
 	n_sv = 0;
@@ -941,7 +951,7 @@ void ren_tl(int (*next)(void), void (*back)(int))
 static void ren_field(struct wb *wb, int (*next)(void), void (*back)(int))
 {
 	struct wb wbs[NFIELDS];
-	int i, n = 0;
+	size_t i, n = 0;
 	int wid = 0;
 	int left, right, cur_left;
 	int pad, rem;

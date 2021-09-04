@@ -227,7 +227,7 @@ void tr_fspecial(char **args)
 		return;
 	}
 	for (i = 2; i < NARGS; i++) {
-		if (args[i] && fspecial_n < LEN(fspecial_fn)) {
+		if (args[i] && (size_t) fspecial_n < LEN(fspecial_fn)) {
 			snprintf(fspecial_fn[fspecial_n],
 				sizeof(fspecial_fn[fspecial_n]), "%s", fn);
 			snprintf(fspecial_sp[fspecial_n],
