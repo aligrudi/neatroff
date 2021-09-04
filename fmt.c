@@ -451,7 +451,7 @@ static long scaledown(long cost)
 static long FMT_COST(int llen, int lwid, int swid, int nspc)
 {
 	/* the ratio that the stretchable spaces of the line should be spread */
-	long ratio = abs((llen - lwid) * 100l / (swid ? swid : 1));
+	long ratio = labs((llen - lwid) * 100l / (swid ? swid : 1));
 	/* ratio too large; scaling it down */
 	if (ratio > 4000)
 		ratio = 4000 + scaledown(ratio - 4000);
