@@ -32,7 +32,7 @@ void errmsg(char *fmt, ...)
 void errdie(char *msg)
 {
 	fprintf(stderr, "%s", msg);
-	exit(1);
+	exit(EXIT_FAILURE);
 }
 
 void *mextend(void *old, long oldsz, long newsz, int memsz)
@@ -134,12 +134,12 @@ int main(int argc, char **argv)
 			break;
 		default:
 			printf("%s", usage);
-			return 0;
+			return EXIT_SUCCESS;
 		}
 	}
 	if (dev_open(fontdir, dev)) {
 		fprintf(stderr, "neatroff: cannot open device %s\n", dev);
-		return 1;
+		return EXIT_FAILURE;
 	}
 	hyph_init();
 	env_init();
