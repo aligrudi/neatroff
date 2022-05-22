@@ -133,8 +133,8 @@ int main(int argc, char **argv)
 			dev = argv[i][2] ? argv[i] + 2 : argv[++i];
 			break;
 		default:
-			printf("%s", usage);
-			return 0;
+			fprintf(stderr, "%s", usage);
+			return 1;
 		}
 	}
 	if (dev_open(fontdir, dev)) {
