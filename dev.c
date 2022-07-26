@@ -86,7 +86,7 @@ int dev_open(char *dir, char *dev)
 	desc = fopen(path, "r");
 	if (!desc)
 		return 1;
-	while (fscanf(desc, "%128s", tok) == 1) {
+	while (fscanf(desc, "%127s", tok) == 1) {
 		if (tok[0] == '#') {
 			skipline(desc);
 			continue;

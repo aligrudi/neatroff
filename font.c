@@ -331,7 +331,7 @@ static int font_readchar(struct font *fn, FILE *fin, int *n, int *gid)
 	char name[GNLEN];
 	char id[GNLEN];
 	int type;
-	if (fscanf(fin, GNFMT " %128s", name, tok) != 2)
+	if (fscanf(fin, GNFMT " %127s", name, tok) != 2)
 		return 1;
 	if (!strcmp("---", name))
 		sprintf(name, "c%04d", *n);
@@ -624,7 +624,7 @@ struct font *font_open(char *path)
 	fn->ch_dict = dict_make(-1, 1, 0);
 	fn->ch_map = dict_make(-1, 1, 0);
 	fn->ggrp = iset_make();
-	while (fscanf(fin, "%128s", tok) == 1) {
+	while (fscanf(fin, "%127s", tok) == 1) {
 		if (!strcmp("char", tok)) {
 			font_readchar(fn, fin, &ch_n, &ch_g);
 		} else if (!strcmp("kern", tok)) {
