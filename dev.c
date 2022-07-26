@@ -126,9 +126,12 @@ int dev_open(char *dir, char *dev)
 	}
 	fclose(desc);
 	dev_prologue();
-	for (i = 0; i < fn_n; i++)
-		if (*fn_name[i])
-			dev_mnt(i, fn_name[i], fn_name[i]);
+	for (i = 0; i < fn_n; i++) {
+		if (*fn_name[i] && dev_mnt(i, fn_name[i], fn_name[i]) < 0) {
+			errmsg("neatroff: font %s is missing\n", fn_name[i]);
+			return 1;
+		}
+	}
 	return 0;
 }
 
