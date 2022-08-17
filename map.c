@@ -12,6 +12,8 @@ static struct dict *mapdict;
 int map(char *s)
 {
 	int i;
+	if (!s[0])
+		return 0;
 	if (s[0] == '.' && s[1] && !s[2])	/* ".x" is mapped to 'x' */
 		return (unsigned char) s[1];
 	if (!mapdict)
