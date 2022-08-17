@@ -472,13 +472,13 @@ static int font_readgsub(struct font *fn, FILE *fin)
 	struct grule *rule;
 	int feat, scrp, lang;
 	int i, n;
-	if (fscanf(fin, "%128s %d", tok, &n) != 2)
+	if (fscanf(fin, "%127s %d", tok, &n) != 2)
 		return 1;
 	font_readfeat(fn, tok, &feat, &scrp, &lang);
 	rule = font_gsub(fn, n, feat, scrp, lang);
 	rule->sec = fn->secs;
 	for (i = 0; i < n; i++) {
-		if (fscanf(fin, "%128s", tok) != 1)
+		if (fscanf(fin, "%127s", tok) != 1)
 			return 1;
 		if (tok[0] == '-')
 			rule->pats[i].flg = GF_PAT;
@@ -499,13 +499,13 @@ static int font_readgpos(struct font *fn, FILE *fin)
 	struct grule *rule;
 	int feat, scrp, lang;
 	int i, n;
-	if (fscanf(fin, "%128s %d", tok, &n) != 2)
+	if (fscanf(fin, "%127s %d", tok, &n) != 2)
 		return 1;
 	font_readfeat(fn, tok, &feat, &scrp, &lang);
 	rule = font_gpos(fn, n, feat, scrp, lang);
 	rule->sec = fn->secs;
 	for (i = 0; i < n; i++) {
-		if (fscanf(fin, "%128s", tok) != 1)
+		if (fscanf(fin, "%127s", tok) != 1)
 			return 1;
 		col = strchr(tok, ':');
 		if (col)
