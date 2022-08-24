@@ -52,7 +52,8 @@ struct font {
 	int gpos_n, gpos_sz;
 	struct iset *gsub0;		/* rules matching a glyph at pos 0 */
 	struct iset *gpos0;		/* rules matching a glyph at pos 0 */
-	struct iset *ggrp;		/* glyph groups */
+	struct iset *ggrp;		/* sets of glyphs for each group */
+	struct iset *ggrp_rev;		/* sets of groups for each glyph */
 };
 
 /* find a glyph by its name */
@@ -128,14 +129,9 @@ static int font_idx(struct font *fn, struct glyph *g)
 
 static int font_gpatmatch(struct font *fn, struct gpat *p, int g)
 {
-	int *r;
 	if (!(p->flg & GF_GRP))
 		return p->g == g;
-	r = iset_get(fn->ggrp, p->g);
-	while (r && *r >= 0)
-		if (*r++ == g)
-			return 1;
-	return 0;
+	return iset_has(fn->ggrp_rev, g, p->g);
 }
 
 static int font_rulematch(struct font *fn, struct grule *rule,
@@ -531,8 +527,10 @@ static int font_readggrp(struct font *fn, FILE *fin)
 		if (fscanf(fin, GNFMT, tok) != 1)
 			return 1;
 		g = font_idx(fn, font_glyph(fn, tok));
-		if (g >= 0)
+		if (g >= 0) {
 			iset_put(fn->ggrp, id, g);
+			iset_put(fn->ggrp_rev, g, id);
+		}
 	}
 	return 0;
 }
@@ -624,6 +622,7 @@ struct font *font_open(char *path)
 	fn->ch_dict = dict_make(-1, 1, 0);
 	fn->ch_map = dict_make(-1, 1, 0);
 	fn->ggrp = iset_make();
+	fn->ggrp_rev = iset_make();
 	while (fscanf(fin, "%127s", tok) == 1) {
 		if (!strcmp("char", tok)) {
 			font_readchar(fn, fin, &ch_n, &ch_g);
@@ -689,6 +688,7 @@ void font_close(struct font *fn)
 	iset_free(fn->gsub0);
 	iset_free(fn->gpos0);
 	iset_free(fn->ggrp);
+	iset_free(fn->ggrp_rev);
 	free(fn->gsub);
 	free(fn->gpos);
 	free(fn->gl);
