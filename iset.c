@@ -59,7 +59,7 @@ void iset_put(struct iset *iset, int key, int ent)
 		iset_extend(iset, ALIGN(key + 1, CNTMIN));
 	if (key >= 0 && key < iset->cnt && iset->len[key] + 1 >= iset->sz[key]) {
 		int olen = iset->sz[key];
-		int nlen = iset->sz[key] * 2 + 8;
+		int nlen = olen ? olen * 2 : 8;
 		void *nset = xmalloc(nlen * sizeof(iset->set[key][0]));
 		if (iset->set[key]) {
 			memcpy(nset, iset->set[key],
@@ -71,4 +71,16 @@ void iset_put(struct iset *iset, int key, int ent)
 	}
 	iset->set[key][iset->len[key]++] = ent;
 	iset->set[key][iset->len[key]] = -1;
+}
+
+/* check entry membership */
+int iset_has(struct iset *iset, int key, int ent)
+{
+	int i;
+	if (key < 0 || key >= iset->cnt || iset->len[key] == 0)
+		return 0;
+	for (i = 0; i < iset->len[key]; i++)
+		if (iset->set[key][i] == ent)
+			return 1;
+	return 0;
 }

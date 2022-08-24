@@ -121,6 +121,7 @@ void iset_free(struct iset *iset);
 int *iset_get(struct iset *iset, int key);
 void iset_put(struct iset *iset, int key, int ent);
 int iset_len(struct iset *iset, int key);
+int iset_has(struct iset *iset, int key, int ent);
 
 /* mapping strings to longs */
 struct dict *dict_make(int notfound, int dupkeys, int hashlen);
