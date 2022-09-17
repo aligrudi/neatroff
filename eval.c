@@ -38,6 +38,10 @@ static int evalnum(char **_s)
 	int n = 0;		/* the result */
 	int mag = 0;		/* n should be divided by mag */
 	while (isdigit((unsigned char) *s) || *s == '.') {
+		if (mag == MAXFRAC || (mag > 0 && n > 200000000u)) {
+			s++;
+			continue;
+		}
 		if (*s == '.') {
 			mag = 1;
 			s++;
@@ -45,10 +49,6 @@ static int evalnum(char **_s)
 		}
 		mag *= 10;
 		n = n * 10 + *s++ - '0';
-	}
-	if (mag > MAXFRAC) {
-		n /= mag / MAXFRAC;
-		mag /= mag / MAXFRAC;
 	}
 	n = readunit(*s && strchr(SCHAR, *s) ? *s++ : defunit, n);
 	*_s = s;
