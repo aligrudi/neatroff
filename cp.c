@@ -53,13 +53,14 @@ static void cp_num(void)
 {
 	int id;
 	int c = cp_noninext();
+	char *s;
 	if (c != '-' && c != '+')
 		cp_back(c);
 	id = regid();
 	if (c == '-' || c == '+')
 		num_inc(id, c == '+');
-	if (num_str(id))
-		in_push(num_str(id), NULL);
+	if ((s = num_str(id)) != NULL)
+		in_push(s, NULL);
 }
 
 /* interpolate \*(xy */
