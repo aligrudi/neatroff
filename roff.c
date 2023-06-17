@@ -98,11 +98,18 @@ static char *usage =
 
 int main(int argc, char **argv)
 {
-	char *fontdir = TROFFFDIR;
-	char *macrodir = TROFFMDIR;
-	char *mac, *def, *dev = "utf";
+	char *fdir = getenv("NEATROFF_F");	/* fonts directory */
+	char *mdir = getenv("NEATROFF_M");	/* macro packages directory */
+	char *dev = getenv("NEATROFF_T");	/* output device */
+	char *mac, *def;
 	int reg, ret;
 	int i;
+	if (dev == NULL)
+		dev = "utf8";
+	if (fdir == NULL)
+		fdir = TROFFFDIR;
+	if (mdir == NULL)
+		mdir = TROFFMDIR;
 	for (i = 1; i < argc; i++) {
 		if (argv[i][0] != '-' || !argv[i][1])
 			break;
@@ -112,7 +119,7 @@ int main(int argc, char **argv)
 			break;
 		case 'm':
 			mac = argv[i] + 2;
-			if (strchr(mac, '/') || (cmdmac(macrodir, mac) && cmdmac(".", mac)))
+			if (strchr(mac, '/') || (cmdmac(mdir, mac) && cmdmac(".", mac)))
 				in_queue(mac);
 			break;
 		case 'r':
@@ -124,10 +131,10 @@ int main(int argc, char **argv)
 			str_set(reg, def);
 			break;
 		case 'F':
-			fontdir = argv[i][2] ? argv[i] + 2 : argv[++i];
+			fdir = argv[i][2] ? argv[i] + 2 : argv[++i];
 			break;
 		case 'M':
-			macrodir = argv[i][2] ? argv[i] + 2 : argv[++i];
+			mdir = argv[i][2] ? argv[i] + 2 : argv[++i];
 			break;
 		case 'T':
 			dev = argv[i][2] ? argv[i] + 2 : argv[++i];
@@ -137,7 +144,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 	}
-	if (dev_open(fontdir, dev)) {
+	if (dev_open(fdir, dev)) {
 		fprintf(stderr, "neatroff: cannot open device %s\n", dev);
 		return 1;
 	}
