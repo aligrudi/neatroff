@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 	int reg, ret;
 	int i;
 	if (dev == NULL)
-		dev = "utf8";
+		dev = "utf";
 	if (fdir == NULL)
 		fdir = TROFFFDIR;
 	if (mdir == NULL)
