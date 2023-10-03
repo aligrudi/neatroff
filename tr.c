@@ -923,7 +923,7 @@ static void tr_coi(char **args)
 	FILE *fp;
 	if (!reg || !reg[0] || !path || !path[0])
 		return;
-	if ((fp = fopen(path + 1, "r"))) {
+	if ((fp = fopen(path, "r"))) {
 		struct sbuf sb;
 		sbuf_init(&sb);
 		while (fgets(buf, sizeof(buf), fp))
