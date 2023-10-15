@@ -486,7 +486,7 @@ static void nf_alpha(char *s, int n, int a)
 {
 	while (n) {
 		*s++ = a + ((n - 1) % 26);
-		n /= 26;
+		n = (n - 1) / 26;
 	}
 	*s = '\0';
 }
