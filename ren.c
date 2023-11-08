@@ -1026,7 +1026,9 @@ void tr_popren(char **args)
 /* read characters from tr.c and pass the rendered lines to out.c */
 static int render_rec(int level)
 {
+	int ren_div_saved = ren_div;
 	int c;
+	ren_div = 0;
 	while (ren_level >= level) {
 		while (!ren_un && !tr_nextreq())
 			if (ren_level < level)
@@ -1079,6 +1081,8 @@ static int render_rec(int level)
 		if (c >= 0)
 			ren_nl = c == '\n';
 	}
+	/* restore ren_div after processing traps */
+	ren_div = ren_div_saved;
 	return 0;
 }
 
