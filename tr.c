@@ -257,6 +257,9 @@ static int if_strcmp(int (*next)(void), void (*back)(int))
 /* evaluate .if condition letters */
 static int if_cond(int (*next)(void), void (*back)(int))
 {
+	/* not used */
+	(void) next;
+	(void) back;
 	switch (cp_next()) {
 	case 'o':
 		return n_pg % 2;
@@ -321,11 +324,15 @@ static void tr_if(char **args)
 
 static void tr_el(char **args)
 {
+	/* not used */
+	(void) args;
 	cp_blk(ie_depth > 0 ? ie_cond[--ie_depth] : 1);
 }
 
 static void tr_na(char **args)
 {
+	/* not used */
+	(void) args;
 	n_na = 1;
 }
 
@@ -384,6 +391,8 @@ static void tr_shift(char **args)
 
 static void tr_ex(char **args)
 {
+	/* not used */
+	(void) args;
 	in_ex();
 }
 
@@ -409,6 +418,8 @@ static void tr_pc(char **args)
 static void tr_tl(char **args)
 {
 	int c;
+	/* not used */
+	(void) args;
 	do {
 		c = cp_next();
 	} while (c >= 0 && (c == ' ' || c == '\t'));
@@ -436,6 +447,8 @@ static void tr_c2(char **args)
 
 static void tr_eo(char **args)
 {
+	/* not used */
+	(void) args;
 	c_ec = -1;
 }
 
@@ -496,6 +509,8 @@ static int hy_stopcnt = 1;
 
 static void tr_nh(char **args)
 {
+	/* not used */
+	(void) args;
 	n_hy = 0;
 }
 
@@ -1078,6 +1093,8 @@ static void mkargs_reg1(struct sbuf *sbuf)
 /* do not read any arguments; for .if, .ie and .el */
 static void mkargs_null(struct sbuf *sbuf)
 {
+	/* not used */
+	(void) sbuf;
 }
 
 /* read the whole line for .tm */
@@ -1101,123 +1118,123 @@ static struct cmd {
 	void (*f)(char **args);
 	void (*args)(struct sbuf *sbuf);
 } cmds[] = {
-	{TR_DIVBEG, tr_divbeg},
-	{TR_DIVEND, tr_divend},
-	{TR_DIVVS, tr_divvs},
-	{TR_POPREN, tr_popren},
-	{">>", tr_l2r},
-	{"<<", tr_r2l},
+	{TR_DIVBEG, tr_divbeg, NULL},
+	{TR_DIVEND, tr_divend, NULL},
+	{TR_DIVVS, tr_divvs, NULL},
+	{TR_POPREN, tr_popren, NULL},
+	{">>", tr_l2r, NULL},
+	{"<<", tr_r2l, NULL},
 	{"ab", tr_ab, mkargs_eol},
-	{"ad", tr_ad},
-	{"af", tr_af},
+	{"ad", tr_ad, NULL},
+	{"af", tr_af, NULL},
 	{"am", tr_de, mkargs_reg1},
 	{"as", tr_as, mkargs_ds},
-	{"bd", tr_bd},
-	{"blm", tr_blm},
-	{"bp", tr_bp},
-	{"br", tr_br},
-	{"c2", tr_c2},
-	{"cc", tr_cc},
-	{"ce", tr_ce},
-	{"ch", tr_ch},
+	{"bd", tr_bd, NULL},
+	{"blm", tr_blm, NULL},
+	{"bp", tr_bp, NULL},
+	{"br", tr_br, NULL},
+	{"c2", tr_c2, NULL},
+	{"cc", tr_cc, NULL},
+	{"ce", tr_ce, NULL},
+	{"ch", tr_ch, NULL},
 	{"char", tr_char, mkargs_ds},
 	{"chop", tr_chop, mkargs_reg1},
-	{"cl", tr_cl},
-	{"co", tr_co},
-	{"co+", tr_coa},
+	{"cl", tr_cl, NULL},
+	{"co", tr_co, NULL},
+	{"co+", tr_coa, NULL},
 	{"co<", tr_coi, mkargs_ds},
 	{"co>", tr_coo, mkargs_ds},
-	{"cp", tr_cp},
-	{"cs", tr_cs},
-	{"da", tr_di},
+	{"cp", tr_cp, NULL},
+	{"cs", tr_cs, NULL},
+	{"da", tr_di, NULL},
 	{"de", tr_de, mkargs_reg1},
-	{"di", tr_di},
+	{"di", tr_di, NULL},
 	{"ds", tr_ds, mkargs_ds},
-	{"dt", tr_dt},
+	{"dt", tr_dt, NULL},
 	{"dv", tr_dv, mkargs_eol},
-	{"ec", tr_ec},
+	{"ec", tr_ec, NULL},
 	{"el", tr_el, mkargs_null},
-	{"em", tr_em},
-	{"eo", tr_eo},
-	{"eos", tr_eos},
-	{"ev", tr_ev},
-	{"ex", tr_ex},
-	{"fc", tr_fc},
-	{"ff", tr_ff},
-	{"fi", tr_fi},
-	{"fl", tr_br},
-	{"fmap", tr_fmap},
-	{"fp", tr_fp},
-	{"ffsc", tr_ffsc},
-	{"fspecial", tr_fspecial},
-	{"ft", tr_ft},
-	{"fzoom", tr_fzoom},
-	{"hc", tr_hc},
-	{"hcode", tr_hcode},
-	{"hlm", tr_hlm},
-	{"hpf", tr_hpf},
-	{"hpfa", tr_hpfa},
-	{"hy", tr_hy},
-	{"hycost", tr_hycost},
-	{"hydash", tr_hydash},
-	{"hystop", tr_hystop},
-	{"hw", tr_hw},
+	{"em", tr_em, NULL},
+	{"eo", tr_eo, NULL},
+	{"eos", tr_eos, NULL},
+	{"ev", tr_ev, NULL},
+	{"ex", tr_ex, NULL},
+	{"fc", tr_fc, NULL},
+	{"ff", tr_ff, NULL},
+	{"fi", tr_fi, NULL},
+	{"fl", tr_br, NULL},
+	{"fmap", tr_fmap, NULL},
+	{"fp", tr_fp, NULL},
+	{"ffsc", tr_ffsc, NULL},
+	{"fspecial", tr_fspecial, NULL},
+	{"ft", tr_ft, NULL},
+	{"fzoom", tr_fzoom, NULL},
+	{"hc", tr_hc, NULL},
+	{"hcode", tr_hcode, NULL},
+	{"hlm", tr_hlm, NULL},
+	{"hpf", tr_hpf, NULL},
+	{"hpfa", tr_hpfa, NULL},
+	{"hy", tr_hy, NULL},
+	{"hycost", tr_hycost, NULL},
+	{"hydash", tr_hydash, NULL},
+	{"hystop", tr_hystop, NULL},
+	{"hw", tr_hw, NULL},
 	{"ie", tr_if, mkargs_null},
 	{"if", tr_if, mkargs_null},
-	{"ig", tr_ig},
-	{"in", tr_in},
-	{"in2", tr_in2},
-	{"it", tr_it},
-	{"kn", tr_kn},
-	{"lc", tr_lc},
-	{"lf", tr_lf},
-	{"lg", tr_lg},
-	{"ll", tr_ll},
-	{"ls", tr_ls},
-	{"lsm", tr_lsm},
-	{"lt", tr_lt},
-	{"mc", tr_mc},
-	{"mk", tr_mk},
-	{"na", tr_na},
-	{"ne", tr_ne},
-	{"nf", tr_nf},
-	{"nh", tr_nh},
-	{"nm", tr_nm},
-	{"nn", tr_nn},
+	{"ig", tr_ig, NULL},
+	{"in", tr_in, NULL},
+	{"in2", tr_in2, NULL},
+	{"it", tr_it, NULL},
+	{"kn", tr_kn, NULL},
+	{"lc", tr_lc, NULL},
+	{"lf", tr_lf, NULL},
+	{"lg", tr_lg, NULL},
+	{"ll", tr_ll, NULL},
+	{"ls", tr_ls, NULL},
+	{"lsm", tr_lsm, NULL},
+	{"lt", tr_lt, NULL},
+	{"mc", tr_mc, NULL},
+	{"mk", tr_mk, NULL},
+	{"na", tr_na, NULL},
+	{"ne", tr_ne, NULL},
+	{"nf", tr_nf, NULL},
+	{"nh", tr_nh, NULL},
+	{"nm", tr_nm, NULL},
+	{"nn", tr_nn, NULL},
 	{"nr", tr_nr, mkargs_reg1},
-	{"ns", tr_ns},
-	{"nx", tr_nx},
+	{"ns", tr_ns, NULL},
+	{"nx", tr_nx, NULL},
 	{"ochar", tr_ochar, mkargs_ochar},
-	{"os", tr_os},
-	{"pc", tr_pc},
-	{"pl", tr_pl},
-	{"pmll", tr_pmll},
-	{"pn", tr_pn},
-	{"po", tr_po},
-	{"ps", tr_ps},
-	{"rchar", tr_rchar},
-	{"rm", tr_rm},
-	{"rn", tr_rn},
-	{"rr", tr_rr},
-	{"rs", tr_rs},
-	{"rt", tr_rt},
-	{"shift", tr_shift},
-	{"so", tr_so},
-	{"sp", tr_sp},
-	{"ss", tr_ss},
-	{"ssh", tr_ssh},
-	{"sv", tr_sv},
+	{"os", tr_os, NULL},
+	{"pc", tr_pc, NULL},
+	{"pl", tr_pl, NULL},
+	{"pmll", tr_pmll, NULL},
+	{"pn", tr_pn, NULL},
+	{"po", tr_po, NULL},
+	{"ps", tr_ps, NULL},
+	{"rchar", tr_rchar, NULL},
+	{"rm", tr_rm, NULL},
+	{"rn", tr_rn, NULL},
+	{"rr", tr_rr, NULL},
+	{"rs", tr_rs, NULL},
+	{"rt", tr_rt, NULL},
+	{"shift", tr_shift, NULL},
+	{"so", tr_so, NULL},
+	{"sp", tr_sp, NULL},
+	{"ss", tr_ss, NULL},
+	{"ssh", tr_ssh, NULL},
+	{"sv", tr_sv, NULL},
 	{"sy", tr_sy, mkargs_eol},
-	{"ta", tr_ta},
-	{"tc", tr_tc},
-	{"ti", tr_ti},
-	{"ti2", tr_ti2},
-	{"tkf", tr_tkf},
+	{"ta", tr_ta, NULL},
+	{"tc", tr_tc, NULL},
+	{"ti", tr_ti, NULL},
+	{"ti2", tr_ti2, NULL},
+	{"tkf", tr_tkf, NULL},
 	{"tl", tr_tl, mkargs_null},
 	{"tm", tr_tm, mkargs_eol},
 	{"tr", tr_tr, mkargs_eol},
-	{"vs", tr_vs},
-	{"wh", tr_wh},
+	{"vs", tr_vs, NULL},
+	{"wh", tr_wh, NULL},
 };
 
 static char *dotted(char *name, int dot)
@@ -1331,7 +1348,7 @@ int tr_next(void)
 
 void tr_init(void)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < LEN(cmds); i++)
 		str_dset(map(cmds[i].id), &cmds[i]);
 	cmap = dict_make(-1, 0, 2);
