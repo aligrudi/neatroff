@@ -105,13 +105,13 @@ char *num_str(int id)
 			return numbuf;
 		case 'z':
 			if (f_divreg() >= 0)
-				sprintf(numbuf, "%s", map_name(f_divreg()));
+				snprintf(numbuf, sizeof(numbuf), "%s", map_name(f_divreg()));
 			return numbuf;
 		case 'F':
-			sprintf(numbuf, "%s", in_filename());
+			snprintf(numbuf, sizeof(numbuf), "%s", in_filename());
 			return numbuf;
 		case 'D':
-			sprintf(numbuf, "%s", directory(in_filename()));
+			snprintf(numbuf, sizeof(numbuf), "%s", directory(in_filename()));
 			return numbuf;
 		case '$':
 			sprintf(numbuf, "%d", in_nargs() - 1);
