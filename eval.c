@@ -6,10 +6,12 @@
 
 #define SCHAR	"icpPvmnu"	/* scale indicators */
 
+typedef long long eval_t;
+
 static int defunit = 0;		/* default scale indicator */
 static int abspos = 0;		/* absolute position like |1i */
 
-static int readunit(int c, int n)
+static eval_t readunit(int c, eval_t n)
 {
 	switch (c) {
 	case 'i':
@@ -32,11 +34,11 @@ static int readunit(int c, int n)
 	return n;
 }
 
-static int evalnum(char **_s)
+static eval_t evalnum(char **_s)
 {
 	char *s = *_s;
-	int n = 0;		/* the result */
-	int mag = 0;		/* n should be divided by mag */
+	eval_t n = 0;		/* the result */
+	eval_t mag = 0;		/* n should be divided by mag */
 	while (isdigit((unsigned char) *s) || *s == '.') {
 		if (mag == MAXFRAC || (mag > 0 && n > 200000000u)) {
 			s++;
@@ -69,12 +71,11 @@ static int evalisnum(char **s)
 	return **s == '.' || isdigit((unsigned char) **s);
 }
 
-static int evalexpr(char **s);
-static int evalatom(char **s);
+static eval_t evalexpr(char **s);
+static eval_t evalatom(char **s);
 
-static int evalatom(char **s)
+static eval_t evalatom(char **s)
 {
-	int ret;
 	if (evalisnum(s))
 		return evalnum(s);
 	if (!evaljmp(s, '-'))
@@ -84,7 +85,7 @@ static int evalatom(char **s)
 	if (!evaljmp(s, '|'))
 		return abspos + evalatom(s);
 	if (!evaljmp(s, '(')) {
-		ret = evalexpr(s);
+		eval_t ret = evalexpr(s);
 		evaljmp(s, ')');
 		return ret;
 	}
@@ -98,9 +99,9 @@ static int nonzero(int n)
 	return n;
 }
 
-static int evalexpr(char **s)
+static eval_t evalexpr(char **s)
 {
-	int ret = evalatom(s);
+	eval_t ret = evalatom(s);
 	while (**s) {
 		if (!evaljmp(s, '+'))
 			ret += evalatom(s);
