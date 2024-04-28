@@ -9,7 +9,7 @@
 static int defunit = 0;		/* default scale indicator */
 static int abspos = 0;		/* absolute position like |1i */
 
-static int readunit(int c, int n)
+static long long int readunit(int c, long long int n)
 {
 	switch (c) {
 	case 'i':
@@ -32,11 +32,11 @@ static int readunit(int c, int n)
 	return n;
 }
 
-static int evalnum(char **_s)
+static long long int evalnum(char **_s)
 {
 	char *s = *_s;
-	int n = 0;		/* the result */
-	int mag = 0;		/* n should be divided by mag */
+	long long int n = 0;		/* the result */
+	long long int mag = 0;		/* n should be divided by mag */
 	while (isdigit((unsigned char) *s) || *s == '.') {
 		if (mag == MAXFRAC || (mag > 0 && n > 200000000u)) {
 			s++;
@@ -69,12 +69,12 @@ static int evalisnum(char **s)
 	return **s == '.' || isdigit((unsigned char) **s);
 }
 
-static int evalexpr(char **s);
-static int evalatom(char **s);
+static long long int evalexpr(char **s);
+static long long int evalatom(char **s);
 
-static int evalatom(char **s)
+static long long int evalatom(char **s)
 {
-	int ret;
+	long long int ret;
 	if (evalisnum(s))
 		return evalnum(s);
 	if (!evaljmp(s, '-'))
@@ -98,9 +98,9 @@ static int nonzero(int n)
 	return n;
 }
 
-static int evalexpr(char **s)
+static long long int evalexpr(char **s)
 {
-	int ret = evalatom(s);
+	long long int ret = evalatom(s);
 	while (**s) {
 		if (!evaljmp(s, '+'))
 			ret += evalatom(s);
@@ -136,7 +136,8 @@ int eval_up(char **s, int unit)
 		abspos = -n_d;
 	if (unit == 'm')
 		abspos = n_lb - f_hpos();
-	return evalexpr(s);
+	int ret = evalexpr(s);
+	return ret;
 }
 
 /* evaluate s relative to its previous value */
