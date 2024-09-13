@@ -56,9 +56,8 @@ static void tr_nr(char **args)
 static void tr_rr(char **args)
 {
 	int i;
-	for (i = 1; i < NARGS; i++)
-		if (args[i])
-			num_del(map(args[i]));
+	for (i = 1; args[i]; i++)
+		num_del(map(args[i]));
 }
 
 static void tr_af(char **args)
@@ -89,9 +88,8 @@ static void tr_as(char **args)
 static void tr_rm(char **args)
 {
 	int i;
-	for (i = 1; i < NARGS; i++)
-		if (args[i])
-			str_rm(map(args[i]));
+	for (i = 1; args[i]; i++)
+		str_rm(map(args[i]));
 }
 
 static void tr_rn(char **args)
@@ -625,8 +623,8 @@ static void tr_ff(char **args)
 {
 	struct font *fn = args[1] ? dev_font(dev_pos(args[1])) : NULL;
 	int i;
-	for (i = 2; i < NARGS; i++)
-		if (fn && args[i] && args[i][0] && args[i][1])
+	for (i = 2; args[i]; i++)
+		if (fn && args[i][0] && args[i][1])
 			font_feat(fn, args[i] + 1, args[i][0] == '+');
 }
 
@@ -840,9 +838,8 @@ static void cdef_add(char *fn, char *cs, char *def)
 static void tr_rchar(char **args)
 {
 	int i;
-	for (i = 1; i < NARGS; i++)
-		if (args[i])
-			cdef_remove(NULL, args[i]);
+	for (i = 1; args[i]; i++)
+		cdef_remove(NULL, args[i]);
 }
 
 static void tr_char(char **args)
