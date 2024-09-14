@@ -95,6 +95,11 @@ int f_hpos(void)
 	return fmt_wid(cfmt) + wb_wid(cwb);
 }
 
+int ren_vpos(void)
+{
+	return wb_vpos(cwb);
+}
+
 void tr_divbeg(char **args)
 {
 	odiv_beg();
