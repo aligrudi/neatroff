@@ -344,6 +344,7 @@ void ren_bcmd(struct wb *wb, char *arg);	/* \b */
 void ren_ocmd(struct wb *wb, char *arg);	/* \o */
 void ren_dcmd(struct wb *wb, char *arg);	/* \D */
 void ren_zcmd(struct wb *wb, char *arg);	/* \Z */
+int ren_vpos(void);
 
 /* out.c */
 void out_line(char *s);				/* output rendered line */

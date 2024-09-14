@@ -134,7 +134,7 @@ int eval_up(char **s, int unit)
 {
 	defunit = unit;
 	if (unit == 'v')
-		abspos = -n_d;
+		abspos = -n_d - ren_vpos();
 	if (unit == 'm')
 		abspos = n_lb - f_hpos();
 	return evalexpr(s);
