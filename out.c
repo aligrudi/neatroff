@@ -117,6 +117,9 @@ static void out_draw(char *s)
 			}
 		}
 		break;
+	case 't':
+		outnn(" %d", tok_num(&s, 'u'));
+		break;
 	}
 	outnn("\n");
 }

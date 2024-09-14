@@ -151,7 +151,7 @@ static int tok_numpt(char **s, int scale, int *i)
 
 void ren_dcmd(struct wb *wb, char *s)
 {
-	int h1, h2, v1, v2;
+	int h1, h2, v1, v2, w;
 	int c = *s++;
 	switch (tolower(c)) {
 	case 'l':
@@ -191,6 +191,10 @@ void ren_dcmd(struct wb *wb, char *s)
 			}
 		}
 		wb_drawxend(wb);
+		break;
+	case 't':
+		w = tok_num(&s, 'u');
+		wb_drawt(wb, c, w);
 		break;
 	}
 }
