@@ -587,7 +587,7 @@ static char *keshideh_chars[] = {
 
 static int keshideh(char *c)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < LEN(keshideh_chars); i++)
 		if (!strcmp(keshideh_chars[i], c))
 			return 1;

@@ -282,14 +282,14 @@ void env_init(void)
 	int i;
 	init_time();
 	init_globals();
-	for (i = 0; i < LEN(eregs); i++)
+	for (i = 0; (size_t) i < LEN(eregs); i++)
 		eregs_idx[map(eregs[i])] = i + 1;
 	env_set(map("0"));
 }
 
 void env_done(void)
 {
-	int i;
+	size_t i;
 	for (i = 0; i < LEN(envs); i++)
 		if (envs[i])
 			env_free(envs[i]);
@@ -398,7 +398,7 @@ void tr_ta(char **args)
 static int tab_idx(int pos)
 {
 	int i;
-	for (i = 0; i < LEN(env->tabs); i++)
+	for (i = 0; (size_t) i < LEN(env->tabs); i++)
 		if (env->tabs[i] > pos)
 			return i;
 	return -1;

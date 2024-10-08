@@ -44,7 +44,7 @@ static int ccom(char *s, int len)
 int clr_get(char *s)
 {
 	int c = (unsigned char) s[0];
-	int i;
+	size_t i;
 	if (c == '#' && strlen(s) == 7)
 		return CLR_RGB(ccom(s + 1, 2), ccom(s + 3, 2), ccom(s + 5, 2));
 	if (c == '#' && strlen(s) == 4)
@@ -53,7 +53,7 @@ int clr_get(char *s)
 		return CLR_RGB(ccom(s + 1, 2), ccom(s + 1, 2), ccom(s + 1, 2));
 	if (c == '#' && strlen(s) == 2)
 		return CLR_RGB(ccom(s + 1, 1), ccom(s + 1, 1), ccom(s + 1, 1));
-	if (isdigit(c) && atoi(s) >= 0 && atoi(s) < LEN(colors))
+	if (isdigit(c) && atoi(s) >= 0 && (size_t) atoi(s) < LEN(colors))
 		return colors[atoi(s)].value;
 	for (i = 0; i < LEN(colors); i++)
 		if (!strcmp(colors[i].name, s))
