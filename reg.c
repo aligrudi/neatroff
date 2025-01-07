@@ -27,7 +27,7 @@ static int nregs_inc[NREGS];	/* number register auto-increment size */
 static int nregs_fmt[NREGS];	/* number register format */
 static char *sregs[NREGS];	/* global string registers */
 static void *sregs_dat[NREGS];	/* builtin function data */
-static struct env *envs[NREGS];/* environments */
+static struct env *envs[NREGS];	/* environments */
 static struct env *env;		/* current enviroment */
 static int env_id;		/* current environment id */
 static int eregs_idx[NREGS];	/* register environment index in eregs[] */
@@ -312,6 +312,24 @@ void tr_ev(char **args)
 	if (args[1] && env && nenv < NPREV)
 		oenv[nenv++] = env_id;
 	env_set(id);
+}
+
+void tr_evc(char **args)
+{
+	struct env *src;
+	int id = -1;
+	if (args[1])
+		id = map(args[1]);
+	if (id < 0 || !envs[id] || id == env_id)
+		return;
+	src = envs[id];
+	memcpy(env->eregs, src->eregs, sizeof(env->eregs));
+	memcpy(env->tabs, src->tabs, sizeof(env->tabs));
+	memcpy(env->tabs_type, src->tabs_type, sizeof(env->tabs_type));
+	memcpy(env->tc, src->tc, sizeof(env->tc));
+	memcpy(env->lc, src->lc, sizeof(env->lc));
+	memcpy(env->hc, src->hc, sizeof(env->hc));
+	memcpy(env->mc, src->mc, sizeof(env->mc));
 }
 
 struct fmt *env_fmt(void)

@@ -364,6 +364,7 @@ void tr_divvs(char **args);
 void tr_dt(char **args);
 void tr_em(char **args);
 void tr_ev(char **args);
+void tr_evc(char **args);
 void tr_fc(char **args);
 void tr_fi(char **args);
 void tr_fp(char **args);
