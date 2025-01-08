@@ -245,6 +245,11 @@ int cp_next(void)
 		if (c == '"') {
 			while (c >= 0 && c != '\n')
 				c = cp_raw();
+		} else if (c == '#') {
+			while (c >= 0 && c != '\n')
+				c = cp_raw();
+			if (c >= 0)
+				c = cp_raw();
 		} else if (c == 'w' && !cp_cpmode) {
 			cp_width();
 			c = cp_next();
