@@ -377,6 +377,12 @@ void wb_drawa(struct wb *wb, int c, int h1, int v1, int h2, int v2)
 	wb_stsb(wb);
 }
 
+void wb_drawt(struct wb *wb, int c, int wid)
+{
+	wb_flush(wb);
+	sbuf_printf(&wb->sbuf, "%cD'%c %d'", c_ec, c, wid);
+}
+
 void wb_drawxbeg(struct wb *wb, int c)
 {
 	wb_flush(wb);
