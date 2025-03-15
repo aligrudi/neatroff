@@ -637,7 +637,8 @@ static int fmt_safelines(void)
 /* fill the words collected in the buffer */
 static int fmt_fillwords(struct fmt *f, int br)
 {
-	int nreq;	/* the number of lines until a trap */
+	int nrem;	/* the number of lines until a trap */
+	int nreq;	/* the number of lines to emit */
 	int end;	/* the final line ends before this word */
 	int end_head;	/* like end, but only the first nreq lines included */
 	int head = 0;	/* only nreq first lines have been formatted */
@@ -651,7 +652,7 @@ static int fmt_fillwords(struct fmt *f, int br)
 	if ((f->fillreq <= 0 || f->words_n < f->fillreq) && llen <= FMT_LLEN(f))
 		return 0;
 	/* lines until a trap or page end */
-	nreq = fmt_safelines();
+	nreq = nrem = fmt_safelines();
 	/* if line settings are changed, output a single line */
 	if (fmt_confchanged(f))
 		nreq = 1;
@@ -668,9 +669,8 @@ static int fmt_fillwords(struct fmt *f, int br)
 		f->best_pos[i] = -1;
 	end = fmt_breakparagraph(f, f->words_n, br);
 	if (nreq > 0) {
-		int nohy = 0;	/* do not hyphenate the last line */
-		if (n_hy & HY_LAST && nreq == fmt_nlines(f))
-			nohy = 1;
+		/* do not hyphenate the last line */
+		int nohy = n_hy & HY_LAST && nreq == nrem;
 		end_head = fmt_head(f, nreq - fmt_nlines(f), end, nohy);
 		head = end_head < end;
 		end = end_head;
