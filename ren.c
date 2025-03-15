@@ -445,7 +445,7 @@ void tr_sp(char **args)
 
 void tr_sv(char **args)
 {
-	int n = eval(args[1], 'v');
+	int n = args[1] ? eval(args[1], 'v') : n_v;
 	n_sv = 0;
 	if (n_d + n < f_nexttrap())
 		down(n);
