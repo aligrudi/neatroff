@@ -715,7 +715,7 @@ static int font_twid(struct font *fn, int sz)
 	if (fn->s2 >= 0 && sz >= fn->s2)
 		return fn->n2 * SC_PT;
 	if (sz > fn->s1 && sz < fn->s2)
-		return ((sz - fn->s1) * fn->n1 + (fn->s2 - sz) * fn->n2) *
+		return ((fn->s2 - sz) * fn->n1 + (sz - fn->s1) * fn->n2) *
 				(long) SC_PT / (fn->s2 - fn->s1);
 	return 0;
 }
