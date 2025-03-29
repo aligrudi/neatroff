@@ -479,58 +479,63 @@ static long hycost(int depth)
 	return depth ? n_hycost : 0;
 }
 
-/* the cost of putting a line break before word pos */
-static long fmt_findcost(struct fmt *f, int pos)
+static void fmt_compute(struct fmt *f, int end)
 {
-	int i, hyphenated;
-	long cur;
 	int llen = MAX(1, FMT_LLEN(f));
-	int lwid = 0;		/* current line length */
-	int swid = 0;		/* amount of stretchable spaces */
-	int nspc = 0;		/* number of stretchable spaces */
-	int dwid = 0;		/* equal to swid, unless swid is zero */
-	if (pos <= 0)
-		return 0;
-	if (f->best_pos[pos] >= 0)
-		return f->best[pos] + f->words[pos - 1].cost;
-	lwid = f->words[pos - 1].hy;	/* non-zero if the last word is hyphenated */
-	hyphenated = f->words[pos - 1].hy != 0;
-	i = pos - 1;
-	while (i >= 0) {
-		lwid += f->words[i].wid;
-		if (i + 1 < pos)
-			lwid += f->words[i + 1].gap;
-		if (i + 1 < pos && f->words[i + 1].str) {
-			swid += f->words[i + 1].gap;
-			nspc++;
+	int i, pos;
+	for (pos = 1; pos <= end; pos++) {
+		int lwid = 0;		/* current line length */
+		int swid = 0;		/* amount of stretchable spaces */
+		int nspc = 0;		/* number of stretchable spaces */
+		int dwid = 0;		/* equal to swid, unless swid is zero */
+		int hyphenated = f->words[pos - 1].hy != 0;
+		if (f->best_pos[pos] >= 0)
+			continue;
+		lwid = f->words[pos - 1].hy;	/* non-zero if the last word is hyphenated */
+		i = pos - 1;
+		while (i >= 0) {
+			long cur;
+			lwid += f->words[i].wid;
+			if (i + 1 < pos)
+				lwid += f->words[i + 1].gap;
+			if (i + 1 < pos && f->words[i + 1].str) {
+				swid += f->words[i + 1].gap;
+				nspc++;
+			}
+			if (lwid > llen + swid * n_ssh / 100 && i + 1 < pos)
+				break;
+			dwid = swid;
+			if (!dwid && i > 0)	/* no stretchable spaces */
+				dwid = f->words[i - 1].swid;
+			cur = f->best[i] + FMT_COST(llen, lwid, dwid, nspc);
+			if (hyphenated)
+				cur += hycost(1 + fmt_hydepth(f, i));
+			if (f->best_pos[pos] < 0 || cur + f->words[pos - 1].cost < f->best[pos]) {
+				f->best_pos[pos] = i;
+				f->best_dep[pos] = f->best_dep[i] + 1;
+				f->best[pos] = cur + f->words[pos - 1].cost;
+			}
+			i--;
 		}
-		if (lwid > llen + swid * n_ssh / 100 && i + 1 < pos)
-			break;
-		dwid = swid;
-		if (!dwid && i > 0)	/* no stretchable spaces */
-			dwid = f->words[i - 1].swid;
-		cur = fmt_findcost(f, i) + FMT_COST(llen, lwid, dwid, nspc);
-		if (hyphenated)
-			cur += hycost(1 + fmt_hydepth(f, i));
-		if (f->best_pos[pos] < 0 || cur < f->best[pos]) {
-			f->best_pos[pos] = i;
-			f->best_dep[pos] = f->best_dep[i] + 1;
-			f->best[pos] = cur;
-		}
-		i--;
 	}
-	return f->best[pos] + f->words[pos - 1].cost;
+}
+
+static long fmt_bestcost(struct fmt *f, int pos)
+{
+	if (pos > 0 && f->best_pos[pos] < 0)
+		fmt_compute(f, pos);
+	return f->best[pos];
 }
 
 static int fmt_bestpos(struct fmt *f, int pos)
 {
-	fmt_findcost(f, pos);
+	fmt_bestcost(f, pos);
 	return MAX(0, f->best_pos[pos]);
 }
 
 static int fmt_bestdep(struct fmt *f, int pos)
 {
-	fmt_findcost(f, pos);
+	fmt_bestcost(f, pos);
 	return MAX(0, f->best_dep[pos]);
 }
 
@@ -544,14 +549,10 @@ static int fmt_breakparagraph(struct fmt *f, int pos, int br)
 	int lwid = 0;		/* current line length */
 	int swid = 0;		/* amount of stretchable spaces */
 	int nspc = 0;		/* number of stretchable spaces */
-	if (f->fillreq > 0 && f->fillreq <= f->words_n) {
-		fmt_findcost(f, f->fillreq);
+	if (f->fillreq > 0 && f->fillreq <= f->words_n)
 		return f->fillreq;
-	}
-	if (pos > 0 && f->words[pos - 1].wid >= llen) {
-		fmt_findcost(f, pos);
+	if (pos > 0 && f->words[pos - 1].wid >= llen)
 		return pos;
-	}
 	i = pos - 1;
 	lwid = 0;
 	if (f->words[i].hy)	/* the last word is hyphenated */
@@ -566,7 +567,7 @@ static int fmt_breakparagraph(struct fmt *f, int pos, int br)
 		}
 		if (lwid > llen && i + 1 < pos)
 			break;
-		cost = fmt_findcost(f, i);
+		cost = fmt_bestcost(f, i);
 		/* the cost of formatting short lines; should prevent widows */
 		if (br && n_pmll && lwid < llen * n_pmll / 100) {
 			int pmll = llen * n_pmll / 100;
@@ -604,7 +605,7 @@ static int fmt_head(struct fmt *f, int nreq, int pos, int nohy)
 		next++;
 	/* choosing the best of them */
 	if (!f->words[prev - 1].hy && !f->words[next - 1].hy)
-		return fmt_findcost(f, prev) <= fmt_findcost(f, next) ? prev : next;
+		return fmt_bestcost(f, prev) <= fmt_bestcost(f, next) ? prev : next;
 	if (!f->words[prev - 1].hy)
 		return prev;
 	if (!f->words[next - 1].hy)
@@ -642,7 +643,7 @@ static int fmt_fillwords(struct fmt *f, int br)
 	int end;	/* the final line ends before this word */
 	int end_head;	/* like end, but only the first nreq lines included */
 	int head = 0;	/* only nreq first lines have been formatted */
-	int llen;	/* line length, taking shrinkable spaces into account */
+	int llen;	/* total length, taking shrinkable spaces into account */
 	int n, i;
 	if (!FMT_FILL(f))
 		return 0;
