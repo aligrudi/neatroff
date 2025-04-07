@@ -255,7 +255,7 @@ static int if_strcmp(int (*next)(void), void (*back)(int))
 /* evaluate .if condition letters */
 static int if_cond(int (*next)(void), void (*back)(int))
 {
-	switch (cp_next()) {
+	switch (next()) {
 	case 'o':
 		return n_pg % 2;
 	case 'e':
