@@ -374,20 +374,19 @@ void tr_hpfa(char **args)
 				hw_add(tok);
 		fclose(filp);
 	}
+	/* lowercase-uppercase character hcode mappings */
+	if (args[3] && !strcmp("-", args[3])) {
+		int i;
+		for (i = 0; i < LEN(hycase); i++)
+			hcode_add(hycase[i][1], hycase[i][0]);
 	/* reading hcode mappings */
-	if (args[3] && (filp = fopen(args[3], "r"))) {
+	} else if (args[3] && (filp = fopen(args[3], "r"))) {
 		while (fscanf(filp, "%128s", tok) == 1) {
 			char *s = tok;
 			if (utf8read(&s, c1) && utf8read(&s, c2) && !*s)
 				hcode_add(c2, c1);	/* inverting */
 		}
 		fclose(filp);
-	}
-	/* lowercase-uppercase character hcode mappings */
-	if (args[3] && !strcmp("-", args[3])) {
-		int i;
-		for (i = 0; i < LEN(hycase); i++)
-			hcode_add(hycase[i][1], hycase[i][0]);
 	}
 }
 
