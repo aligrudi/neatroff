@@ -13,6 +13,7 @@ struct inbuf {
 	int un;			/* number of unread characters */
 	int pos;
 	int len;
+	int chr;		/* last character read from fin */
 	int lnum;		/* file line number */
 	struct inbuf *prev;
 };
@@ -64,7 +65,7 @@ void in_lf(char *path, int lnum)
 		cur = cur->prev;
 	if (path)
 		snprintf(cur->path, sizeof(cur->path), "%s", path);
-	cur->lnum = lnum;
+	cur->lnum = lnum - 1;
 }
 
 void in_queue(char *path)
@@ -116,8 +117,9 @@ int in_next(void)
 		if (buf->buf && buf->pos < buf->len)
 			break;
 		if (!buf->buf && (c = getc(buf->fin)) >= 0) {
-			if (c == '\n')
+			if (buf->chr == '\n')
 				buf->lnum++;
+			buf->chr = c;
 			return c;
 		}
 		in_pop();
