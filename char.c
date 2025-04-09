@@ -146,14 +146,14 @@ int charnext(char *c, int (*next)(void), void (*back)(int))
 	return '\0';
 }
 
-/* like nextchar(), but return -1 if delim was read */
+/* like charnext(), but return -1 if delim was read */
 int charnext_delim(char *c, int (*next)(void), void (*back)(int), char *delim)
 {
 	int t = charnext(c, next, back);
 	return strcmp(c, delim) ? t : -1;
 }
 
-/* convert back the character read from nextchar() (e.g. xy -> \\(xy) */
+/* convert back the character read from charnext() (e.g. xy -> \\(xy) */
 void charnext_str(char *d, char *c)
 {
 	int c0 = (unsigned char) c[0];

@@ -613,10 +613,6 @@ struct font *font_open(char *path)
 	if (!fin)
 		return NULL;
 	fn = xmalloc(sizeof(*fn));
-	if (!fn) {
-		fclose(fin);
-		return NULL;
-	}
 	memset(fn, 0, sizeof(*fn));
 	fn->gl_dict = dict_make(-1, 1, 0);
 	fn->ch_dict = dict_make(-1, 1, 0);
