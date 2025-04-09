@@ -1098,7 +1098,7 @@ int render(void)
 	if (fmt_morewords(cfmt))
 		ren_page(1);
 	ren_br();
-	return 0;
+	return ren_aborted;
 }
 
 /* trap handling */
