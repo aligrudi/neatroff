@@ -1029,6 +1029,8 @@ static int render_rec(int level)
 	int ren_div_saved = ren_div;
 	int c;
 	ren_div = 0;
+	if (ren_level >= 100)
+		errdie("neatroff: trap recursion depth limit reached\n");
 	while (ren_level >= level) {
 		while (!ren_un && !tr_nextreq())
 			if (ren_level < level)
