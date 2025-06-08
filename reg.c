@@ -28,7 +28,7 @@ static int nregs_fmt[NREGS];	/* number register format */
 static char *sregs[NREGS];	/* global string registers */
 static void *sregs_dat[NREGS];	/* builtin function data */
 static struct env *envs[NREGS];	/* environments */
-static struct env *env;		/* current enviroment */
+static struct env *env;		/* current environment */
 static int env_id;		/* current environment id */
 static int eregs_idx[NREGS];	/* register environment index in eregs[] */
 
