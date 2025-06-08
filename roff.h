@@ -103,7 +103,7 @@ void str_rn(int src, int dst);
 void odiv_beg(void);
 void odiv_end(void);
 
-/* enviroments */
+/* environments */
 void env_init(void);
 void env_done(void);
 struct fmt *env_fmt(void);

@@ -409,15 +409,15 @@ void hyph_done(void)
 
 void tr_hpf(char **args)
 {
-	/* reseting the patterns */
+	/* resetting the patterns */
 	hypats_len = 0;
 	hy_n = 0;
 	dict_free(hydict);
-	/* reseting the dictionary */
+	/* resetting the dictionary */
 	hwword_len = 0;
 	hw_n = 0;
 	dict_free(hwdict);
-	/* reseting hcode mappings */
+	/* resetting hcode mappings */
 	hcode_n = 0;
 	dict_free(hcodedict);
 	/* reading */

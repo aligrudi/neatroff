@@ -336,7 +336,7 @@ static int ren_line(char *line, int w, int ad, int body,
 	sbuf_init(&send);
 	sbuf_init(&sbuf);
 	sbuf_append(&sbuf, line);
-	lspc = MAX(1, n_L) * n_v;	/* line space, ignoreing \x */
+	lspc = MAX(1, n_L) * n_v;	/* line space, ignoring \x */
 	prev_d = n_d;
 	if (!n_ns || line[0] || els_neg || els_pos) {
 		if (els_neg)
