@@ -99,7 +99,7 @@ int dev_open(char *dir, char *dev)
 			continue;
 		}
 		if (!strcmp("sizes", tok)) {
-			while (fscanf(desc, "%128s", tok) == 1)
+			while (fscanf(desc, "%127s", tok) == 1)
 				if (!strcmp("0", tok))
 					break;
 			continue;

@@ -362,14 +362,14 @@ void tr_hpfa(char **args)
 	}
 	/* reading patterns */
 	if (args[1] && (filp = fopen(args[1], "r"))) {
-		while (fscanf(filp, "%128s", tok) == 1)
+		while (fscanf(filp, "%127s", tok) == 1)
 			if (strlen(tok) < WORDLEN)
 				hy_add(tok);
 		fclose(filp);
 	}
 	/* reading exceptions */
 	if (args[2] && (filp = fopen(args[2], "r"))) {
-		while (fscanf(filp, "%128s", tok) == 1)
+		while (fscanf(filp, "%127s", tok) == 1)
 			if (strlen(tok) < WORDLEN)
 				hw_add(tok);
 		fclose(filp);
@@ -381,7 +381,7 @@ void tr_hpfa(char **args)
 			hcode_add(hycase[i][1], hycase[i][0]);
 	/* reading hcode mappings */
 	} else if (args[3] && (filp = fopen(args[3], "r"))) {
-		while (fscanf(filp, "%128s", tok) == 1) {
+		while (fscanf(filp, "%127s", tok) == 1) {
 			char *s = tok;
 			if (utf8read(&s, c1) && utf8read(&s, c2) && !*s)
 				hcode_add(c2, c1);	/* inverting */
