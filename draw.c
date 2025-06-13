@@ -28,7 +28,7 @@ static int hchar(char *c)
 static int vchar(char *c)
 {
 	if (!c[1])
-		return c[0] == '_';
+		return c[0] == '|';
 	return (c[0] == 'b' && c[1] == 'v') || (c[0] == 'b' && c[1] == 'r');
 }
 
