@@ -632,7 +632,7 @@ struct font *font_open(char *path)
 					ligs_n++;
 			}
 		} else if (!strcmp("gsec", tok)) {
-			if (fscanf(fin, "%d", &sec) != 1)
+			if (fscanf(fin, "%d", &sec) == 1)
 				fn->secs++;
 		} else if (!strcmp("gsub", tok)) {
 			font_readgsub(fn, fin);
