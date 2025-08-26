@@ -392,8 +392,8 @@ static void tr_sy(char **args)
 
 static void tr_lt(char **args)
 {
-	int lt = args[1] ? eval_re(args[1], n_lt, 'm') : n_t0;
-	n_t0 = n_t0;
+	int lt = args[1] ? eval_re(args[1], n_lt, 'm') : n_lt0;
+	n_lt0 = n_lt;
 	n_lt = MAX(0, lt);
 }
 

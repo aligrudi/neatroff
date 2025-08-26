@@ -524,7 +524,7 @@ int clr_get(char *s);
 #define n_s0		(*nreg(map(".s0")))	/* last .s */
 #define n_sv		(*nreg(map(".sv")))	/* .sv value */
 #define n_lt		(*nreg(map(".lt")))	/* .lt value */
-#define n_t0		(*nreg(map(".lt0")))	/* previous .lt value */
+#define n_lt0		(*nreg(map(".lt0")))	/* previous .lt value */
 #define n_v0		(*nreg(map(".v0")))	/* last .v */
 #define n_llx		(*nreg(map("bbllx")))	/* \w bounding box */
 #define n_lly		(*nreg(map("bblly")))	/* \w bounding box */
