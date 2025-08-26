@@ -239,7 +239,10 @@ static void env_set(int id)
 		n_u = 1;
 		n_v = 12 * SC_PT;
 		n_s0 = n_s;
+		n_v0 = n_v;
 		n_f0 = n_f;
+		n_l0 = n_l;
+		n_L0 = n_L;
 		n_na = 0;
 		n_lt = SC_IN * 65 / 10;
 		n_hy = 1;
@@ -270,6 +273,7 @@ static void init_time(void)
 static void init_globals(void)
 {
 	n_o = SC_IN;
+	n_o0 = n_o;
 	n_p = SC_IN * 11;
 	n_lg = 1;
 	n_kn = 1;
