@@ -428,6 +428,9 @@ char *sstr_pop(void);
 int sstr_next(void);
 void sstr_back(int c);
 
+/* terminate if malloc fails */
+#define malloc(len)	xmalloc(len)
+
 /* internal commands */
 #define TR_DIVBEG	"\07<"	/* diversion begins */
 #define TR_DIVEND	"\07>"	/* diversion ends */

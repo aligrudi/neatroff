@@ -28,7 +28,7 @@ static void args_free(char **args);
 
 static void in_new(void)
 {
-	struct inbuf *next = xmalloc(sizeof(*next));
+	struct inbuf *next = malloc(sizeof(*next));
 	memset(next, 0, sizeof(*next));
 	next->prev = buf;
 	buf = next;
@@ -38,7 +38,7 @@ void in_push(char *s, char **args)
 {
 	int len = strlen(s);
 	in_new();
-	buf->buf = xmalloc(len + 1);
+	buf->buf = malloc(len + 1);
 	buf->len = len;
 	strcpy(buf->buf, s);
 	buf->args = args ? args_init(args) : NULL;
@@ -191,13 +191,13 @@ int in_lnum(void)
 
 static char **args_init(char **args)
 {
-	char **out = xmalloc(NARGS * sizeof(*out));
+	char **out = malloc(NARGS * sizeof(*out));
 	int i;
 	for (i = 0; i < NARGS; i++) {
 		out[i] = NULL;
 		if (args[i]) {
 			int len = strlen(args[i]) + 1;
-			out[i] = xmalloc(len);
+			out[i] = malloc(len);
 			memcpy(out[i], args[i], len);
 		}
 	}

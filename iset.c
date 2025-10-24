@@ -24,7 +24,7 @@ static void iset_extend(struct iset *iset, int cnt)
 
 struct iset *iset_make(void)
 {
-	struct iset *iset = xmalloc(sizeof(*iset));
+	struct iset *iset = malloc(sizeof(*iset));
 	memset(iset, 0, sizeof(*iset));
 	iset_extend(iset, CNTMIN);
 	return iset;
@@ -60,7 +60,7 @@ void iset_put(struct iset *iset, int key, int ent)
 	if (key >= 0 && key < iset->cnt && iset->len[key] + 1 >= iset->sz[key]) {
 		int olen = iset->sz[key];
 		int nlen = olen ? olen * 2 : 8;
-		void *nset = xmalloc(nlen * sizeof(iset->set[key][0]));
+		void *nset = malloc(nlen * sizeof(iset->set[key][0]));
 		if (iset->set[key]) {
 			memcpy(nset, iset->set[key],
 				olen * sizeof(iset->set[key][0]));

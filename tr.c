@@ -78,7 +78,7 @@ static void tr_as(char **args)
 	reg = map(args[1]);
 	s1 = str_get(reg) ? str_get(reg) : "";
 	s2 = args[2] ? args[2] : "";
-	s = xmalloc(strlen(s1) + strlen(s2) + 1);
+	s = malloc(strlen(s1) + strlen(s2) + 1);
 	strcpy(s, s1);
 	strcat(s, s2);
 	str_set(reg, s);
@@ -829,7 +829,7 @@ static void cdef_add(char *fn, char *cs, char *def)
 	}
 	if (i >= 0 && i < cdef_n) {
 		snprintf(cdef_src[i], sizeof(cdef_src[i]), "%s", c);
-		cdef_dst[i] = xmalloc(strlen(def) + 1);
+		cdef_dst[i] = malloc(strlen(def) + 1);
 		strcpy(cdef_dst[i], def);
 		cdef_fn[i] = fn ? dev_pos(fn) : 0;
 	}
@@ -1220,7 +1220,7 @@ static struct cmd {
 
 static char *dotted(char *name, int dot)
 {
-	char *out = xmalloc(strlen(name) + 2);
+	char *out = malloc(strlen(name) + 2);
 	out[0] = dot;
 	strcpy(out + 1, name);
 	return out;

@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "roff.h"
 
 void errmsg(char *fmt, ...)
@@ -37,12 +38,14 @@ void errdie(char *msg)
 
 void *mextend(void *old, long oldsz, long newsz, int memsz)
 {
-	void *new = xmalloc(newsz * memsz);
+	void *new = malloc(newsz * memsz);
 	memcpy(new, old, oldsz * memsz);
 	memset(new + oldsz * memsz, 0, (newsz - oldsz) * memsz);
 	free(old);
 	return new;
 }
+
+#undef malloc
 
 void *xmalloc(long len)
 {
@@ -50,14 +53,6 @@ void *xmalloc(long len)
 	if (!m)
 		errdie("neatroff: malloc() failed\n");
 	return m;
-}
-
-static int xopens(char *path)
-{
-	FILE *filp = fopen(path, "r");
-	if (filp)
-		fclose(filp);
-	return filp != NULL;
 }
 
 /* parse the argument of -r and -d options */
@@ -75,11 +70,11 @@ static int cmdmac(char *dir, char *arg)
 {
 	char path[PATHLEN];
 	snprintf(path, sizeof(path), "%s/%s.tmac", dir, arg);
-	if (!xopens(path))
+	if (access(path, R_OK) != 0)
 		snprintf(path, sizeof(path), "%s/tmac.%s", dir, arg);
-	if (!xopens(path))
+	if (access(path, R_OK) != 0)
 		snprintf(path, sizeof(path), "%s/%s", dir, arg);
-	if (!xopens(path))
+	if (access(path, R_OK) != 0)
 		return 1;
 	in_queue(path);
 	return 0;

@@ -385,7 +385,7 @@ static int font_findlang(struct font *fn, char *lang)
 
 static struct gpat *font_gpat(struct font *fn, int len)
 {
-	struct gpat *pats = xmalloc(len * sizeof(pats[0]));
+	struct gpat *pats = malloc(len * sizeof(pats[0]));
 	memset(pats, 0, len * sizeof(pats[0]));
 	return pats;
 }
@@ -612,7 +612,7 @@ struct font *font_open(char *path)
 	fin = fopen(path, "r");
 	if (!fin)
 		return NULL;
-	fn = xmalloc(sizeof(*fn));
+	fn = malloc(sizeof(*fn));
 	memset(fn, 0, sizeof(*fn));
 	fn->gl_dict = dict_make(-1, 1, 0);
 	fn->ch_dict = dict_make(-1, 1, 0);

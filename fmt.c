@@ -278,7 +278,7 @@ static void fmt_wb2word(struct fmt *f, struct word *word, struct wb *wb,
 			int hy, int str, int gap, int cost)
 {
 	int len = strlen(wb_buf(wb));
-	word->s = xmalloc(len + 1);
+	word->s = malloc(len + 1);
 	memcpy(word->s, wb_buf(wb), len + 1);
 	word->wid = wb_wid(wb);
 	word->elsn = wb->els_neg;
@@ -425,7 +425,7 @@ static void fmt_keshideh(struct fmt *f, int beg, int end, int wid)
 				kw = wb_keshideh(w->s, &wb, wid);
 				if (kw > 0) {
 					free(w->s);
-					w->s = xmalloc(strlen(wb_buf(&wb)) + 1);
+					w->s = malloc(strlen(wb_buf(&wb)) + 1);
 					strcpy(w->s, wb_buf(&wb));
 					w->wid = wb_wid(&wb);
 					wid -= kw;
@@ -697,7 +697,7 @@ static int fmt_fillwords(struct fmt *f, int br)
 
 struct fmt *fmt_alloc(void)
 {
-	struct fmt *fmt = xmalloc(sizeof(*fmt));
+	struct fmt *fmt = malloc(sizeof(*fmt));
 	memset(fmt, 0, sizeof(*fmt));
 	return fmt;
 }

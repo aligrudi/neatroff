@@ -32,7 +32,7 @@ static void dict_extend(struct dict *d, int size)
  */
 struct dict *dict_make(int notfound, int dupkeys, int hashlen)
 {
-	struct dict *d = xmalloc(sizeof(*d));
+	struct dict *d = malloc(sizeof(*d));
 	memset(d, 0, sizeof(*d));
 	d->n = 1;
 	d->hashlen = hashlen ? hashlen : 32;
@@ -71,7 +71,7 @@ void dict_put(struct dict *d, char *key, int val)
 		dict_extend(d, d->n + CNTMIN);
 	if (d->dupkeys) {
 		int len = strlen(key) + 1;
-		char *dup = xmalloc(len);
+		char *dup = malloc(len);
 		memcpy(dup, key, len);
 		key = dup;
 	}
