@@ -26,6 +26,7 @@
 #define PATHLEN		1024	/* path length */
 #define NFILES		16	/* number of input files */
 #define NFONTS		32	/* number of fonts */
+#define NFONTSPCL	4	/* number of font specials */
 #define FNLEN		32	/* font name length */
 #define GNLEN		32	/* glyph name length */
 #define GNFMT		"%31s"	/* glyph name scanf format */
