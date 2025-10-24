@@ -18,9 +18,7 @@ static struct font *fn_font[NFONTS];	/* font structs */
 static int fn_n;			/* number of device fonts */
 
 /* .fspecial request */
-static char fspecial_fn[NFONTS][FNLEN];	/* .fspecial first arguments */
-static char fspecial_sp[NFONTS][FNLEN];	/* .fspecial special fonts */
-static int fspecial_n;			/* number of fonts in fspecial_sp[] */
+static int fn_special[NFONTS][NFONTSPCL];	/* .fspecial fonts */
 
 static void skipline(FILE* filp)
 {
@@ -162,10 +160,9 @@ static struct glyph *dev_find(char *c, int fn, int byid)
 	find = byid ? font_glyph : font_find;
 	if ((g = find(fn_font[fn], c)))
 		return g;
-	for (i = 0; i < fspecial_n; i++)
-		if (dev_pos(fspecial_fn[i]) == fn && dev_pos(fspecial_sp[i]) >= 0)
-			if ((g = find(dev_font(dev_pos(fspecial_sp[i])), c)))
-				return g;
+	for (i = 0; i < LEN(fn_special[fn]) && fn_special[fn][i] > 0; i++)
+		if ((g = find(dev_font(fn_special[fn][i]), c)))
+			return g;
 	for (i = 0; i < NFONTS; i++)
 		if (fn_font[i] && font_special(fn_font[i]))
 			if ((g = find(fn_font[i], c)))
@@ -223,19 +220,16 @@ struct font *dev_font(int pos)
 
 void tr_fspecial(char **args)
 {
-	char *fn = args[1];
+	int fn = args[1] ? dev_pos(args[1]) : 0;
+	int cnt = 0;
 	int i;
-	if (!fn) {
-		fspecial_n = 0;
+	if (fn <= 0)
 		return;
+	for (i = 2; i < NARGS && args[i]; i++) {
+		int spcl = dev_pos(args[i]);
+		if (spcl > 0 && cnt < LEN(fn_special[fn]))
+			fn_special[fn][cnt++] = spcl;
 	}
-	for (i = 2; i < NARGS; i++) {
-		if (args[i] && fspecial_n < LEN(fspecial_fn)) {
-			snprintf(fspecial_fn[fspecial_n],
-				sizeof(fspecial_fn[fspecial_n]), "%s", fn);
-			snprintf(fspecial_sp[fspecial_n],
-				sizeof(fspecial_sp[fspecial_n]), "%s", args[i]);
-			fspecial_n++;
-		}
-	}
+	if (cnt < LEN(fn_special[fn]))
+		fn_special[fn][cnt] = 0;
 }
