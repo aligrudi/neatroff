@@ -74,7 +74,7 @@ static void cp_str(void)
 		cp_noninext();
 	}
 	if (str_get(map(reg)))
-		in_push(str_get(map(reg)), buf ? args : NULL);
+		in_push(str_get(map(reg)), args);
 	else if (!n_cp)
 		tr_req(map(reg), args);
 	free(buf);
