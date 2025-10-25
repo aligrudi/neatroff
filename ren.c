@@ -363,7 +363,7 @@ static int ren_line(char *line, int w, int ad, int body,
 			ren_traps(prev_d, n_d, 0);
 		return 1;
 	}
-	if (lspc - n_v && down(lspc - n_v))
+	if (line[0] && lspc - n_v && down(lspc - n_v))
 		return 1;
 	return 0;
 }
