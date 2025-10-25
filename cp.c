@@ -249,7 +249,7 @@ int cp_next(void)
 			while (c >= 0 && c != '\n')
 				c = cp_raw();
 			if (c >= 0)
-				c = cp_raw();
+				c = cp_next();
 		} else if (c == 'w' && !cp_cpmode) {
 			cp_width();
 			c = cp_next();
