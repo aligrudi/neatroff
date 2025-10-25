@@ -704,7 +704,10 @@ struct fmt *fmt_alloc(void)
 
 void fmt_free(struct fmt *fmt)
 {
+	int i;
 	free(fmt->lines);
+	for (i = 0; i < fmt->words_n; i++)
+		free(fmt->words[i].s);
 	free(fmt->words);
 	free(fmt);
 }
