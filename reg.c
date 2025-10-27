@@ -324,9 +324,10 @@ void tr_evc(char **args)
 	int id = -1;
 	if (args[1])
 		id = map(args[1]);
-	if (id < 0 || !envs[id] || id == env_id)
+	if (id < 0 || !envs[id])
 		return;
 	src = envs[id];
+	env = env_alloc();
 	memcpy(env->eregs, src->eregs, sizeof(env->eregs));
 	memcpy(env->tabs, src->tabs, sizeof(env->tabs));
 	memcpy(env->tabs_type, src->tabs_type, sizeof(env->tabs_type));
@@ -334,6 +335,8 @@ void tr_evc(char **args)
 	memcpy(env->lc, src->lc, sizeof(env->lc));
 	memcpy(env->hc, src->hc, sizeof(env->hc));
 	memcpy(env->mc, src->mc, sizeof(env->mc));
+	env_free(envs[env_id]); /* free old env */
+	envs[env_id] = env;
 }
 
 struct fmt *env_fmt(void)
