@@ -114,8 +114,12 @@ void ren_hlcmd(struct wb *wb, char *arg)
 	int l = eval_up(&arg, 'm');
 	if (arg[0] == c_ec && arg[1] == '&')	/* \& can be used as a separator */
 		arg += 2;
-	if (!*arg || charread(&arg, lc) < 0)
+	if (!*arg || charread(&arg, lc) < 0){
 		strcpy(lc, "ru");
+		if(l)
+			wb_drawl(wb, 'l', l, 0);
+		return;
+	}
 	if (l)
 		ren_hline(wb, l, lc);
 }
@@ -126,8 +130,12 @@ void ren_vlcmd(struct wb *wb, char *arg)
 	int l = eval_up(&arg, 'v');
 	if (arg[0] == c_ec && arg[1] == '&')	/* \& can be used as a separator */
 		arg += 2;
-	if (!*arg || charread(&arg, lc) < 0)
+	if (!*arg || charread(&arg, lc) < 0){
 		strcpy(lc, "br");
+		if(l)
+			wb_drawl(wb, 'l', 0, l);
+		return;
+	}
 	if (l)
 		ren_vline(wb, l, lc);
 }
