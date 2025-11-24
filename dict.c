@@ -3,72 +3,67 @@
 #include <string.h>
 #include "roff.h"
 
-#define CNTMIN		(1 << 10)
+#define SZEXT	1024
 
 struct dict {
-	struct iset *map;
+	int *head;
+	int *next;
 	char **key;
 	int *val;
 	int size;
 	int n;
-	int notfound;		/* the value returned for missing keys */
-	int hashlen;		/* the number of characters used for hashing */
+	int tabsz;		/* hash table size */
 	int dupkeys;		/* duplicate keys if set */
 };
 
 static void dict_extend(struct dict *d, int size)
 {
+	d->next = mextend(d->next, d->size, size, sizeof(d->next[0]));
 	d->key = mextend(d->key, d->size, size, sizeof(d->key[0]));
 	d->val = mextend(d->val, d->size, size, sizeof(d->val[0]));
 	d->size = size;
 }
 
-/*
- * initialise a dictionary
- *
- * notfound: the value returned for missing keys.
- * dupkeys: if nonzero, store a copy of keys inserted via dict_put().
- * hashlen: the number of characters used for hashing
- */
-struct dict *dict_make(int notfound, int dupkeys, int hashlen)
+struct dict *dict_make(int tabsz, int dupkeys)
 {
 	struct dict *d = malloc(sizeof(*d));
 	memset(d, 0, sizeof(*d));
 	d->n = 1;
-	d->hashlen = hashlen ? hashlen : 32;
+	d->head = calloc(tabsz, sizeof(d->head[0]));
+	d->tabsz = tabsz;
 	d->dupkeys = dupkeys;
-	d->notfound = notfound;
-	d->map = iset_make();
-	dict_extend(d, CNTMIN);
+	dict_extend(d, 1024);
 	return d;
 }
 
 void dict_free(struct dict *d)
 {
 	int i;
-	if (d->dupkeys)
-		for (i = 0; i < d->size; i++)
+	if (d->dupkeys) {
+		for (i = 0; i < d->n; i++)
 			free(d->key[i]);
+	}
+	free(d->head);
+	free(d->next);
 	free(d->val);
 	free(d->key);
-	iset_free(d->map);
 	free(d);
 }
 
 static int dict_hash(struct dict *d, char *key)
 {
-	unsigned long hash = (unsigned char) *key++;
-	int i = d->hashlen;
-	while (--i > 0 && *key)
+	unsigned hash = (unsigned char) *key++;
+	while (*key)
 		hash = (hash << 5) + hash + (unsigned char) *key++;
-	return hash & 0x3ff;
+	return hash % d->tabsz;
 }
 
 void dict_put(struct dict *d, char *key, int val)
 {
 	int idx;
+	int hash = dict_hash(d, key);
 	if (d->n >= d->size)
-		dict_extend(d, d->n + CNTMIN);
+		dict_extend(d, d->n + SZEXT);
 	if (d->dupkeys) {
 		int len = strlen(key) + 1;
 		char *dup = malloc(len);
@@ -78,19 +73,17 @@ void dict_put(struct dict *d, char *key, int val)
 	idx = d->n++;
 	d->key[idx] = key;
 	d->val[idx] = val;
-	iset_put(d->map, dict_hash(d, key), idx);
+	d->next[idx] = d->head[hash];
+	d->head[hash] = idx;
 }
 
 /* return the index of key in d */
 int dict_idx(struct dict *d, char *key)
 {
-	int h = dict_hash(d, key);
-	int *b = iset_get(d->map, h);
-	int *r = b + iset_len(d->map, h);
-	while (b && --r >= b)
-		if (!strcmp(d->key[*r], key))
-			return *r;
-	return -1;
+	int idx = d->head[dict_hash(d, key)];
+	while (idx > 0 && strcmp(key, d->key[idx]))
+		idx = d->next[idx];
+	return idx > 0 ? idx : -1;
 }
 
 char *dict_key(struct dict *d, int idx)
@@ -98,26 +91,71 @@ char *dict_key(struct dict *d, int idx)
 	return d->key[idx];
 }
 
-int dict_val(struct dict *d, int idx)
-{
-	return d->val[idx];
-}
-
 int dict_get(struct dict *d, char *key)
 {
 	int idx = dict_idx(d, key);
-	return idx >= 0 ? d->val[idx] : d->notfound;
+	return idx >= 0 ? d->val[idx] : -1;
+}
+
+/* for finding entries with the given prefix */
+struct pref {
+	struct iset *map;
+	char **key;
+	int *val;
+	int size;
+	int n;
+};
+
+static void pref_extend(struct pref *d, int size)
+{
+	d->key = mextend(d->key, d->size, size, sizeof(d->key[0]));
+	d->val = mextend(d->val, d->size, size, sizeof(d->val[0]));
+	d->size = size;
+}
+
+struct pref *pref_make(void)
+{
+	struct pref *d = malloc(sizeof(*d));
+	memset(d, 0, sizeof(*d));
+	d->n = 1;
+	d->map = iset_make();
+	pref_extend(d, SZEXT);
+	return d;
+}
+
+void pref_free(struct pref *d)
+{
+	free(d->val);
+	free(d->key);
+	iset_free(d->map);
+	free(d);
+}
+
+static int pref_hash(struct pref *d, char *key)
+{
+	return ((((unsigned char) key[0]) << 5) | (unsigned char) key[1]) % 0x3ff;
+}
+
+void pref_put(struct pref *d, char *key, int val)
+{
+	int idx;
+	if (d->n >= d->size)
+		pref_extend(d, d->n + SZEXT);
+	idx = d->n++;
+	d->key[idx] = key;
+	d->val[idx] = val;
+	iset_put(d->map, pref_hash(d, key), idx);
 }
 
 /* match a prefix of key; in the first call, *pos should be -1 */
-int dict_prefix(struct dict *d, char *key, int *pos)
+int pref_prefix(struct pref *d, char *key, int *pos)
 {
-	int *r = iset_get(d->map, dict_hash(d, key));
+	int *r = iset_get(d->map, pref_hash(d, key));
 	while (r && r[++*pos] >= 0) {
 		int idx = r[*pos];
 		int plen = strlen(d->key[idx]);
 		if (!strncmp(d->key[idx], key, plen))
 			return d->val[idx];
 	}
-	return d->notfound;
+	return -1;
 }

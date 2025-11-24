@@ -17,7 +17,7 @@ int map(char *s)
 	if (s[0] == '.' && s[1] && !s[2])	/* ".x" is mapped to 'x' */
 		return (unsigned char) s[1];
 	if (!mapdict)
-		mapdict = dict_make(-1, 1, 2);
+		mapdict = dict_make(4096, 1);
 	i = dict_idx(mapdict, s);
 	if (i < 0) {
 		dict_put(mapdict, s, 0);

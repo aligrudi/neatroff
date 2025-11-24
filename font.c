@@ -614,9 +614,9 @@ struct font *font_open(char *path)
 		return NULL;
 	fn = malloc(sizeof(*fn));
 	memset(fn, 0, sizeof(*fn));
-	fn->gl_dict = dict_make(-1, 1, 0);
-	fn->ch_dict = dict_make(-1, 1, 0);
-	fn->ch_map = dict_make(-1, 1, 0);
+	fn->gl_dict = dict_make(1024, 1);
+	fn->ch_dict = dict_make(1024, 1);
+	fn->ch_map = dict_make(1024, 1);
 	fn->ggrp = iset_make();
 	fn->ggrp_rev = iset_make();
 	while (fscanf(fin, "%127s", tok) == 1) {

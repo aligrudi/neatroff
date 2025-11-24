@@ -93,7 +93,8 @@ static int fmt_wordscopy(struct fmt *f, int beg, int end,
 	*els_pos = 0;
 	for (i = beg; i < end; i++) {
 		wcur = &f->words[i];
-		sbuf_printf(s, "%ch'%du'", c_ec, wcur->gap);
+		if (wcur->gap)
+			sbuf_printf(s, "%ch'%du'", c_ec, wcur->gap);
 		sbuf_append(s, wcur->s);
 		w += wcur->wid + wcur->gap;
 		if (wcur->elsn < *els_neg)
@@ -468,21 +469,12 @@ static int fmt_hydepth(struct fmt *f, int pos)
 	return n;
 }
 
-static long hycost(int depth)
-{
-	if (n_hlm > 0 && depth > n_hlm)
-		return 10000000;
-	if (depth >= 3)
-		return n_hycost + n_hycost2 + n_hycost3;
-	if (depth == 2)
-		return n_hycost + n_hycost2;
-	return depth ? n_hycost : 0;
-}
-
 static void fmt_compute(struct fmt *f, int end)
 {
 	int llen = MAX(1, FMT_LLEN(f));
 	int i, pos;
+	int ssh0 = n_ssh, hlm0 = n_hlm;
+	int hycost[] = {n_hycost, n_hycost + n_hycost2, n_hycost + n_hycost2 + n_hycost3};
 	for (pos = 1; pos <= end; pos++) {
 		int lwid = 0;		/* current line length */
 		int swid = 0;		/* amount of stretchable spaces */
@@ -502,14 +494,19 @@ static void fmt_compute(struct fmt *f, int end)
 				swid += f->words[i + 1].gap;
 				nspc++;
 			}
-			if (lwid > llen + swid * n_ssh / 100 && i + 1 < pos)
+			if (lwid > llen + swid * ssh0 / 100 && i + 1 < pos)
 				break;
 			dwid = swid;
 			if (!dwid && i > 0)	/* no stretchable spaces */
 				dwid = f->words[i - 1].swid;
 			cur = f->best[i] + FMT_COST(llen, lwid, dwid, nspc);
-			if (hyphenated)
-				cur += hycost(1 + fmt_hydepth(f, i));
+			if (hyphenated) {
+				int dep = fmt_hydepth(f, i);
+				if (hlm0 <= 0 || dep < hlm0)
+					cur += hycost[MIN(dep, LEN(hycost) - 1)];
+				else
+					cur += 10000000;
+			}
 			if (f->best_pos[pos] < 0 || cur + f->words[pos - 1].cost < f->best[pos]) {
 				f->best_pos[pos] = i;
 				f->best_dep[pos] = f->best_dep[i] + 1;

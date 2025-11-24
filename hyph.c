@@ -15,7 +15,7 @@ static int hcode_mapchar(char *s);
 static char hwword[HYPATLEN];	/* buffer for .hw words */
 static char hwhyph[HYPATLEN];	/* buffer for .hw hyphenations */
 static int hwword_len;		/* used hwword[] length */
-static struct dict *hwdict;	/* map words to their index in hwoff[] */
+static struct pref *hwpref;	/* map words to their index in hwoff[] */
 static int hwoff[NHYPHS];	/* the offset of words in hwword[] */
 static int hw_n;		/* the number of dictionary words */
 
@@ -80,7 +80,7 @@ static void hw_add(char *s)
 	}
 	p[i] = '\0';
 	hwoff[hw_n] = hwword_len;
-	dict_put(hwdict, hwword + hwoff[hw_n], hw_n);
+	pref_put(hwpref, hwword + hwoff[hw_n], hw_n);
 	hwword_len += i + 1;
 	hw_n++;
 }
@@ -95,7 +95,7 @@ static int hw_lookup(char *word, char *hyph)
 	hcode_strcpy(word2, word, map, 0);
 	while (word2[off] == '.')	/* skip unknown characters at the front */
 		off++;
-	i = dict_prefix(hwdict, word2 + off, &idx);
+	i = pref_prefix(hwpref, word2 + off, &idx);
 	if (i < 0)
 		return 1;
 	hyph2 = hwhyph + hwoff[i];
@@ -128,7 +128,7 @@ static int hyinit;		/* hyphenation data initialized */
 static char hypats[HYPATLEN];	/* hyphenation patterns */
 static char hynums[HYPATLEN];	/* hyphenation pattern numbers */
 static int hypats_len;		/* used hypats[] and hynums[] length */
-static struct dict *hydict;	/* map patterns to their index in hyoff[] */
+static struct pref *hypref;	/* map patterns to their index in hyoff[] */
 static int hyoff[NHYPHS];	/* the offset of this pattern in hypats[] */
 static int hy_n;		/* the number of patterns */
 
@@ -139,7 +139,7 @@ static void hy_find(char *s, char *n)
 	char *p, *np;
 	int i, j;
 	int idx = -1;
-	while ((i = dict_prefix(hydict, s, &idx)) >= 0) {
+	while ((i = pref_prefix(hypref, s, &idx)) >= 0) {
 		p = hypats + hyoff[i];
 		np = hynums + (p - hypats);
 		plen = strlen(p) + 1;
@@ -192,7 +192,7 @@ static void hy_add(char *s)
 	}
 	p[i] = '\0';
 	hyoff[hy_n] = hypats_len;
-	dict_put(hydict, hypats + hyoff[hy_n], hy_n);
+	pref_put(hypref, hypats + hyoff[hy_n], hy_n);
 	hypats_len += i + 1;
 	hy_n++;
 }
@@ -392,17 +392,17 @@ void tr_hpfa(char **args)
 
 void hyph_init(void)
 {
-	hwdict = dict_make(-1, 0, 2);
-	hydict = dict_make(-1, 0, 2);
-	hcodedict = dict_make(-1, 0, 1);
+	hwpref = pref_make();
+	hypref = pref_make();
+	hcodedict = dict_make(1024, 0);
 }
 
 void hyph_done(void)
 {
-	if (hwdict)
-		dict_free(hwdict);
-	if (hydict)
-		dict_free(hydict);
+	if (hwpref)
+		pref_free(hwpref);
+	if (hypref)
+		pref_free(hypref);
 	if (hcodedict)
 		dict_free(hcodedict);
 }
@@ -412,11 +412,11 @@ void tr_hpf(char **args)
 	/* resetting the patterns */
 	hypats_len = 0;
 	hy_n = 0;
-	dict_free(hydict);
+	pref_free(hypref);
 	/* resetting the dictionary */
 	hwword_len = 0;
 	hw_n = 0;
-	dict_free(hwdict);
+	pref_free(hwpref);
 	/* resetting hcode mappings */
 	hcode_n = 0;
 	dict_free(hcodedict);

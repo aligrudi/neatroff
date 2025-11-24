@@ -1332,7 +1332,7 @@ void tr_init(void)
 	int i;
 	for (i = 0; i < LEN(cmds); i++)
 		str_dset(map(cmds[i].id), &cmds[i]);
-	cmap = dict_make(-1, 0, 2);
+	cmap = dict_make(1024, 0);
 }
 
 void tr_done(void)
