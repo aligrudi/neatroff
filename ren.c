@@ -491,7 +491,7 @@ void tr_ne(char **args)
 	if (!ren_first())
 		return;
 	if (!ren_traps(n_d, n_d + n - 1, 1))
-		ren_pagelimit(n);
+		ren_pagelimit(n - 1);
 }
 
 static void ren_ejectpage(int br)
