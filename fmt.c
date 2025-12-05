@@ -367,7 +367,7 @@ static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 			end -= strlen(c_nb);
 		wb_catstr(&wbc, beg, end);
 		wb_fnszget(&wbc, &cf, &cs, &cm, &ccd);
-		icost = i == n ? wb_cost(&wbc) : hygap[i] * 10000000;
+		icost = i == n ? wb_cost(wb) : hygap[i] * 10000000;
 		igap = i == 0 ? gap : hygap[i - 1] * wb_swid(&wbc);
 		fmt_wb2word(f, fmt_mkword(f), &wbc, ihy, istr, igap, icost);
 		wb_reset(&wbc);
