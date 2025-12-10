@@ -950,7 +950,7 @@ static void ren_field(struct wb *wb, int (*next)(void), void (*back)(int))
 		if (ren_until(&wbs[n++], next, back, c_fb, c_fa) != 1)
 			break;
 	}
-	left = wb == cwb ? f_hpos() : wb_wid(wb);
+	left = wb == cwb ? f_hpos() - n_lb : wb_wid(wb);
 	right = tab_next(left);
 	for (i = 0; i < n; i++)
 		wid += wb_wid(&wbs[i]);
@@ -971,7 +971,7 @@ static void ren_field(struct wb *wb, int (*next)(void), void (*back)(int))
 static void ren_tab(struct wb *wb, char *tc, int (*next)(void), void (*back)(int))
 {
 	struct wb t;
-	int pos = wb == cwb ? f_hpos() : wb_wid(wb);
+	int pos = wb == cwb ? f_hpos() - n_lb : wb_wid(wb);
 	int ins = tab_next(pos);	/* insertion position */
 	int typ = tab_type(pos);	/* tab type */
 	int c;
