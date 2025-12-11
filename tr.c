@@ -637,6 +637,11 @@ static void tr_ffsc(char **args)
 		font_lang(fn, args[3]);
 }
 
+static int nm_isnum(char *s)
+{
+	return strchr("0123456789+-(", *s) && strpbrk(s, "0123456789");
+}
+
 static void tr_nm(char **args)
 {
 	if (!args[1]) {
@@ -644,13 +649,13 @@ static void tr_nm(char **args)
 		return;
 	}
 	n_nm = 1;
-	n_ln = eval_re(args[1], n_ln, 0);
-	n_ln = MAX(0, n_ln);
-	if (args[2] && isdigit((unsigned char) args[2][0]))
+	if (nm_isnum(args[1]))
+		n_ln = MAX(0, eval_re(args[1], n_ln, 0));
+	if (args[2] && nm_isnum(args[2]))
 		n_nM = MAX(1, eval(args[2], 0));
-	if (args[3] && isdigit((unsigned char) args[3][0]))
+	if (args[3] && nm_isnum(args[3]))
 		n_nS = MAX(0, eval(args[3], 0));
-	if (args[4] && isdigit((unsigned char) args[4][0]))
+	if (args[4] && nm_isnum(args[4]))
 		n_nI = MAX(0, eval(args[4], 0));
 }
 
