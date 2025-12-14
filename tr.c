@@ -68,7 +68,8 @@ static void tr_af(char **args)
 
 static void tr_ds(char **args)
 {
-	str_set(map(args[1]), args[2] ? args[2] : "");
+	if (args[1])
+		str_set(map(args[1]), args[2] ? args[2] : "");
 }
 
 static void tr_as(char **args)
