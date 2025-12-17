@@ -85,7 +85,7 @@ char *num_str(int id)
 	if (!nregs_fmt[id])
 		nregs_fmt[id] = '0';
 	numbuf[0] = '\0';
-	if (s[0] == '.' && !s[2]) {
+	if (s[0] == '.' && s[1] && !s[2]) {
 		switch (s[1]) {
 		case 'b':
 			sprintf(numbuf, "%d", font_getbd(dev_font(n_f)));
