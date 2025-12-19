@@ -18,7 +18,7 @@
 
 #define FMT_LLEN(f)	MAX(0, (f)->ll - (f)->li - (f)->lI)
 #define FMT_FILL(f)	(!n_ce && n_u)
-#define FMT_ADJ(f)	(n_u && !n_na && !n_ce && (n_j & AD_B) == AD_B)
+#define FMT_BOTH(f)	(n_u && !n_na && !n_ce && (n_j & AD_B))
 
 static int fmt_fillwords(struct fmt *f, int br);
 
@@ -191,12 +191,12 @@ static int fmt_extractline(struct fmt *f, int end, int str)
 		return 1;
 	llen = FMT_LLEN(f);
 	w = fmt_wordslen(f, end);
-	if (str && FMT_ADJ(f) && n_j & AD_K) {
+	if (str && FMT_BOTH(f) && n_j & AD_K) {
 		fmt_keshideh(f, 0, end, llen - w);
 		w = fmt_wordslen(f, end);
 	}
 	nspc = fmt_spaces(f, end);
-	if (nspc && FMT_ADJ(f) && (llen < w || str)) {
+	if (nspc && FMT_BOTH(f) && (llen < w || str)) {
 		fmt_div = (llen - w) / nspc;
 		fmt_rem = (llen - w) % nspc;
 		if (fmt_rem < 0) {

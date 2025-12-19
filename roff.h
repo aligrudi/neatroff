@@ -312,13 +312,18 @@ int hy_cput(char *d, char *s);
 void hyph_init(void);
 void hyph_done(void);
 
-/* adjustment types */
-#define AD_C		0	/* center */
-#define AD_L		1	/* adjust left margin (flag) */
-#define AD_R		2	/* adjust right margin (flag) */
-#define AD_B		3	/* adjust both margin (mask) */
-#define AD_P		4	/* paragraph-at-once adjustment (flag) */
-#define AD_K		8	/* keshideh adjustment (flag) */
+/* adjustment flags */
+#define AD_C		0x001	/* centre */
+#define AD_L		0x002	/* left */
+#define AD_R		0x004	/* right */
+#define AD_X		0x007	/* mask for AD_C, AD_L, and AD_R */
+#define AD_B		0x010	/* adjust both margins */
+#define AD_P		0x020	/* adjust whole paragraphs */
+#define AD_K		0x040	/* keshideh adjustment */
+#define AD_LN		0x100	/* left in no-fill mode */
+#define AD_RN		0x200	/* right in no-fill mode */
+#define AD_CN		0x400	/* centre in no-fill mode */
+#define AD_XN		0x700	/* mask for AD_CN, AD_LN, and AD_RN */
 
 /* line formatting */
 struct fmt *fmt_alloc(void);

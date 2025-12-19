@@ -242,9 +242,9 @@ static int ren_ljust(struct sbuf *spre, int w, int ad, int li, int lI, int ll)
 	int ljust = li;
 	int llen = ll - lI - li;
 	n_n = w;
-	if ((ad & AD_B) == AD_C)
+	if ((ad & AD_X) == AD_C)
 		ljust += llen > w ? (llen - w) / 2 : 0;
-	if ((ad & AD_B) == AD_R)
+	if ((ad & AD_X) == AD_R)
 		ljust += llen - w;
 	if (ljust)
 		sbuf_printf(spre, "%ch'%du'", c_ec, ljust);
@@ -378,10 +378,19 @@ static int ren_passline(struct fmt *fmt)
 	if (!fmt_morewords(fmt))
 		return 0;
 	buf = fmt_nextline(fmt, &w, &li, &lI, &ll, &els_neg, &els_pos);
-	if ((n_cp && !n_u) || n_na)
-		ad = AD_L;
-	else if ((ad & AD_B) == AD_B)
-		ad = n_td > 0 ? AD_R : AD_L;
+	if (!n_u) {
+		if (n_na || n_cp || !(ad & AD_XN))
+			ad = n_td > 0 ? AD_R : AD_L;
+		if ((ad & AD_XN) == AD_CN)
+			ad = AD_C;
+		if ((ad & AD_XN) == AD_RN)
+			ad = AD_R;
+	} else {
+		if ((ad & AD_X) == 0)
+			ad = n_td > 0 ? AD_R : AD_L;
+		else
+			ad = ad & AD_X;
+	}
 	if (n_ce)
 		ad = AD_C;
 	ret = ren_line(buf, w, ad, 1, li, lI, ll, els_neg, els_pos);

@@ -328,34 +328,49 @@ static void tr_na(char **args)
 	n_na = 1;
 }
 
-static int adjmode(int c, int def)
-{
-	switch (c) {
-	case 'l':
-		return AD_L;
-	case 'r':
-		return AD_R;
-	case 'c':
-		return AD_C;
-	case 'b':
-	case 'n':
-		return AD_B;
-	case 'k':
-		return AD_B | AD_K;
-	}
-	return def;
-}
-
 static void tr_ad(char **args)
 {
 	char *s = args[1];
+	int i;
 	n_na = 0;
 	if (!s)
 		return;
-	if (isdigit((unsigned char) s[0]))
-		n_j = atoi(s) & 15;
-	else
-		n_j = s[0] == 'p' ? AD_P | adjmode(s[1], AD_B) : adjmode(s[0], n_j);
+	if (isdigit((unsigned char) s[0])) {
+		n_j = atoi(s) & 0xfff;
+	} else {
+		n_j = 0;
+		for (i = 0; s[i]; i++) {
+			switch ((unsigned char) s[i]) {
+			case 'c':
+				n_j |= AD_C;
+				break;
+			case 'l':
+				n_j |= AD_L;
+				break;
+			case 'r':
+				n_j |= AD_R;
+				break;
+			case 'b':
+				n_j |= AD_B;
+				break;
+			case 'p':
+				n_j |= AD_P | AD_B;
+				break;
+			case 'k':
+				n_j |= AD_K;
+				break;
+			case 'L':
+				n_j |= AD_LN;
+				break;
+			case 'R':
+				n_j |= AD_RN;
+				break;
+			case 'C':
+				n_j |= AD_CN;
+				break;
+			}
+		}
+	}
 }
 
 static void tr_tm(char **args)
