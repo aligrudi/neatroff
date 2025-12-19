@@ -354,7 +354,7 @@ static void tr_ad(char **args)
 				n_j |= AD_B;
 				break;
 			case 'p':
-				n_j |= AD_P | AD_B;
+				n_j |= AD_P;
 				break;
 			case 'k':
 				n_j |= AD_K;
@@ -370,6 +370,9 @@ static void tr_ad(char **args)
 				break;
 			}
 		}
+		/* if p is specified without l, r, and c, assume b */
+		if (n_j & AD_P && !(n_j & AD_X))
+			n_j |= AD_B;
 	}
 }
 
