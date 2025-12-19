@@ -76,22 +76,15 @@ static int fmt_confchanged(struct fmt *f)
 		f->lI != (n_tI >= 0 ? n_tI : n_I);
 }
 
-/* move words inside an fmt struct */
-static void fmt_movewords(struct fmt *a, int dst, int src, int len)
-{
-	memmove(a->words + dst, a->words + src, len * sizeof(a->words[0]));
-}
-
 /* move words from the buffer to s */
-static int fmt_wordscopy(struct fmt *f, int beg, int end,
-		struct sbuf *s, int *els_neg, int *els_pos)
+static int fmt_wordscopy(struct fmt *f, int end, struct sbuf *s, int *els_neg, int *els_pos)
 {
 	struct word *wcur;
 	int w = 0;
 	int i;
 	*els_neg = 0;
 	*els_pos = 0;
-	for (i = beg; i < end; i++) {
+	for (i = 0; i < end; i++) {
 		wcur = &f->words[i];
 		if (wcur->gap)
 			sbuf_printf(s, "%ch'%du'", c_ec, wcur->gap);
@@ -103,12 +96,15 @@ static int fmt_wordscopy(struct fmt *f, int beg, int end,
 			*els_pos = wcur->elsp;
 		free(wcur->s);
 	}
-	if (beg < end) {
+	if (end) {
 		wcur = &f->words[end - 1];
 		if (wcur->hy)
 			sbuf_append(s, "\\(hy");
 		w += wcur->hy;
 	}
+	f->words_n -= end;
+	f->fillreq -= end;
+	memmove(f->words, f->words + end, f->words_n * sizeof(f->words[0]));
 	return w;
 }
 
@@ -118,29 +114,29 @@ static int fmt_nlines(struct fmt *f)
 }
 
 /* the total width of the specified words in f->words[] */
-static int fmt_wordslen(struct fmt *f, int beg, int end)
+static int fmt_wordslen(struct fmt *f, int end)
 {
 	int i, w = 0;
-	for (i = beg; i < end; i++)
+	for (i = 0; i < end; i++)
 		w += f->words[i].wid + f->words[i].gap;
-	return beg < end ? w + f->words[end - 1].hy : 0;
+	return end ? w + f->words[end - 1].hy : 0;
 }
 
 /* the number of stretchable spaces in f */
-static int fmt_spaces(struct fmt *f, int beg, int end)
+static int fmt_spaces(struct fmt *f, int end)
 {
 	int i, n = 0;
-	for (i = beg + 1; i < end; i++)
+	for (i = 1; i < end; i++)
 		if (f->words[i].str)
 			n++;
 	return n;
 }
 
 /* the amount of stretchable spaces in f */
-static int fmt_spacessum(struct fmt *f, int beg, int end)
+static int fmt_spacessum(struct fmt *f, int end)
 {
 	int i, n = 0;
-	for (i = beg + 1; i < end; i++)
+	for (i = 1; i < end; i++)
 		if (f->words[i].str)
 			n += f->words[i].gap;
 	return n;
@@ -185,8 +181,8 @@ static struct line *fmt_mkline(struct fmt *f)
 
 static void fmt_keshideh(struct fmt *f, int beg, int end, int wid);
 
-/* extract words from beg to end; shrink or stretch spaces if needed */
-static int fmt_extractline(struct fmt *f, int beg, int end, int str)
+/* extract words from fmt struct; shrink or stretch spaces if needed */
+static int fmt_extractline(struct fmt *f, int end, int str)
 {
 	int fmt_div, fmt_rem;
 	int w, i, nspc, llen;
@@ -194,12 +190,12 @@ static int fmt_extractline(struct fmt *f, int beg, int end, int str)
 	if (!(l = fmt_mkline(f)))
 		return 1;
 	llen = FMT_LLEN(f);
-	w = fmt_wordslen(f, beg, end);
+	w = fmt_wordslen(f, end);
 	if (str && FMT_ADJ(f) && n_j & AD_K) {
-		fmt_keshideh(f, beg, end, llen - w);
-		w = fmt_wordslen(f, beg, end);
+		fmt_keshideh(f, 0, end, llen - w);
+		w = fmt_wordslen(f, end);
 	}
-	nspc = fmt_spaces(f, beg, end);
+	nspc = fmt_spaces(f, end);
 	if (nspc && FMT_ADJ(f) && (llen < w || str)) {
 		fmt_div = (llen - w) / nspc;
 		fmt_rem = (llen - w) % nspc;
@@ -207,45 +203,31 @@ static int fmt_extractline(struct fmt *f, int beg, int end, int str)
 			fmt_div--;
 			fmt_rem += nspc;
 		}
-		for (i = beg + 1; i < end; i++)
+		for (i = 1; i < end; i++)
 			if (f->words[i].str)
 				f->words[i].gap += fmt_div + (fmt_rem-- > 0);
 	}
-	l->wid = fmt_wordscopy(f, beg, end, &l->sbuf, &l->elsn, &l->elsp);
+	l->wid = fmt_wordscopy(f, end, &l->sbuf, &l->elsn, &l->elsp);
 	return 0;
 }
 
-static int fmt_sp(struct fmt *f)
+/* output a line break */
+static int fmt_break(struct fmt *f)
 {
-	if (fmt_fillwords(f, 1))
+	return fmt_extractline(f, f->words_n, 0);
+}
+
+/* output all collected words */
+static int fmt_flush(struct fmt *f)
+{
+	if (FMT_FILL(f) && fmt_fillwords(f, 1))
 		return 1;
-	if (fmt_extractline(f, 0, f->words_n, 0))
+	if (!FMT_FILL(f) && fmt_break(f))
 		return 1;
 	f->filled = 0;
-	f->nls--;
 	f->nls_sup = 0;
-	f->words_n = 0;
 	f->fillreq = 0;
 	return 0;
-}
-
-/* fill as many lines as possible; if br, put the remaining words in a line */
-int fmt_fill(struct fmt *f, int br)
-{
-	if (fmt_fillwords(f, br))
-		return 1;
-	if (br) {
-		f->filled = 0;
-		if (f->words_n)
-			if (fmt_sp(f))
-				return 1;
-	}
-	return 0;
-}
-
-void fmt_space(struct fmt *fmt)
-{
-	fmt->gap += font_swid(dev_font(n_f), n_s, n_ss);
 }
 
 int fmt_newline(struct fmt *f)
@@ -253,16 +235,26 @@ int fmt_newline(struct fmt *f)
 	f->gap = 0;
 	if (!FMT_FILL(f)) {
 		f->nls++;
-		fmt_sp(f);
+		fmt_flush(f);
 		return 0;
 	}
-	if (f->nls >= 1)
-		if (fmt_sp(f))
-			return 1;
-	if (f->nls == 0 && !f->filled && !f->words_n)
-		fmt_sp(f);
+	if (f->nls && fmt_flush(f))
+		return 1;
+	if ((f->nls || (!f->filled && !f->words_n)) && fmt_break(f))
+		return 1;
 	f->nls++;
 	return 0;
+}
+
+/* fill as many lines as possible; if br, put the remaining words in a line */
+int fmt_fill(struct fmt *f, int br)
+{
+	return fmt_fillwords(f, br);
+}
+
+void fmt_space(struct fmt *fmt)
+{
+	fmt->gap += font_swid(dev_font(n_f), n_s, n_ss);
 }
 
 /* format the paragraph after the next word (\p) */
@@ -396,7 +388,7 @@ int fmt_word(struct fmt *f, struct wb *wb)
 		if (fmt_fillwords(f, 0))
 			return 1;
 	if (FMT_FILL(f) && f->nls && f->gap)
-		if (fmt_sp(f))
+		if (fmt_flush(f))
 			return 1;
 	if (!f->words_n)		/* apply the new .l and .i */
 		fmt_confupdate(f);
@@ -438,6 +430,120 @@ static void fmt_keshideh(struct fmt *f, int beg, int end, int wid)
 	} while (cnt);
 }
 
+struct fmt *fmt_alloc(void)
+{
+	struct fmt *fmt = malloc(sizeof(*fmt));
+	memset(fmt, 0, sizeof(*fmt));
+	return fmt;
+}
+
+void fmt_free(struct fmt *fmt)
+{
+	int i;
+	free(fmt->lines);
+	for (i = 0; i < fmt->words_n; i++)
+		free(fmt->words[i].s);
+	free(fmt->words);
+	free(fmt);
+}
+
+int fmt_wid(struct fmt *fmt)
+{
+	return fmt_wordslen(fmt, fmt->words_n) + fmt_wordgap(fmt);
+}
+
+int fmt_morewords(struct fmt *fmt)
+{
+	return fmt_morelines(fmt) || fmt->words_n;
+}
+
+int fmt_morelines(struct fmt *fmt)
+{
+	return fmt->lines_head != fmt->lines_tail;
+}
+
+/* suppress the last newline */
+void fmt_suppressnl(struct fmt *fmt)
+{
+	if (fmt->nls) {
+		fmt->nls--;
+		fmt->nls_sup = 1;
+	}
+}
+
+/* estimated number of lines until traps or the end of a page */
+static int fmt_safelines(void)
+{
+	int lnht = MAX(1, n_L) * n_v;
+	return n_v > 0 ? (f_nexttrap() + lnht - 1) / lnht : 1000;
+}
+
+static int fmta_fill(struct word *words, int words_n, int *out, int out_n,
+	int llen, int all, int br, int nohy);
+
+/*
+ * Fill the collected words.
+ *
+ * It return 0 unless the call must be repeated for the following reasons.
+ *
+ * + Line break is necessary (br is given), but reached a trap.
+ * + Line break is necessary (br is given), but fillreq (\p) specified.
+ * + More lines can be extracted; stopped at a trap.
+ * + There is no more room for buffering new lines (no longer happens).
+ *
+ * It fills at least one line, if the distance to the next trap is zero.
+ */
+static int fmt_fillwords(struct fmt *f, int br)
+{
+	int nrem;	/* the number of lines until a trap */
+	int nreq;	/* the number of lines to emit */
+	int llen;	/* total length, taking shrinkable spaces into account */
+	int nohy = -1;	/* no hyphenation allowed on this line */
+	int out[64];	/* number of words in filled lines */
+	int out_n;	/* number of lines filled */
+	int fillreq;
+	int i, n;
+	if (!FMT_FILL(f) || !f->words_n)
+		return 0;
+	llen = fmt_wordslen(f, f->words_n) -
+		fmt_spacessum(f, f->words_n) * n_ssh / 100;
+	fillreq = f->fillreq > 0 && f->fillreq <= f->words_n ? f->fillreq : -1;
+	/* not enough words to fill */
+	if (!br && fillreq <= 0 && llen <= FMT_LLEN(f))
+		return 0;
+	/* lines until a trap or page end */
+	nreq = nrem = fmt_safelines() - fmt_nlines(f);
+	/* enough lines are collected already */
+	if (nreq <= 0 && fmt_safelines() > 0)
+		return 1;
+	if (fmt_safelines() == 0)
+		nrem = nreq = 1;
+	/* if line settings are changed, output a single line */
+	if (fmt_confchanged(f))
+		nreq = 1;
+	if (nrem > 0 && n_hy & HY_LAST)
+		nohy = nrem;
+	/* execute the filling algorithm */
+	out_n = fmta_fill(f->words, fillreq > 0 ? fillreq : f->words_n,
+		out, MIN(LEN(out), nrem), FMT_LLEN(f), fillreq > 0, br, nohy);
+	/* extract filled lines */
+	n = nreq > 0 ? MIN(nreq, out_n) : MIN(1, out_n);
+	for (i = 0; i < n; i++) {
+		int cur = out[i];
+		if (fmt_extractline(f, cur, cur != f->words_n || !br || cur == fillreq))
+			break;
+		if (f->words_n)
+			f->words[0].gap = 0;
+	}
+	f->filled = i && !f->words_n;
+	if (f->words_n)		/* apply the new .l and .i */
+		fmt_confupdate(f);
+	return i < out_n || fillreq > 0 || (br && f->words_n) ||
+		(n == nreq && fmt_wordslen(f, f->words_n) > FMT_LLEN(f));
+}
+
+/* Line Filling Algorithm */
+
 /* approximate 8 * sqrt(cost) */
 static long scaledown(long cost)
 {
@@ -461,274 +567,132 @@ static long FMT_COST(int llen, int lwid, int swid, int nspc)
 }
 
 /* the number of hyphenations in consecutive lines ending at pos */
-static int fmt_hydepth(struct fmt *f, int pos)
+static int fmt_hydepth(struct word *words, int *best_pos, int pos)
 {
 	int n = 0;
-	while (pos > 0 && f->words[pos - 1].hy && ++n < 5)
-		pos = f->best_pos[pos];
+	while (pos > 0 && words[pos - 1].hy && ++n < 5)
+		pos = best_pos[pos];
 	return n;
 }
 
-static void fmt_compute(struct fmt *f, int end)
+/* return the first word of the last filled line */
+static int fmta_last(struct word *words, int words_n, int llen, int br,
+		int nohy, long *best, int *best_pos, int *best_dep)
 {
-	int llen = MAX(1, FMT_LLEN(f));
-	int i, pos;
+	int last = -1;
+	long cost, last_cost = 0;
+	int lwid = 0;		/* current line length */
+	int swid = 0;		/* amount of stretchable spaces */
+	int nspc = 0;		/* number of stretchable spaces */
+	int pos = words_n;
+	int i = pos - 1;
+	if (words[i].hy)	/* the last word is hyphenated */
+		lwid += words[i].hy;
+	while (i >= 0) {
+		lwid += words[i].wid;
+		if (i + 1 < pos)
+			lwid += words[i + 1].gap;
+		if (i + 1 < pos && words[i + 1].str) {
+			swid += words[i + 1].gap;
+			nspc++;
+		}
+		if (lwid > llen + swid * n_ssh / 100)
+			break;
+		cost = best[i];
+		/* the cost of formatting short lines; should prevent widows */
+		if (br && n_pmll && lwid < llen * n_pmll / 100) {
+			int pmll = llen * n_pmll / 100;
+			cost += (long) n_pmllcost * (pmll - lwid) / pmll;
+		}
+		if (last < 0 || cost < last_cost) {
+			last = i;
+			last_cost = cost;
+		}
+		i--;
+	}
+	return last >= 0 ? last : pos - 1;
+}
+
+/* return the last filled word */
+static int fmta_break(int *best_pos, int pos, int *out, int nreq)
+{
+	int beg = pos > 0 ? best_pos[pos] : 0;
+	int idx = beg > 0 ? fmta_break(best_pos, beg, out, nreq) : 0;
+	if (idx < nreq)
+		out[idx] = pos - beg;
+	return pos > 0 ? idx + 1 : 0;
+}
+
+/*
+ * Fill the given words and return the number of filled lines.
+ *
+ * Parameters:
+ * + nreq: the maximum number of lines to return (the size of the out array).
+ * + all: put all words in filled lines.
+ * + br: the last line is not filled.
+ * + nohy: the index of the line that must not be hyphenated.
+ * + out: the number of words in each of the filled output lines.
+ */
+static int fmta_fill(struct word *words, int words_n, int *out, int out_n,
+	int llen, int all, int br, int nohy)
+{
 	int ssh0 = n_ssh, hlm0 = n_hlm;
 	int hycost[] = {n_hycost, n_hycost + n_hycost2, n_hycost + n_hycost2 + n_hycost3};
-	for (pos = 1; pos <= end; pos++) {
+	long *best = malloc((words_n + 1) * sizeof(best[0]));
+	int *best_pos = malloc((words_n + 1) * sizeof(best_pos[0]));
+	int *best_dep = malloc((words_n + 1) * sizeof(best_dep[0]));
+	int last = words_n;	/* beginning of the last line */
+	int cnt;		/* filled line count */
+	int i, pos;
+	for (i = 0; i < words_n + 1; i++)
+		best_pos[i] = -1;
+	for (pos = 1; pos <= words_n; pos++) {
 		int lwid = 0;		/* current line length */
 		int swid = 0;		/* amount of stretchable spaces */
 		int nspc = 0;		/* number of stretchable spaces */
 		int dwid = 0;		/* equal to swid, unless swid is zero */
-		int hyphenated = f->words[pos - 1].hy != 0;
-		if (f->best_pos[pos] >= 0)
-			continue;
-		lwid = f->words[pos - 1].hy;	/* non-zero if the last word is hyphenated */
+		int hyphenated = words[pos - 1].hy != 0;
+		lwid = words[pos - 1].hy;	/* non-zero if the last word is hyphenated */
 		i = pos - 1;
 		while (i >= 0) {
 			long cur;
-			lwid += f->words[i].wid;
+			lwid += words[i].wid;
 			if (i + 1 < pos)
-				lwid += f->words[i + 1].gap;
-			if (i + 1 < pos && f->words[i + 1].str) {
-				swid += f->words[i + 1].gap;
+				lwid += words[i + 1].gap;
+			if (i + 1 < pos && words[i + 1].str) {
+				swid += words[i + 1].gap;
 				nspc++;
 			}
 			if (lwid > llen + swid * ssh0 / 100 && i + 1 < pos)
 				break;
 			dwid = swid;
 			if (!dwid && i > 0)	/* no stretchable spaces */
-				dwid = f->words[i - 1].swid;
-			cur = f->best[i] + FMT_COST(llen, lwid, dwid, nspc);
+				dwid = words[i - 1].swid;
+			cur = best[i] + FMT_COST(llen, lwid, dwid, nspc);
+			if (hyphenated && best_dep[i] + 1 == nohy)
+					cur += 10000000;
 			if (hyphenated) {
-				int dep = fmt_hydepth(f, i);
+				int dep = fmt_hydepth(words, best_pos, i);
 				if (hlm0 <= 0 || dep < hlm0)
 					cur += hycost[MIN(dep, LEN(hycost) - 1)];
 				else
 					cur += 10000000;
 			}
-			if (f->best_pos[pos] < 0 || cur + f->words[pos - 1].cost < f->best[pos]) {
-				f->best_pos[pos] = i;
-				f->best_dep[pos] = f->best_dep[i] + 1;
-				f->best[pos] = cur + f->words[pos - 1].cost;
+			if (best_pos[pos] < 0 || cur + words[pos - 1].cost < best[pos]) {
+				best_pos[pos] = i;
+				best_dep[pos] = best_dep[i] + 1;
+				best[pos] = cur + words[pos - 1].cost;
 			}
 			i--;
 		}
 	}
-}
-
-static long fmt_bestcost(struct fmt *f, int pos)
-{
-	if (pos > 0 && f->best_pos[pos] < 0)
-		fmt_compute(f, pos);
-	return f->best[pos];
-}
-
-static int fmt_bestpos(struct fmt *f, int pos)
-{
-	fmt_bestcost(f, pos);
-	return MAX(0, f->best_pos[pos]);
-}
-
-static int fmt_bestdep(struct fmt *f, int pos)
-{
-	fmt_bestcost(f, pos);
-	return MAX(0, f->best_dep[pos]);
-}
-
-/* return the last filled word */
-static int fmt_breakparagraph(struct fmt *f, int pos, int br)
-{
-	int i;
-	int best = -1;
-	long cost, best_cost = 0;
-	int llen = FMT_LLEN(f);
-	int lwid = 0;		/* current line length */
-	int swid = 0;		/* amount of stretchable spaces */
-	int nspc = 0;		/* number of stretchable spaces */
-	if (f->fillreq > 0 && f->fillreq <= f->words_n)
-		return f->fillreq;
-	if (pos > 0 && f->words[pos - 1].wid >= llen)
-		return pos;
-	i = pos - 1;
-	lwid = 0;
-	if (f->words[i].hy)	/* the last word is hyphenated */
-		lwid += f->words[i].hy;
-	while (i >= 0) {
-		lwid += f->words[i].wid;
-		if (i + 1 < pos)
-			lwid += f->words[i + 1].gap;
-		if (i + 1 < pos && f->words[i + 1].str) {
-			swid += f->words[i + 1].gap;
-			nspc++;
-		}
-		if (lwid > llen && i + 1 < pos)
-			break;
-		cost = fmt_bestcost(f, i);
-		/* the cost of formatting short lines; should prevent widows */
-		if (br && n_pmll && lwid < llen * n_pmll / 100) {
-			int pmll = llen * n_pmll / 100;
-			cost += (long) n_pmllcost * (pmll - lwid) / pmll;
-		}
-		if (best < 0 || cost < best_cost) {
-			best = i;
-			best_cost = cost;
-		}
-		i--;
-	}
-	return best;
-}
-
-/* extract the first nreq formatted lines before the word at pos */
-static int fmt_head(struct fmt *f, int nreq, int pos, int nohy)
-{
-	int best = pos;		/* best line break for nreq-th line */
-	int prev, next;		/* best line breaks without hyphenation */
-	if (nreq <= 0 || fmt_bestdep(f, pos) < nreq)
-		return pos;
-	/* finding the optimal line break for nreq-th line */
-	while (best > 0 && fmt_bestdep(f, best) > nreq)
-		best = fmt_bestpos(f, best);
-	prev = best;
-	next = best;
-	if (!nohy)
-		return best;
-	/* finding closest line breaks without hyphenation */
-	while (prev > 1 && f->words[prev - 1].hy &&
-			fmt_bestdep(f, prev - 1) == nreq)
-		prev--;
-	while (next < pos && f->words[next - 1].hy &&
-			fmt_bestdep(f, next) == nreq)
-		next++;
-	/* choosing the best of them */
-	if (!f->words[prev - 1].hy && !f->words[next - 1].hy)
-		return fmt_bestcost(f, prev) <= fmt_bestcost(f, next) ? prev : next;
-	if (!f->words[prev - 1].hy)
-		return prev;
-	if (!f->words[next - 1].hy)
-		return next;
-	return best;
-}
-
-/* break f->words[0..end] into lines according to fmt_bestpos() */
-static int fmt_break(struct fmt *f, int end)
-{
-	int beg, ret = 0;
-	beg = fmt_bestpos(f, end);
-	if (beg > 0)
-		ret += fmt_break(f, beg);
-	f->words[beg].gap = 0;
-	if (fmt_extractline(f, beg, end, 1))
-		return ret;
-	if (beg > 0)
-		fmt_confupdate(f);
-	return ret + (end - beg);
-}
-
-/* estimated number of lines until traps or the end of a page */
-static int fmt_safelines(void)
-{
-	int lnht = MAX(1, n_L) * n_v;
-	return n_v > 0 ? (f_nexttrap() + lnht - 1) / lnht : 1000;
-}
-
-/* fill the words collected in the buffer */
-static int fmt_fillwords(struct fmt *f, int br)
-{
-	int nrem;	/* the number of lines until a trap */
-	int nreq;	/* the number of lines to emit */
-	int end;	/* the final line ends before this word */
-	int end_head;	/* like end, but only the first nreq lines included */
-	int head = 0;	/* only nreq first lines have been formatted */
-	int llen;	/* total length, taking shrinkable spaces into account */
-	int n, i;
-	if (!FMT_FILL(f))
-		return 0;
-	llen = fmt_wordslen(f, 0, f->words_n) -
-		fmt_spacessum(f, 0, f->words_n) * n_ssh / 100;
-	/* not enough words to fill */
-	if ((f->fillreq <= 0 || f->words_n < f->fillreq) && llen <= FMT_LLEN(f))
-		return 0;
-	/* lines until a trap or page end */
-	nreq = nrem = fmt_safelines();
-	/* if line settings are changed, output a single line */
-	if (fmt_confchanged(f))
-		nreq = 1;
-	/* enough lines are collected already */
-	if (nreq > 0 && nreq <= fmt_nlines(f))
-		return 1;
-	/* resetting positions */
-	f->best = malloc((f->words_n + 1) * sizeof(f->best[0]));
-	f->best_pos = malloc((f->words_n + 1) * sizeof(f->best_pos[0]));
-	f->best_dep = malloc((f->words_n + 1) * sizeof(f->best_dep[0]));
-	memset(f->best, 0, (f->words_n + 1) * sizeof(f->best[0]));
-	memset(f->best_dep, 0, (f->words_n + 1) * sizeof(f->best_dep[0]));
-	for (i = 0; i < f->words_n + 1; i++)
-		f->best_pos[i] = -1;
-	end = fmt_breakparagraph(f, f->words_n, br);
-	if (nreq > 0) {
-		/* do not hyphenate the last line */
-		int nohy = n_hy & HY_LAST && nreq == nrem;
-		end_head = fmt_head(f, nreq - fmt_nlines(f), end, nohy);
-		head = end_head < end;
-		end = end_head;
-	}
-	/* recursively add lines */
-	n = end > 0 ? fmt_break(f, end) : 0;
-	f->words_n -= n;
-	f->fillreq -= n;
-	fmt_movewords(f, 0, n, f->words_n);
-	f->filled = n && !f->words_n;
-	if (f->words_n)
-		f->words[0].gap = 0;
-	if (f->words_n)		/* apply the new .l and .i */
-		fmt_confupdate(f);
-	free(f->best);
-	free(f->best_pos);
-	free(f->best_dep);
-	f->best = NULL;
-	f->best_pos = NULL;
-	f->best_dep = NULL;
-	return head || n != end;
-}
-
-struct fmt *fmt_alloc(void)
-{
-	struct fmt *fmt = malloc(sizeof(*fmt));
-	memset(fmt, 0, sizeof(*fmt));
-	return fmt;
-}
-
-void fmt_free(struct fmt *fmt)
-{
-	int i;
-	free(fmt->lines);
-	for (i = 0; i < fmt->words_n; i++)
-		free(fmt->words[i].s);
-	free(fmt->words);
-	free(fmt);
-}
-
-int fmt_wid(struct fmt *fmt)
-{
-	return fmt_wordslen(fmt, 0, fmt->words_n) + fmt_wordgap(fmt);
-}
-
-int fmt_morewords(struct fmt *fmt)
-{
-	return fmt_morelines(fmt) || fmt->words_n;
-}
-
-int fmt_morelines(struct fmt *fmt)
-{
-	return fmt->lines_head != fmt->lines_tail;
-}
-
-/* suppress the last newline */
-void fmt_suppressnl(struct fmt *fmt)
-{
-	if (fmt->nls) {
-		fmt->nls--;
-		fmt->nls_sup = 1;
-	}
+	if (!all)
+		last = fmta_last(words, words_n, llen, br, nohy, best, best_pos, best_dep);
+	cnt = fmta_break(best_pos, last, out, out_n);
+	if (!all && cnt < out_n && br && last < words_n)
+		out[cnt++] = words_n - last;
+	free(best);
+	free(best_dep);
+	free(best_pos);
+	return MIN(out_n, cnt);
 }
