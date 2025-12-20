@@ -644,7 +644,10 @@ static int fmta_fill(struct word *words, int words_n, int *out, int out_n,
 	int last = words_n;	/* beginning of the last line */
 	int cnt;		/* filled line count */
 	int i, pos;
-	for (i = 0; i < words_n + 1; i++)
+	best_pos[0] = 0;
+	best_dep[0] = 0;
+	best[0] = 0;
+	for (i = 1; i < words_n + 1; i++)
 		best_pos[i] = -1;
 	for (pos = 1; pos <= words_n; pos++) {
 		int lwid = 0;		/* current line length */
@@ -670,7 +673,7 @@ static int fmta_fill(struct word *words, int words_n, int *out, int out_n,
 				dwid = words[i - 1].swid;
 			cur = best[i] + FMT_COST(llen, lwid, dwid, nspc);
 			if (hyphenated && best_dep[i] + 1 == nohy)
-					cur += 10000000;
+				cur += 10000000;
 			if (hyphenated) {
 				int dep = fmt_hydepth(words, best_pos, i);
 				if (hlm0 <= 0 || dep < hlm0)
