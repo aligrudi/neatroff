@@ -141,7 +141,7 @@ int pref_prefix(struct pref *d, char *key, int *idx);
 extern int dev_res;
 extern int dev_uwid;
 extern int dev_hor;
-extern int dev_ver;
+extern int dev_vert;
 
 struct glyph {
 	char id[GNLEN];		/* device-dependent glyph identifier */
