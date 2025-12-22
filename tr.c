@@ -356,6 +356,9 @@ static void tr_ad(char **args)
 			case 'p':
 				n_j |= AD_P;
 				break;
+			case 'q':
+				n_j |= AD_Q;
+				break;
 			case 'k':
 				n_j |= AD_K;
 				break;

@@ -31,6 +31,7 @@ struct word {
 	int str;	/* does the space before it stretch */
 	int cost;	/* the extra cost of line break after this word */
 	int swid;	/* space width after this word (i.e., \w' ') */
+	int totwid, totswid, totscnt;	/* width of words in fmt.words[] */
 };
 
 struct line {
@@ -114,32 +115,24 @@ static int fmt_nlines(struct fmt *f)
 }
 
 /* the total width of the specified words in f->words[] */
-static int fmt_wordslen(struct fmt *f, int end)
+static int fmt_totwid(struct fmt *f, int end)
 {
-	int i, w = 0;
-	for (i = 0; i < end; i++)
-		w += f->words[i].wid + f->words[i].gap;
-	return end ? w + f->words[end - 1].hy : 0;
+	if (!end)
+		return 0;
+	return f->words[end - 1].totwid - f->words[0].totwid +
+		f->words[0].wid + f->words[end - 1].hy;
 }
 
 /* the number of stretchable spaces in f */
-static int fmt_spaces(struct fmt *f, int end)
+static int fmt_scnt(struct fmt *f, int end)
 {
-	int i, n = 0;
-	for (i = 1; i < end; i++)
-		if (f->words[i].str)
-			n++;
-	return n;
+	return end ? f->words[end - 1].totscnt - f->words[0].totscnt : 0;
 }
 
 /* the amount of stretchable spaces in f */
-static int fmt_spacessum(struct fmt *f, int end)
+static int fmt_totswid(struct fmt *f, int end)
 {
-	int i, n = 0;
-	for (i = 1; i < end; i++)
-		if (f->words[i].str)
-			n += f->words[i].gap;
-	return n;
+	return end ? f->words[end - 1].totswid - f->words[0].totswid : 0;
 }
 
 /* return the next line in the buffer */
@@ -190,12 +183,12 @@ static int fmt_extractline(struct fmt *f, int end, int str)
 	if (!(l = fmt_mkline(f)))
 		return 1;
 	llen = FMT_LLEN(f);
-	w = fmt_wordslen(f, end);
+	w = fmt_totwid(f, end);
 	if (str && FMT_BOTH(f) && n_j & AD_K) {
 		fmt_keshideh(f, 0, end, llen - w);
-		w = fmt_wordslen(f, end);
+		w = fmt_totwid(f, end);
 	}
-	nspc = fmt_spaces(f, end);
+	nspc = fmt_scnt(f, end);
 	if (nspc && FMT_BOTH(f) && (llen < w || str)) {
 		fmt_div = (llen - w) / nspc;
 		fmt_rem = (llen - w) % nspc;
@@ -267,10 +260,17 @@ int fmt_fillreq(struct fmt *f)
 	return 0;
 }
 
-static void fmt_wb2word(struct fmt *f, struct word *word, struct wb *wb,
-			int hy, int str, int gap, int cost)
+static void fmt_wb2word(struct fmt *f, struct wb *wb, int hy, int str, int gap, int cost)
 {
 	int len = strlen(wb_buf(wb));
+	struct word *word, *prev;
+	if (f->words_n == f->words_sz) {
+		f->words_sz += 256;
+		f->words = mextend(f->words, f->words_n,
+			f->words_sz, sizeof(f->words[0]));
+	}
+	word = &f->words[f->words_n++];
+	prev = f->words_n > 1 ? &f->words[f->words_n - 2] : NULL;
 	word->s = malloc(len + 1);
 	memcpy(word->s, wb_buf(wb), len + 1);
 	word->wid = wb_wid(wb);
@@ -281,6 +281,9 @@ static void fmt_wb2word(struct fmt *f, struct word *word, struct wb *wb,
 	word->gap = gap;
 	word->cost = cost;
 	word->swid = wb_swid(wb);
+	word->totwid = (prev ? prev->totwid : 0) + word->wid + word->gap;
+	word->totswid = (prev ? prev->totswid : 0) + (str ? gap : 0);
+	word->totscnt = (prev ? prev->totscnt : 0) + (str != 0);
 }
 
 /* find explicit break positions: dashes, \:, \%, and \~ */
@@ -317,16 +320,6 @@ static int fmt_hyphmarks(char *word, int *hyidx, int *hyins, int *hygap)
 	return n;
 }
 
-static struct word *fmt_mkword(struct fmt *f)
-{
-	if (f->words_n == f->words_sz) {
-		f->words_sz += 256;
-		f->words = mextend(f->words, f->words_n,
-			f->words_sz, sizeof(f->words[0]));
-	}
-	return &f->words[f->words_n++];
-}
-
 static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 {
 	int hyidx[NHYPHSWORD];		/* sub-word boundaries */
@@ -340,7 +333,7 @@ static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 	int cf, cs, cm, ccd;
 	n = fmt_hyphmarks(src, hyidx, hyins, hygap);
 	if (n <= 0) {
-		fmt_wb2word(f, fmt_mkword(f), wb, 0, 1, gap, wb_cost(wb));
+		fmt_wb2word(f, wb, 0, 1, gap, wb_cost(wb));
 		return;
 	}
 	/* update f->fillreq considering the new sub-words */
@@ -361,7 +354,7 @@ static void fmt_insertword(struct fmt *f, struct wb *wb, int gap)
 		wb_fnszget(&wbc, &cf, &cs, &cm, &ccd);
 		icost = i == n ? wb_cost(wb) : hygap[i] * 10000000;
 		igap = i == 0 ? gap : hygap[i - 1] * wb_swid(&wbc);
-		fmt_wb2word(f, fmt_mkword(f), &wbc, ihy, istr, igap, icost);
+		fmt_wb2word(f, &wbc, ihy, istr, igap, icost);
 		wb_reset(&wbc);
 		wb_fnszset(&wbc, cf, cs, cm, ccd);	/* restoring wbc */
 	}
@@ -449,7 +442,7 @@ void fmt_free(struct fmt *fmt)
 
 int fmt_wid(struct fmt *fmt)
 {
-	return fmt_wordslen(fmt, fmt->words_n) + fmt_wordgap(fmt);
+	return fmt_totwid(fmt, fmt->words_n) + fmt_wordgap(fmt);
 }
 
 int fmt_morewords(struct fmt *fmt)
@@ -480,6 +473,8 @@ static int fmt_safelines(void)
 
 static int fmta_fill(struct word *words, int words_n, int *out, int out_n,
 	int llen, int all, int br, int nohy);
+static int fmtb_fill(struct word *words, int words_n, int *out, int out_n,
+	int llen, int all, int br, int nohy);
 
 /*
  * Fill the collected words.
@@ -505,8 +500,8 @@ static int fmt_fillwords(struct fmt *f, int br)
 	int i, n;
 	if (!FMT_FILL(f) || !f->words_n)
 		return 0;
-	llen = fmt_wordslen(f, f->words_n) -
-		fmt_spacessum(f, f->words_n) * n_ssh / 100;
+	llen = fmt_totwid(f, f->words_n) -
+		fmt_totswid(f, f->words_n) * n_ssh / 100;
 	fillreq = f->fillreq > 0 && f->fillreq <= f->words_n ? f->fillreq : -1;
 	/* not enough words to fill */
 	if (!br && fillreq <= 0 && llen <= FMT_LLEN(f))
@@ -524,8 +519,13 @@ static int fmt_fillwords(struct fmt *f, int br)
 	if (nrem > 0 && n_hy & HY_LAST)
 		nohy = nrem;
 	/* execute the filling algorithm */
-	out_n = fmta_fill(f->words, fillreq > 0 ? fillreq : f->words_n,
-		out, MIN(LEN(out), nrem), FMT_LLEN(f), fillreq > 0, br, nohy);
+	if (n_j & AD_Q) {
+		out_n = fmtb_fill(f->words, fillreq > 0 ? fillreq : f->words_n,
+			out, MIN(LEN(out), nrem), FMT_LLEN(f), fillreq > 0, br, nohy);
+	} else {
+		out_n = fmta_fill(f->words, fillreq > 0 ? fillreq : f->words_n,
+			out, MIN(LEN(out), nrem), FMT_LLEN(f), fillreq > 0, br, nohy);
+	}
 	/* extract filled lines */
 	n = nreq > 0 ? MIN(nreq, out_n) : MIN(1, out_n);
 	for (i = 0; i < n; i++) {
@@ -539,10 +539,10 @@ static int fmt_fillwords(struct fmt *f, int br)
 	if (f->words_n)		/* apply the new .l and .i */
 		fmt_confupdate(f);
 	return i < out_n || fillreq > 0 || (br && f->words_n) ||
-		(n == nreq && fmt_wordslen(f, f->words_n) > FMT_LLEN(f));
+		(n == nreq && fmt_totwid(f, f->words_n) > FMT_LLEN(f));
 }
 
-/* Line Filling Algorithm */
+/* Algorithm A for filling lines */
 
 /* approximate 8 * sqrt(cost) */
 static long scaledown(long cost)
@@ -698,4 +698,99 @@ static int fmta_fill(struct word *words, int words_n, int *out, int out_n,
 	free(best_dep);
 	free(best_pos);
 	return MIN(out_n, cnt);
+}
+
+/* Algorithm B for filling lines */
+
+static long fmtb_cost(struct word *words, int words_n, int llen, int br, int nohy, int *end, int cnt)
+{
+	int hycost[] = {n_hycost, n_hycost + n_hycost2, n_hycost + n_hycost2 + n_hycost3};
+	long cost = 0;
+	int pos = 0;
+	int hydep = 0;
+	int i;
+	for (i = 0; i < cnt; i++) {
+		struct word *w = &words[end[i] - 1];
+		int lwid = words[end[i] - 1].totwid - words[pos].totwid + words[pos].wid;
+		int swid = words[end[i] - 1].totswid - words[pos].totswid;
+		int scnt = words[end[i] - 1].totscnt - words[pos].totscnt;
+		long cur = 0;
+		if (br && i == cnt - 1) {
+			int pmll = llen * n_pmll / 100;
+			if (n_pmll && lwid < llen * n_pmll / 100)
+				cur += (long) n_pmllcost * (pmll - lwid) / pmll;
+		} else {
+			cur += FMT_COST(llen, lwid, swid ? swid : 1, scnt);
+			cur += w->cost;
+			hydep = w->hy ? hydep + 1 : 0;
+			if (w->hy && i + 1 == nohy)
+				cur += 10000000;
+			if (w->hy) {
+				if (n_hlm <= 0 || hydep < n_hlm)
+					cur += hycost[MIN(hydep, LEN(hycost) - 1)];
+				else
+					cur += 10000000;
+			}
+		}
+		cost += cur;
+		pos = end[i];
+	}
+	return cost;
+}
+
+static int fmtb_fill(struct word *words, int words_n, int *out, int out_n,
+	int llen, int all, int br, int nohy)
+{
+	int end[128];		/* line end index */
+	int cnt = 0;		/* number of lines */
+	int pos = 0;		/* current word */
+	int i, j;
+	/* filling lines */
+	while (pos < words_n && cnt < LEN(end)) {
+		int best = pos + 1;
+		for (i = pos + 1; i <= words_n; i++) {
+			int lwid = words[i - 1].totwid - words[pos].totwid + words[pos].wid;
+			int swid = words[i - 1].totswid - words[pos].totswid;
+			lwid += words[i - 1].hy;
+			if (lwid > llen + swid * n_ssh / 100)
+				break;
+			best = i;
+		}
+		if (i > words_n && !br && !all)
+			break;
+		end[cnt++] = best;
+		pos = best;
+	}
+	/* reducing the cost */
+	while (cnt > 0) {
+		long cost = fmtb_cost(words, words_n, llen, br, nohy, end, cnt);
+		for (i = 0; i < cnt; i++) {
+			int wcnt = i ? end[i] - end[i - 1] : end[i];
+			long best_cost = cost;
+			int best = -1;
+			for (j = 1; j < wcnt; j++) {
+				long cost2;
+				end[i] -= j;
+				cost2 = fmtb_cost(words, words_n, llen, br, nohy, end, cnt);
+				if (cost2 < best_cost) {
+					best = j;
+					best_cost = cost2;
+				}
+				end[i] += j;
+				/* stop at a non-hyphenated word */
+				if (!words[end[i] - j - 1].hy)
+					break;
+			}
+			if (best >= 0) {
+				end[i] -= best;
+				break;
+			}
+		}
+		if (i == cnt)
+			break;
+	}
+	out_n = MIN(cnt, out_n);
+	for (i = 0; i < out_n; i++)
+		out[i] = i > 0 ? end[i] - end[i - 1] : end[i];
+	return out_n;
 }

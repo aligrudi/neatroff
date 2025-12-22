@@ -320,6 +320,7 @@ void hyph_done(void);
 #define AD_B		0x010	/* adjust both margins */
 #define AD_P		0x020	/* adjust whole paragraphs */
 #define AD_K		0x040	/* keshideh adjustment */
+#define AD_Q		0x080	/* alternative filling algorithm */
 #define AD_LN		0x100	/* left in no-fill mode */
 #define AD_RN		0x200	/* right in no-fill mode */
 #define AD_CN		0x400	/* centre in no-fill mode */
