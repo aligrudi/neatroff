@@ -99,11 +99,11 @@ int main(int argc, char **argv)
 	char *mac, *def;
 	int reg, ret;
 	int i;
-	if (dev == NULL)
+	if (!dev)
 		dev = "utf";
-	if (fdir == NULL)
+	if (!fdir)
 		fdir = TROFFFDIR;
-	if (mdir == NULL)
+	if (!mdir)
 		mdir = TROFFMDIR;
 	for (i = 1; i < argc; i++) {
 		if (argv[i][0] != '-' || !argv[i][1])
