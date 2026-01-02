@@ -1,4 +1,5 @@
 /* font handling */
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,7 +45,6 @@ struct font {
 	int scrp;			/* current script */
 	char lang_name[NLANGS][8];	/* language names */
 	int lang;			/* current language */
-	int secs;			/* number of font sections (OFF lookups) */
 	/* glyph substitution and positioning */
 	struct grule *gsub;		/* glyph substitution rules */
 	int gsub_n, gsub_sz;
@@ -293,7 +293,7 @@ int font_layout(struct font *fn, struct glyph **gsrc, int nsrc, int sz,
 	int dst[WORDLEN];
 	int ndst = nsrc;
 	int i;
-	int featlg, featkn;
+	int featlg = 0, featkn = 0;
 	/* initialising dst */
 	for (i = 0; i < nsrc; i++)
 		dst[i] = font_idx(fn, gsrc[i]);
@@ -390,7 +390,7 @@ static struct gpat *font_gpat(struct font *fn, int len)
 	return pats;
 }
 
-static struct grule *font_gsub(struct font *fn, int len, int feat, int scrp, int lang)
+static struct grule *font_gsub(struct font *fn, int len, int sec, int feat, int scrp, int lang)
 {
 	struct grule *rule;
 	struct gpat *pats = font_gpat(fn, len);
@@ -402,13 +402,14 @@ static struct grule *font_gsub(struct font *fn, int len, int feat, int scrp, int
 	rule = &fn->gsub[fn->gsub_n++];
 	rule->pats = pats;
 	rule->len = len;
+	rule->sec = sec;
 	rule->feat = feat;
 	rule->scrp = scrp;
 	rule->lang = lang;
 	return rule;
 }
 
-static struct grule *font_gpos(struct font *fn, int len, int feat, int scrp, int lang)
+static struct grule *font_gpos(struct font *fn, int len, int sec, int feat, int scrp, int lang)
 {
 	struct grule *rule;
 	struct gpat *pats = font_gpat(fn, len);
@@ -420,6 +421,7 @@ static struct grule *font_gpos(struct font *fn, int len, int feat, int scrp, int
 	rule = &fn->gpos[fn->gpos_n++];
 	rule->pats = pats;
 	rule->len = len;
+	rule->sec = sec;
 	rule->feat = feat;
 	rule->scrp = scrp;
 	rule->lang = lang;
@@ -428,7 +430,9 @@ static struct grule *font_gpos(struct font *fn, int len, int feat, int scrp, int
 
 static int font_readgpat(struct font *fn, struct gpat *p, char *s)
 {
-	if (s[0] == '@') {
+	if (isdigit((unsigned char) s[0])) {
+		p->g = atoi(s);
+	} else if (s[0] == '@') {
 		p->g = atoi(s + 1);
 		if (iset_len(fn->ggrp, p->g) == 1)
 			p->g = iset_get(fn->ggrp, p->g)[0];
@@ -437,7 +441,7 @@ static int font_readgpat(struct font *fn, struct gpat *p, char *s)
 	} else {
 		p->g = font_idx(fn, font_glyph(fn, s));
 	}
-	return p->g < 0;
+	return p->g < 0 || p->g >= fn->gl_n;
 }
 
 static void font_readfeat(struct font *fn, char *tok, int *feat, int *scrp, int *lang)
@@ -451,7 +455,7 @@ static void font_readfeat(struct font *fn, char *tok, int *feat, int *scrp, int 
 		stag = strchr(ftag, ':') + 1;
 		stag[-1] = '\0';
 	}
-	if (strchr(stag, ':')) {
+	if (stag && strchr(stag, ':')) {
 		ltag = strchr(stag, ':') + 1;
 		ltag[-1] = '\0';
 	}
@@ -462,17 +466,12 @@ static void font_readfeat(struct font *fn, char *tok, int *feat, int *scrp, int 
 	*feat = font_findfeat(fn, tok);
 }
 
-static int font_readgsub(struct font *fn, FILE *fin)
+static int font_readgsub(struct font *fn, FILE *fin, int n, int sec, int feat, int scrp, int lang)
 {
 	char tok[128];
 	struct grule *rule;
-	int feat, scrp, lang;
-	int i, n;
-	if (fscanf(fin, "%127s %d", tok, &n) != 2)
-		return 1;
-	font_readfeat(fn, tok, &feat, &scrp, &lang);
-	rule = font_gsub(fn, n, feat, scrp, lang);
-	rule->sec = fn->secs;
+	int i;
+	rule = font_gsub(fn, n, sec, feat, scrp, lang);
 	for (i = 0; i < n; i++) {
 		if (fscanf(fin, "%127s", tok) != 1)
 			return 1;
@@ -488,18 +487,13 @@ static int font_readgsub(struct font *fn, FILE *fin)
 	return 0;
 }
 
-static int font_readgpos(struct font *fn, FILE *fin)
+static int font_readgpos(struct font *fn, FILE *fin, int n, int sec, int feat, int scrp, int lang)
 {
 	char tok[128];
 	char *col;
 	struct grule *rule;
-	int feat, scrp, lang;
-	int i, n;
-	if (fscanf(fin, "%127s %d", tok, &n) != 2)
-		return 1;
-	font_readfeat(fn, tok, &feat, &scrp, &lang);
-	rule = font_gpos(fn, n, feat, scrp, lang);
-	rule->sec = fn->secs;
+	int i;
+	rule = font_gpos(fn, n, sec, feat, scrp, lang);
 	for (i = 0; i < n; i++) {
 		if (fscanf(fin, "%127s", tok) != 1)
 			return 1;
@@ -526,13 +520,27 @@ static int font_readggrp(struct font *fn, FILE *fin)
 	for (i = 0; i < n; i++) {
 		if (fscanf(fin, GNFMT, tok) != 1)
 			return 1;
-		g = font_idx(fn, font_glyph(fn, tok));
-		if (g >= 0) {
+		if (isdigit((unsigned char) tok[0])) {
+			g = atoi(tok);
+		} else {
+			g = font_idx(fn, font_glyph(fn, tok));
+		}
+		if (g >= 0 && g < fn->gl_n) {
 			iset_put(fn->ggrp, id, g);
 			iset_put(fn->ggrp_rev, g, id);
 		}
 	}
 	return 0;
+}
+
+static void font_readgsec(struct font *fn, char *ln, int *sec, int *gpos, int *feat, int *scrp, int *lang)
+{
+	char cmd[16], tok[128];
+	int n = sscanf(ln, "%d %15s %127s", sec, cmd, tok);
+	if (n > 1)
+		*gpos = !strcmp(cmd, "gpos");
+	if (n > 2)
+		font_readfeat(fn, tok, feat, scrp, lang);
 }
 
 static int font_readkern(struct font *fn, FILE *fin)
@@ -542,7 +550,7 @@ static int font_readkern(struct font *fn, FILE *fin)
 	int val;
 	if (fscanf(fin, GNFMT " " GNFMT " %d", c1, c2, &val) != 3)
 		return 1;
-	rule = font_gpos(fn, 2, font_findfeat(fn, "kern"), -1, -1);
+	rule = font_gpos(fn, 2, 0, font_findfeat(fn, "kern"), -1, -1);
 	rule->pats[0].g = font_idx(fn, font_glyph(fn, c1));
 	rule->pats[1].g = font_idx(fn, font_glyph(fn, c2));
 	rule->pats[0].xadv = val;
@@ -560,7 +568,7 @@ static void font_lig(struct font *fn, char *lig)
 	int j, n = 0;
 	while (utf8read(&s, c) > 0)
 		g[n++] = font_idx(fn, font_find(fn, c));
-	rule = font_gsub(fn, n + 1, font_findfeat(fn, "liga"), -1, -1);
+	rule = font_gsub(fn, n + 1, 0, font_findfeat(fn, "liga"), -1, -1);
 	for (j = 0; j < n; j++) {
 		rule->pats[j].g = g[j];
 		rule->pats[j].flg = GF_PAT;
@@ -602,12 +610,14 @@ struct font *font_open(char *path)
 {
 	struct font *fn;
 	int ch_g = -1;		/* last glyph in the charset */
-	int ch_n = 0;			/* number of glyphs in the charset */
+	int ch_n = 0;		/* number of glyphs in the charset */
 	char tok[128];
 	FILE *fin;
 	char ligs[512][GNLEN];
 	int ligs_n = 0;
-	int sec;
+	int sec = 0, feat = 0, scrp = 0, lang = 0;
+	int sec_gpos = 0;	/* 0: gsub, 1: gpos */
+	int cnt;
 	int i;
 	fin = fopen(path, "r");
 	if (!fin)
@@ -632,12 +642,24 @@ struct font *font_open(char *path)
 					ligs_n++;
 			}
 		} else if (!strcmp("gsec", tok)) {
-			if (fscanf(fin, "%d", &sec) == 1)
-				fn->secs++;
+			fgets(tok, sizeof(tok), fin);
+			font_readgsec(fn, tok, &sec, &sec_gpos, &feat, &scrp, &lang);
+			continue;
 		} else if (!strcmp("gsub", tok)) {
-			font_readgsub(fn, fin);
+			if (fscanf(fin, "%127s %d", tok, &cnt) == 2) {
+				font_readfeat(fn, tok, &feat, &scrp, &lang);
+				font_readgsub(fn, fin, cnt, sec, feat, scrp, lang);
+			}
 		} else if (!strcmp("gpos", tok)) {
-			font_readgpos(fn, fin);
+			if (fscanf(fin, "%127s %d", tok, &cnt) == 2) {
+				font_readfeat(fn, tok, &feat, &scrp, &lang);
+				font_readgpos(fn, fin, cnt, sec, feat, scrp, lang);
+			}
+		} else if (isdigit((unsigned char) tok[0])) {
+			if (sec_gpos)	/* compact gpos rule */
+				font_readgpos(fn, fin, atoi(tok), sec, feat, scrp, lang);
+			else		/* compact gsub rule */
+				font_readgsub(fn, fin, atoi(tok), sec, feat, scrp, lang);
 		} else if (!strcmp("ggrp", tok)) {
 			font_readggrp(fn, fin);
 		} else if (!strcmp("spacewidth", tok)) {
@@ -778,7 +800,7 @@ int font_feat(struct font *fn, char *name, int val)
 	int idx = font_findfeat(fn, name);
 	int old = idx >= 0 ? fn->feat_set[idx] : 0;
 	if (idx >= 0)
-		fn->feat_set[idx] = val != 0;
+		fn->feat_set[idx] = (val != 0);
 	return old;
 }
 
