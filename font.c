@@ -672,7 +672,7 @@ struct font *font_open(char *path)
 			fscanf(fin, "%s", fn->fontname);
 		} else if (!strcmp("charset", tok)) {
 			while (!font_readchar(fn, fin, &ch_n, &ch_g))
-				;
+				skipline(fin);
 			break;
 		}
 		skipline(fin);
