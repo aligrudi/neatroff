@@ -586,7 +586,6 @@ static int fmta_last(struct word *words, int words_n, int llen, int br,
 	long cost, last_cost = 0;
 	int lwid = 0;		/* current line length */
 	int swid = 0;		/* amount of stretchable spaces */
-	int nspc = 0;		/* number of stretchable spaces */
 	int pos = words_n;
 	int i = pos - 1;
 	if (words[i].hy)	/* the last word is hyphenated */
@@ -595,10 +594,8 @@ static int fmta_last(struct word *words, int words_n, int llen, int br,
 		lwid += words[i].wid;
 		if (i + 1 < pos)
 			lwid += words[i + 1].gap;
-		if (i + 1 < pos && words[i + 1].str) {
+		if (i + 1 < pos && words[i + 1].str)
 			swid += words[i + 1].gap;
-			nspc++;
-		}
 		if (lwid > llen + swid * n_ssh / 100)
 			break;
 		cost = best[i];
