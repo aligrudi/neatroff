@@ -80,7 +80,7 @@ static int num_fmt(char *s, int n, int fmt);
 /* the contents of a number register (returns a static buffer) */
 char *num_str(int id)
 {
-	static char numbuf[128];
+	static char numbuf[PATHLEN];
 	char *s = map_name(id);
 	if (!nregs_fmt[id])
 		nregs_fmt[id] = '0';

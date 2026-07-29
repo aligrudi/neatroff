@@ -50,7 +50,7 @@ static int dev_position(char *id)
 
 int dev_mnt(int pos, char *id, char *name)
 {
-	char path[PATHLEN];
+	char path[PATHLEN * 3];
 	struct font *fn;
 	if (pos >= NFONTS)
 		return -1;
