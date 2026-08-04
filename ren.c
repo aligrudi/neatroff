@@ -1226,6 +1226,6 @@ int f_nexttrap(void)
 {
 	int pos = trap_pos(n_d);
 	if (cdiv)
-		return pos >= 0 ? pos : 0x7fffffff;
+		return pos >= 0 ? pos : 0x3fffffff;
 	return (pos >= 0 && pos < n_p ? pos : n_p) - n_d;
 }
